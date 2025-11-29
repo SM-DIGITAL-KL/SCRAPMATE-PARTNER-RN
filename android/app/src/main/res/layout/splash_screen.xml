@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/splash_root_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F6FFF6">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/splash_logo"
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:src="@drawable/logo_dark"
+            android:contentDescription="Scrapmate Logo"
+            android:layout_marginBottom="16dp" />
+
+        <ImageView
+            android:id="@+id/splash_logo_text"
+            android:layout_width="200dp"
+            android:layout_height="48dp"
+            android:src="@drawable/logo_text"
+            android:contentDescription="Scrapmate Text"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/splash_business_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Business"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:background="@drawable/business_gradient_background" />
+
+    </LinearLayout>
+
+</RelativeLayout>
+

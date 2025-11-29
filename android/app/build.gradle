@@ -77,13 +77,20 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.scrapmatevendor"
+    namespace "com.scrapmatepartner.app"
+    
+    // Load keystore properties from gradle.properties
+    def keystorePropertiesFile = rootProject.file("gradle.properties")
+    def keystoreProperties = new Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    }
     defaultConfig {
-        applicationId "com.scrapmatevendor"
+        applicationId "com.scrapmatepartner.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.0.1"
     }
     signingConfigs {
         debug {
@@ -92,15 +99,28 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (keystoreProperties['MYAPP_RELEASE_STORE_FILE']) {
+                def keystorePath = keystoreProperties['MYAPP_RELEASE_STORE_FILE']
+                def keystoreFile = file(keystorePath)
+                if (keystoreFile.exists()) {
+                    storeFile keystoreFile
+                    storePassword keystoreProperties['MYAPP_RELEASE_STORE_PASSWORD']
+                    keyAlias keystoreProperties['MYAPP_RELEASE_KEY_ALIAS']
+                    keyPassword keystoreProperties['MYAPP_RELEASE_KEY_PASSWORD']
+                } else {
+                    println "WARNING: Keystore file not found at ${keystorePath}. Release builds will fail."
+                }
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Signing with release keystore
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
@@ -117,3 +137,5 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"

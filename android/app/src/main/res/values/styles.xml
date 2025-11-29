@@ -1,9 +1,21 @@
 <resources>
-
-    <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
-        <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+    <!-- Base application theme -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here -->
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">#F6FFF6</item>
+        <item name="android:statusBarColor">#F6FFF6</item>
+        <item name="android:navigationBarColor">#F6FFF6</item>
     </style>
-
+    
+    <!-- Splash screen theme -->
+    <style name="SplashTheme" parent="android:Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">#F6FFF6</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:statusBarColor">#F6FFF6</item>
+        <item name="android:navigationBarColor">#F6FFF6</item>
+          <item name="android:windowIsTranslucent">true</item>
+    </style>
 </resources>
