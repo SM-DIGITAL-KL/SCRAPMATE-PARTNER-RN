@@ -1,0 +1,10 @@
+# Maestro ignore file
+# Files and patterns to ignore during test execution
+
+node_modules/
+ios/build/
+android/build/
+*.log
+.DS_Store
+
+

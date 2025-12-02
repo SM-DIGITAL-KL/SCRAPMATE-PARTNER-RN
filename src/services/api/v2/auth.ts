@@ -84,13 +84,17 @@ export const verifyOtp = async (
       console.log('   Response data keys:', data.data ? Object.keys(data.data) : 'No data');
     }
 
+    // Check for error status in response (even if HTTP status is 200)
+    if (data.status === 'error') {
+      throw new Error(data.message || 'Failed to verify OTP');
+    }
+
     if (!response.ok) {
       throw new Error(data.message || 'Failed to verify OTP');
     }
 
     return data;
   } catch (error: any) {
-    console.error('Verify OTP error:', error);
     throw new Error(error.message || 'Network error occurred');
   }
 };

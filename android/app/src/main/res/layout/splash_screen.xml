@@ -32,7 +32,7 @@
             android:id="@+id/splash_business_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Business"
+            android:text="Partner"
             android:textColor="#FFFFFF"
             android:textSize="24sp"
             android:textStyle="bold"

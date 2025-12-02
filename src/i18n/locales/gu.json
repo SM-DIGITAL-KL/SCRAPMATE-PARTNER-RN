@@ -73,7 +73,15 @@
     "changeLanguage": "ભાષા બદલો",
     "joinB2BNetwork": "અમારા B2B નેટવર્કમાં જોડાઓ",
     "privacyPolicy": "ગોપનીયતા નીતિ",
-    "terms": "નિયમો"
+    "terms": "નિયમો",
+    "approvalStatus": "મંજૂરી સ્થિતિ",
+    "approved": "મંજૂર",
+    "darkGreen": "Forest Night",
+    "pending": "બાકી",
+    "rejected": "નકારવામાં આવ્યું",
+    "whitePurple": "Lavender Dream",
+    "logoutMessage": "શું તમે ખરેખર લોગ આઉટ કરવા માંગો છો?",
+    "logoutTitle": "લોગ આઉટની પુષ્ટિ કરો"
   },
   "addCategory": {
     "title": "કેટેગરી ઉમેરો",
@@ -140,6 +148,49 @@
       "categoriesOperating": "સંચાલિત કેટેગરીઓ",
       "online": "ઓનલાઇન",
       "offline": "ઓફલાઇન"
+    },
+    "earnings": {
+      "activeGigs": "સક્રિય ગીગ્સ",
+      "avgEarningsPerGig": "સરેરાશ કમાણી/ગીગ",
+      "completionRate": "પૂર્ણતા દર",
+      "currentlyWorking": "હાલમાં કાર્યરત",
+      "date": "તારીખ",
+      "earnings": "કમાણી",
+      "earningsTrend": "કમાણીનો ટ્રેન્ડ",
+      "last30Days": "છેલ્લા ૩૦ દિવસમાં",
+      "last6Months": "છેલ્લા ૬ મહિનામાં",
+      "orderId": "ઓર્ડર આઈડી",
+      "overallFeedback": "એકંદર પ્રતિસાદ",
+      "rating": "રેટિંગ",
+      "recentOrders": "તાજેતરના ઓર્ડર",
+      "status": "સ્થિતિ",
+      "thisMonth": "આ મહિને",
+      "title": "ગીગ્સ કમાણી",
+      "totalEarnings": "કુલ કમાણી",
+      "vsLastMonth": "ગયા મહિનાની સરખામણીમાં"
+    },
+    "vehicle": {
+      "addDocument": "+ દસ્તાવેજ ઉમેરો",
+      "car": "કાર",
+      "documentUploads": "દસ્તાવેજ અપલોડ",
+      "driversLicenseBack": "ડ્રાઇવિંગ લાયસન્સ (પાછળની બાજુ)",
+      "motorcycle": "મોટરસાયકલ",
+      "registrationNumber": "નોંધણી નંબર",
+      "registrationNumberPlaceholder": "દા.ત., ABC-123-XY",
+      "selectVehicleType": "વાહનનો પ્રકાર પસંદ કરો",
+      "submitVehicleInfo": "વાહન માહિતી સબમિટ કરો",
+      "title": "વાહન માહિતી",
+      "truck": "ટ્રક",
+      "uploadFailed": "અપલોડ નિષ્ફળ",
+      "uploadPending": "અપલોડ બાકી",
+      "uploadedSuccessfully": "સફળતાપૂર્વક અપલોડ કર્યું",
+      "van": "વાન",
+      "vehicleDetails": "વાહન વિગતો",
+      "vehicleInsurance": "વાહન વીમા પોલિસી",
+      "vehicleModel": "વાહન મોડલ",
+      "vehicleModelPlaceholder": "દા.ત., ટોયોટા કેમરી",
+      "vehicleRegistration": "વાહન નોંધણી પ્રમાણપત્ર",
+      "signupAsDoorStepBuyer": "ડોર સ્ટેપ બાયર તરીકે સાઇન અપ કરો"
     }
   },
   "dealerSignup": {
@@ -221,20 +272,41 @@
   "approvalWorkflow": {
     "title": "મંજૂરી સ્થિતિ",
     "applicationPending": "અરજી બાકી",
-    "applicationPendingDesc": "તમારી અરજી હાલમાં અમારી વહીવટી ટીમ દ્વારા સમીક્ષા હેઠળ છે. નિર્ણય લેવામાં આવ્યા પછી અમે તમને સૂચિત કરીશું. તમારા ધીરજ માટે આભાર.",
-    "inReview": "સમીક્ષામાં",
-    "lastUpdated": "છેલ્લું અપડેટ: 2 મિનિટ પહેલાં",
+    "applicationPendingDesc": "તમારી અરજીની હાલમાં સમીક્ષા કરવામાં આવી રહી છે. નિર્ણય લેવાયા પછી અમે તમને જાણ કરીશું.",
+    "inReview": "સમીક્ષા હેઠળ",
+    "lastUpdated": "છેલ્લે અપડેટ: ૨ મિનિટ પહેલા",
     "applicationProgress": "અરજી પ્રગતિ",
     "recentUpdates": "તાજેતરના અપડેટ્સ",
     "applicationSubmitted": "અરજી સબમિટ કરી",
-    "applicationSubmittedDesc": "તમારી વ્યવસાય સાઇનઅપ અને દસ્તાવેજ અપલોડ પૂર્ણ થયું છે. અરજી હવે સમીક્ષા માટે કતારમાં છે.",
-    "documentsVerified": "દસ્તાવેજો ચકાસાયા",
-    "documentsVerifiedDesc": "અપલોડ કરેલા વ્યવસાય લાઇસન્સ અને KYC દસ્તાવેજો સફળતાપૂર્વક ચકાસાયા છે.",
-    "internalReviewInitiated": "આંતરિક સમીક્ષા શરૂ કરી",
-    "internalReviewInitiatedDesc": "તમારી અરજી અમારી અનુપાલન ટીમ દ્વારા વિગતવાર આંતરિક તપાસમાંથી પસાર થઈ રહી છે.",
+    "applicationSubmittedDesc": "વ્યવસાય સાઇનઅપ અને દસ્તાવેજો સફળતાપૂર્વક સબમિટ કર્યા. તે હવે ચકાસણી કતારમાં છે.",
+    "documentsVerified": "દસ્તાવેજો ચકાસ્યા",
+    "documentsVerifiedDesc": "અપલોડ કરેલા લાયસન્સ અને કેવાયસી દસ્તાવેજો સફળતાપૂર્વક ચકાસવામાં આવ્યા.",
+    "internalReviewInitiated": "આંતરિક સમીક્ષા શરૂ",
+    "internalReviewInitiatedDesc": "અમારી અનુપાલન ટીમ તમારી અરજીની વિગતવાર સમીક્ષા કરી રહી છે.",
     "contactSupport": "સપોર્ટનો સંપર્ક કરો",
     "pending": "બાકી",
     "approved": "મંજૂર",
-    "rejected": "નકારી"
+    "rejected": "નકારવામાં આવ્યું",
+    "applicationApproved": "અરજી મંજૂર",
+    "applicationApprovedDesc": "તમારી B2B અરજી મંજૂર કરવામાં આવી છે. તમે હવે બધી સુવિધાઓનો ઉપયોગ કરી શકો છો.",
+    "applicationRejected": "અરજી નકારી",
+    "applicationRejectedDesc": "તમારી B2B અરજી નકારવામાં આવી છે. વધુ માહિતી માટે કૃપા કરીને સપોર્ટનો સંપર્ક કરો."
+  },
+  "joinAs": {
+    "alreadyHaveAccount": "પહેલેથી જ ખાતું છે?",
+    "b2b": {
+      "description": "ઔદ્યોગિક અને જથ્થાબંધ ભંગાર વેચનારા અને ખરીદદારો માટે. જથ્થાબંધ ઓર્ડર અને વ્યવસાયિક વ્યવહારોનું સંચાલન કરો.",
+      "title": "B2B તરીકે જોડાઓ"
+    },
+    "b2c": {
+      "description": "છૂટક ભંગાર ખરીદદારો અને વેચનારાઓ માટે. સીધા ગ્રાહકોને વેચો અને છૂટક ઓર્ડરનું સંચાલન કરો.",
+      "title": "B2C તરીકે જોડાઓ"
+    },
+    "continue": "ચાલુ રાખો",
+    "delivery": {
+      "description": "ડિલિવરી પાર્ટનર બનો. ગ્રાહકો પાસેથી ભંગાર એકત્રિત કરો અને દરેક ડિલિવરી પર કમાઓ.",
+      "title": "ડોર સ્ટેપ બાયર તરીકે જોડાઓ"
+    },
+    "login": "લોગ ઇન કરો"
   }
 }

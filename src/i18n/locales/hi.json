@@ -73,7 +73,15 @@
     "changeLanguage": "भाषा बदलें",
     "joinB2BNetwork": "हमारे B2B नेटवर्क में शामिल हों",
     "privacyPolicy": "गोपनीयता नीति",
-    "terms": "नियम"
+    "terms": "नियम",
+    "approvalStatus": "അംഗീകാര നില",
+    "approved": "അംഗീകരിച്ചു",
+    "darkGreen": "Forest Night",
+    "pending": "തീർപ്പാക്കാത്ത",
+    "rejected": "നിരസിച്ചു",
+    "whitePurple": "Lavender Dream",
+    "logoutMessage": "ലോഗൗട്ട് ചെയ്യാൻ നിങ്ങൾക്ക് ഉറപ്പാണോ?",
+    "logoutTitle": "ലോഗൗട്ട് സ്ഥിരീകരിക്കുക"
   },
   "addCategory": {
     "title": "श्रेणी जोड़ें",
@@ -140,6 +148,49 @@
       "categoriesOperating": "संचालित श्रेणियां",
       "online": "ऑनलाइन",
       "offline": "ऑफलाइन"
+    },
+    "earnings": {
+      "activeGigs": "सक्रिय गिग्स",
+      "avgEarningsPerGig": "औसत आय/गिग",
+      "completionRate": "पूर्णता दर",
+      "currentlyWorking": "वर्तमान में कार्यरत",
+      "date": "तारीख",
+      "earnings": "आय",
+      "earningsTrend": "आय का रुझान",
+      "last30Days": "पिछले 30 दिन",
+      "last6Months": "पिछले 6 महीने",
+      "orderId": "ऑर्डर आईडी",
+      "overallFeedback": "कुल प्रतिक्रिया",
+      "rating": "रेटिंग",
+      "recentOrders": "हाल के ऑर्डर",
+      "status": "स्थिति",
+      "thisMonth": "इस महीने",
+      "title": "गिग्स आय",
+      "totalEarnings": "कुल आय",
+      "vsLastMonth": "पिछले महीने के मुकाबले"
+    },
+    "vehicle": {
+      "addDocument": "+ दस्तावेज़ जोड़ें",
+      "car": "कार",
+      "documentUploads": "दस्तावेज़ अपलोड",
+      "driversLicenseBack": "ड्राइविंग लाइसेंस (पीछे की ओर)",
+      "motorcycle": "मोटरसाइकिल",
+      "registrationNumber": "पंजीकरण संख्या",
+      "registrationNumberPlaceholder": "उदा., ABC-123-XY",
+      "selectVehicleType": "वाहन का प्रकार चुनें",
+      "submitVehicleInfo": "वाहन जानकारी जमा करें",
+      "title": "वाहन की जानकारी",
+      "truck": "ट्रक",
+      "uploadFailed": "अपलोड विफल",
+      "uploadPending": "अपलोड लंबित",
+      "uploadedSuccessfully": "सफलतापूर्वक अपलोड किया गया",
+      "van": "वैन",
+      "vehicleDetails": "वाहन विवरण",
+      "vehicleInsurance": "वाहन बीमा पॉलिसी",
+      "vehicleModel": "वाहन मॉडल",
+      "vehicleModelPlaceholder": "उदा., टोयोटा कैमरी",
+      "vehicleRegistration": "वाहन पंजीकरण प्रमाणपत्र",
+      "signupAsDoorStepBuyer": "डोर स्टेप बायर के रूप में साइन अप करें"
     }
   },
   "dealerSignup": {
@@ -219,23 +270,43 @@
     "submitForVerification": "सत्यापन के लिए सबमिट करें"
   },
   "approvalWorkflow": {
-    "title": "अनुमोदन स्थिति",
+    "title": "स्वीकृति स्थिति",
     "applicationPending": "आवेदन लंबित",
-    "applicationPendingDesc": "आपका आवेदन वर्तमान में हमारी प्रशासनिक टीम द्वारा समीक्षा के अधीन है। निर्णय लेने के बाद हम आपको सूचित करेंगे। आपके धैर्य के लिए धन्यवाद।",
+    "applicationPendingDesc": "आपके आवेदन की वर्तमान में समीक्षा की जा रही है। निर्णय लेने के बाद हम आपको सूचित करेंगे।",
     "inReview": "समीक्षा में",
     "lastUpdated": "अंतिम अपडेट: 2 मिनट पहले",
-    "applicationProgress": "आवेदन प्रगति",
+    "applicationProgress": "आवेदन की प्रगति",
     "recentUpdates": "हाल के अपडेट",
     "applicationSubmitted": "आवेदन जमा किया गया",
-    "applicationSubmittedDesc": "आपका व्यापार साइनअप और दस्तावेज़ अपलोड पूर्ण हो गया है। आवेदन अब समीक्षा के लिए कतार में है।",
+    "applicationSubmittedDesc": "व्यवसाय साइनअप और दस्तावेज़ सफलतापूर्वक जमा किए गए। यह अब सत्यापन कतार में है।",
     "documentsVerified": "दस्तावेज़ सत्यापित",
-    "documentsVerifiedDesc": "अपलोड किए गए व्यापार लाइसेंस और KYC दस्तावेज़ सफलतापूर्वक सत्यापित कर दिए गए हैं।",
-    "internalReviewInitiated": "आंतरिक समीक्षा शुरू की गई",
-    "internalReviewInitiatedDesc": "आपका आवेदन हमारी अनुपालन टीम द्वारा विस्तृत आंतरिक जांच से गुजर रहा है।",
-    "contactSupport": "सहायता से संपर्क करें",
+    "documentsVerifiedDesc": "अपलोड किए गए लाइसेंस और केवाईसी दस्तावेज़ों का सफलतापूर्वक सत्यापन किया गया।",
+    "internalReviewInitiated": "आंतरिक समीक्षा शुरू",
+    "internalReviewInitiatedDesc": "हमारी अनुपालन टीम आपके आवेदन की विस्तार से समीक्षा कर रही है।",
+    "contactSupport": "समर्थन से संपर्क करें",
     "pending": "लंबित",
-    "approved": "अनुमोदित",
-    "rejected": "अस्वीकृत"
+    "approved": "स्वीकृत",
+    "rejected": "अस्वीकृत",
+    "applicationApproved": "आवेदन स्वीकृत",
+    "applicationApprovedDesc": "आपका B2B आवेदन स्वीकृत हो गया है। अब आप सभी सुविधाओं का उपयोग कर सकते हैं।",
+    "applicationRejected": "आवेदन अस्वीकृत",
+    "applicationRejectedDesc": "आपका B2B आवेदन अस्वीकृत कर दिया गया है। अधिक जानकारी के लिए कृपया समर्थन से संपर्क करें।"
+  },
+  "joinAs": {
+    "alreadyHaveAccount": "क्या आपके पास पहले से खाता है?",
+    "b2b": {
+      "description": "औद्योगिक और थोक स्क्रैप विक्रेताओं और खरीदारों के लिए। थोक ऑर्डर और व्यावसायिक लेनदेन प्रबंधित करें।",
+      "title": "B2B के रूप में शामिल हों"
+    },
+    "b2c": {
+      "description": "खुदरा स्क्रैप खरीदारों और विक्रेताओं के लिए। सीधे ग्राहकों को बेचें और खुदरा ऑर्डर प्रबंधित करें।",
+      "title": "B2C के रूप में शामिल हों"
+    },
+    "continue": "जारी रखें",
+    "delivery": {
+      "description": "डिलीवरी पार्टनर बनें। ग्राहकों से स्क्रैप उठाएं और हर डिलीवरी पर कमाएं।",
+      "title": "डोर स्टेप बायर के रूप में शामिल हों"
+    },
+    "login": "लॉग इन करें"
   }
 }
-

@@ -167,11 +167,28 @@ export const AppNavigator = () => {
   }, []);
 
   useEffect(() => {
-    const sub = DeviceEventEmitter.addListener('FORCE_LOGOUT', () => {
+    const sub1 = DeviceEventEmitter.addListener('FORCE_LOGOUT', () => {
       setShowAuthFlow(true);
       setInitialAuthRoute('JoinAs');
     });
-    return () => sub.remove();
+    
+    // Listen for navigate to JoinAs event (without logging out)
+    const sub2 = DeviceEventEmitter.addListener('NAVIGATE_TO_JOIN_AS', () => {
+      setShowAuthFlow(true);
+      setInitialAuthRoute('JoinAs');
+    });
+    
+    // Listen for switch signup type event (for logged-in users with type 'N')
+    const sub3 = DeviceEventEmitter.addListener('SWITCH_SIGNUP_TYPE', () => {
+      // Close auth flow to show main app with new signup type
+      setShowAuthFlow(false);
+    });
+    
+    return () => {
+      sub1.remove();
+      sub2.remove();
+      sub3.remove();
+    };
   }, []);
 
   const handleAuthComplete = useCallback(() => {

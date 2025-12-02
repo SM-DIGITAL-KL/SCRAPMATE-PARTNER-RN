@@ -1,4 +1,4 @@
-package com.scrapmatepartner.app
+package com.app.scrapmatepartner
 
 import android.app.Activity
 import android.content.Context
@@ -13,8 +13,8 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.WindowManager
-import com.scrapmatepartner.app.R
-import com.scrapmatepartner.app.MainActivity
+import com.app.scrapmatepartner.R
+import com.app.scrapmatepartner.MainActivity
 
 class SplashActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {

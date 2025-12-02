@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CommonActions } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DashboardScreen from '../screens/B2C/DashboardScreen';
 import DeliveryTrackingScreen from '../screens/B2C/DeliveryTrackingScreen';
 import AssignPartnerScreen from '../screens/B2C/AssignPartnerScreen';
@@ -14,7 +15,10 @@ import TermsScreen from '../screens/Common/TermsScreen';
 import DealerSignupScreen from '../screens/B2B/DealerSignupScreen';
 import DocumentUploadScreen from '../screens/B2B/DocumentUploadScreen';
 import ApprovalWorkflowScreen from '../screens/B2B/ApprovalWorkflowScreen';
+import SubscriptionPlansScreen from '../screens/B2B/SubscriptionPlansScreen';
+import B2CSignupScreen from '../screens/B2C/B2CSignupScreen';
 import { useTheme } from '../components/ThemeProvider';
+import { getUserData } from '../services/auth/authService';
 
 export type B2CStackParamList = {
   Dashboard: undefined;
@@ -29,57 +33,93 @@ export type B2CStackParamList = {
   Terms: undefined;
   DealerSignup: undefined;
   DocumentUpload: undefined;
-  ApprovalWorkflow: undefined;
+  ApprovalWorkflow: { fromProfile?: boolean } | undefined;
+  SubscriptionPlans: undefined;
+  B2CSignup: undefined;
 };
 
 const Stack = createNativeStackNavigator<B2CStackParamList>();
 
-// Force initial state to Dashboard
-const getInitialState = () => ({
-  routes: [{ name: 'Dashboard' as const }],
-  index: 0,
-});
-
 export const B2CStack = forwardRef<any, {}>((props, ref) => {
   const { theme } = useTheme();
   const navigationRef = useRef<any>(null);
+  const [initialRoute, setInitialRoute] = React.useState<keyof B2CStackParamList | null>(null);
   
-  // Reset to Dashboard immediately when component mounts/remounts
+  // Check if B2C signup is needed and set initial route
   React.useEffect(() => {
-    console.log('B2CStack: Component mounted, setting up navigation reset');
-    
-    const resetNavigation = () => {
-      if (navigationRef.current?.isReady()) {
-        console.log('B2CStack: Resetting navigation to Dashboard');
-        navigationRef.current.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'Dashboard' }],
-          })
-        );
-        return true;
-      }
-      return false;
-    };
-    
-    // Try immediate reset
-    if (resetNavigation()) {
-      return;
-    }
-    
-    // If not ready, try multiple times with increasing delays
-    const attempts = [100, 200, 300, 500];
-    const timers = attempts.map(delay => 
-      setTimeout(() => {
-        if (resetNavigation()) {
-          timers.forEach(t => clearTimeout(t));
+    const checkB2CSignupAndSetRoute = async (retryCount = 0) => {
+      try {
+        // Add increasing delays for retries to ensure AsyncStorage is updated after login
+        const delay = retryCount === 0 ? 100 : retryCount * 200;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        const b2cSignupNeeded = await AsyncStorage.getItem('@b2c_signup_needed');
+        console.log(`🔍 B2CStack: B2C signup needed from storage (attempt ${retryCount + 1}):`, b2cSignupNeeded);
+        
+        // Also check user_type as fallback - if user_type is 'N', route to signup
+        let userType: string | null = null;
+        try {
+          const userData = await getUserData();
+          userType = userData?.user_type || null;
+          console.log(`🔍 B2CStack: User type from userData:`, userType);
+        } catch (error) {
+          console.error('❌ B2CStack: Error getting user data:', error);
         }
-      }, delay)
-    );
-    
-    return () => {
-      timers.forEach(timer => clearTimeout(timer));
+        
+        // If no status found and this is the first attempt, retry a few times
+        if (!b2cSignupNeeded && !userType && retryCount < 3) {
+          console.log(`⏳ B2CStack: Status not found, retrying in ${(retryCount + 1) * 200}ms...`);
+          return checkB2CSignupAndSetRoute(retryCount + 1);
+        }
+        
+        let route: keyof B2CStackParamList = 'Dashboard';
+        
+        // IMPORTANT: Check user_type first - if user_type is not 'N', signup is complete, go to dashboard
+        // Only route to signup if user_type is 'N' (new_user) AND @selected_join_type is 'b2c'
+        if (userType === 'N') {
+          // Check if user selected B2C in JoinAs screen
+          const selectedJoinType = await AsyncStorage.getItem('@selected_join_type');
+          if (selectedJoinType === 'b2c') {
+            console.log('✅ B2CStack: User type is N and selected B2C - routing to B2CSignup');
+            route = 'B2CSignup';
+            // Don't set AsyncStorage flags until signup is complete
+          } else {
+            // User type is N but didn't select B2C - route to dashboard (they'll be routed to correct stack)
+            console.log('✅ B2CStack: User type is N but selected type is:', selectedJoinType, '- routing to Dashboard');
+            route = 'Dashboard';
+          }
+        } else {
+          // User type is not 'N' - signup is complete, check approval status
+          // Check for B2C approval status in AsyncStorage (will be synced from profile in dashboard)
+          const b2cApprovalStatus = await AsyncStorage.getItem('@b2c_approval_status');
+          
+          if (b2cApprovalStatus === 'rejected') {
+            // If rejected, route to signup screen to allow user to fix issues
+            console.log('✅ B2CStack: Status is rejected - routing to B2CSignup to fix issues');
+            route = 'B2CSignup';
+            // Keep rejected status in AsyncStorage and set signup needed flag
+            await AsyncStorage.setItem('@b2c_signup_needed', 'true');
+          } else {
+            // Clear any leftover flags to prevent future issues
+            if (b2cSignupNeeded === 'true') {
+              console.log('✅ B2CStack: User type is not N, clearing @b2c_signup_needed flag');
+              await AsyncStorage.removeItem('@b2c_signup_needed');
+            }
+            console.log('✅ B2CStack: Setting initial route to Dashboard (signup complete, user_type: ' + userType + ')');
+            route = 'Dashboard';
+          }
+        }
+        
+        console.log('🎯 B2CStack: Final initial route set to:', route);
+        setInitialRoute(route);
+      } catch (error) {
+        console.error('❌ B2CStack: Error checking B2C signup status:', error);
+        // On error, default to dashboard
+        setInitialRoute('Dashboard');
+      }
     };
+    
+    checkB2CSignupAndSetRoute();
   }, []); // Empty deps - run on every mount/remount
 
   // Make screenOptions reactive to theme changes
@@ -93,12 +133,16 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
   // Expose navigation ref to parent
   useImperativeHandle(ref, () => navigationRef.current, []);
 
+  // Don't render navigator until we know the initial route
+  if (!initialRoute) {
+    return null; // Or a loading screen
+  }
+
   return (
     <Stack.Navigator
       ref={navigationRef}
       screenOptions={screenOptions}
-      initialRouteName="Dashboard"
-      initialState={getInitialState()}
+      initialRouteName={initialRoute}
     >
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="DeliveryTracking" component={DeliveryTrackingScreen} />
@@ -113,6 +157,8 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="DealerSignup" component={DealerSignupScreen} />
       <Stack.Screen name="DocumentUpload" component={DocumentUploadScreen} />
       <Stack.Screen name="ApprovalWorkflow" component={ApprovalWorkflowScreen} />
+      <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
+      <Stack.Screen name="B2CSignup" component={B2CSignupScreen} />
     </Stack.Navigator>
   );
 });

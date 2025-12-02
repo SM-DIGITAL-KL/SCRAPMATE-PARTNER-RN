@@ -10,7 +10,7 @@
  * Update this value to change the API base URL
  * For production, use environment variables or build-time configuration
  */
-export const API_BASE_URL = 'https://5a6ece8ac2d4.ngrok-free.app/api';
+export const API_BASE_URL = 'https://5abcbf1fd5df.ngrok-free.app/api';
 
 /**
  * API Key for authentication
@@ -31,8 +31,12 @@ export const getApiHeaders = (includeApiKey: boolean = true) => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'ngrok-skip-browser-warning': 'true', // Skip ngrok browser warning
   };
+
+  // Add ngrok skip browser warning header
+  if (API_BASE_URL.includes('ngrok-free.app')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
 
   if (includeApiKey && API_KEY) {
     headers['api-key'] = API_KEY;
@@ -72,6 +76,7 @@ export const API_ROUTES = {
       uploadImage: (userId: string | number) => `/v2/profile/${userId}/image`,
       uploadAadhar: (userId: string | number) => `/v2/profile/${userId}/aadhar`,
       uploadDrivingLicense: (userId: string | number) => `/v2/profile/${userId}/driving-license`,
+      completeDeliverySignup: (userId: string | number) => `/v2/profile/${userId}/complete-delivery-signup`,
     },
     // B2B Signup Routes
     b2bSignup: {

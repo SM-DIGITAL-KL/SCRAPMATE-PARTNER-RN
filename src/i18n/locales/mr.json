@@ -73,7 +73,15 @@
     "changeLanguage": "भाषा बदला",
     "joinB2BNetwork": "आमच्या B2B नेटवर्कमध्ये सामील व्हा",
     "privacyPolicy": "गोपनीयता धोरण",
-    "terms": "अटी"
+    "terms": "अटी",
+    "approvalStatus": "मंजूरीची स्थिती",
+    "approved": "मंजूर",
+    "darkGreen": "Forest Night",
+    "pending": "प्रलंबित",
+    "rejected": "नाकारले",
+    "whitePurple": "Lavender Dream",
+    "logoutMessage": "तुम्हाला नक्की लॉग आउट करायचे आहे का?",
+    "logoutTitle": "लॉग आउटची पुष्टी करा"
   },
   "addCategory": {
     "title": "श्रेणी जोडा",
@@ -140,6 +148,49 @@
       "categoriesOperating": "चालू श्रेणी",
       "online": "ऑनलाइन",
       "offline": "ऑफलाइन"
+    },
+    "earnings": {
+      "activeGigs": "सक्रिय गिग्स",
+      "avgEarningsPerGig": "सरासरी कमाई/गिग",
+      "completionRate": "पूर्णता दर",
+      "currentlyWorking": "सध्या कार्यरत",
+      "date": "तारीख",
+      "earnings": "कमाई",
+      "earningsTrend": "कमाईचा कल",
+      "last30Days": "गेल्या ३० दिवसांत",
+      "last6Months": "गेल्या ६ महिन्यांत",
+      "orderId": "ऑर्डर आयडी",
+      "overallFeedback": "एकूण अभिप्राय",
+      "rating": "रेटिंग",
+      "recentOrders": "अलीकडील ऑर्डर्स",
+      "status": "स्थिती",
+      "thisMonth": "या महिन्यात",
+      "title": "गिग्स कमाई",
+      "totalEarnings": "एकूण कमाई",
+      "vsLastMonth": "गेल्या महिन्याच्या तुलनेत"
+    },
+    "vehicle": {
+      "addDocument": "+ कागदपत्र जोडा",
+      "car": "कार",
+      "documentUploads": "कागदपत्र अपलोड",
+      "driversLicenseBack": "ड्रायव्हिंग लायसन्स (मागील बाजू)",
+      "motorcycle": "मोटारसायकल",
+      "registrationNumber": "नोंदणी क्रमांक",
+      "registrationNumberPlaceholder": "उदा., ABC-123-XY",
+      "selectVehicleType": "वाहन प्रकार निवडा",
+      "submitVehicleInfo": "वाहन माहिती सबमिट करा",
+      "title": "वाहन माहिती",
+      "truck": "ट्रक",
+      "uploadFailed": "अपलोड अयशस्वी",
+      "uploadPending": "अपलोड प्रलंबित",
+      "uploadedSuccessfully": "यशस्वीरित्या अपलोड केले",
+      "van": "व्हॅन",
+      "vehicleDetails": "वाहन तपशील",
+      "vehicleInsurance": "वाहन विमा पॉलिसी",
+      "vehicleModel": "वाहन मॉडेल",
+      "vehicleModelPlaceholder": "उदा., टोयोटा कॅमरी",
+      "vehicleRegistration": "वाहन नोंदणी प्रमाणपत्र",
+      "signupAsDoorStepBuyer": "डोअर स्टेप बायर म्हणून साइन अप करा"
     }
   },
   "dealerSignup": {
@@ -219,22 +270,43 @@
     "submitForVerification": "सत्यापनासाठी सबमिट करा"
   },
   "approvalWorkflow": {
-    "title": "मंजुरी स्थिती",
+    "title": "मंजूरीची स्थिती",
     "applicationPending": "अर्ज प्रलंबित",
-    "applicationPendingDesc": "तुमचा अर्ज सध्या आमच्या प्रशासन संघाद्वारे पुनरावलोकनाखाली आहे. निर्णय घेतल्यानंतर आम्ही तुम्हाला सूचित करू. तुमच्या संयमासाठी धन्यवाद.",
-    "inReview": "पुनरावलोकनात",
-    "lastUpdated": "शेवटचे अपडेट: 2 मिनिटांपूर्वी",
+    "applicationPendingDesc": "तुमच्या अर्जाचे सध्या पुनरावलोकन केले जात आहे. निर्णय झाल्यावर आम्ही तुम्हाला कळवू.",
+    "inReview": "पुनरावलोकनाधीन",
+    "lastUpdated": "शेवटचे अपडेट: २ मिनिटांपूर्वी",
     "applicationProgress": "अर्ज प्रगती",
     "recentUpdates": "अलीकडील अपडेट्स",
     "applicationSubmitted": "अर्ज सबमिट केला",
-    "applicationSubmittedDesc": "तुमची व्यवसाय साइनअप आणि दस्तऐवज अपलोड पूर्ण झाली आहे. अर्ज आता पुनरावलोकनासाठी रांगेत आहे.",
-    "documentsVerified": "दस्तऐवज सत्यापित",
-    "documentsVerifiedDesc": "अपलोड केलेले व्यवसाय परवाना आणि KYC दस्तऐवज यशस्वीरित्या सत्यापित केले गेले आहेत.",
-    "internalReviewInitiated": "अंतर्गत पुनरावलोकन सुरू केले",
-    "internalReviewInitiatedDesc": "तुमचा अर्ज आमच्या अनुपालन संघाद्वारे तपशीलवार अंतर्गत तपासणीतून जात आहे.",
+    "applicationSubmittedDesc": "व्यवसाय साइनअप आणि कागदपत्रे यशस्वीरित्या सबमिट केली. हे आता पडताळणी रांगेत आहे.",
+    "documentsVerified": "कागदपत्रे पडताळली",
+    "documentsVerifiedDesc": "अपलोड केलेले परवाना आणि केवायसी कागदपत्रे यशस्वीरित्या पडताळली गेली.",
+    "internalReviewInitiated": "अंतर्गत पुनरावलोकन सुरू",
+    "internalReviewInitiatedDesc": "आमची अनुपालन टीम तुमच्या अर्जाचे तपशीलवार पुनरावलोकन करत आहे.",
     "contactSupport": "समर्थनाशी संपर्क साधा",
     "pending": "प्रलंबित",
     "approved": "मंजूर",
-    "rejected": "नाकारले"
+    "rejected": "नाकारले",
+    "applicationApproved": "अर्ज मंजूर",
+    "applicationApprovedDesc": "तुमचा B2B अर्ज मंजूर झाला आहे. तुम्ही आता सर्व वैशिष्ट्यांमध्ये प्रवेश करू शकता.",
+    "applicationRejected": "अर्ज नाकारला",
+    "applicationRejectedDesc": "तुमचा B2B अर्ज नाकारण्यात आला आहे. अधिक माहितीसाठी कृपया समर्थनाशी संपर्क साधा."
+  },
+  "joinAs": {
+    "alreadyHaveAccount": "आधीच खाते आहे का?",
+    "b2b": {
+      "description": "औद्योगिक आणि घाऊक स्क्रॅप विक्रेते आणि खरेदीदारांसाठी. घाऊक ऑर्डर आणि व्यावसायिक व्यवहार व्यवस्थापित करा.",
+      "title": "B2B म्हणून सामील व्हा"
+    },
+    "b2c": {
+      "description": "किरकोळ स्क्रॅप खरेदीदार आणि विक्रेत्यांसाठी. थेट ग्राहकांना विक्री करा आणि किरकोळ ऑर्डर व्यवस्थापित करा.",
+      "title": "B2C म्हणून सामील व्हा"
+    },
+    "continue": "पुढे जा",
+    "delivery": {
+      "description": "डिलिव्हरी पार्टनर बना. ग्राहकांकडून स्क्रॅप गोळा करा आणि प्रत्येक डिलिव्हरीवर कमवा.",
+      "title": "डोअर स्टेप बायर म्हणून सामील व्हा"
+    },
+    "login": "लॉग इन करा"
   }
 }
