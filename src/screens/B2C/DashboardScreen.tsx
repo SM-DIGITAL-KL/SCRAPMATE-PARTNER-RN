@@ -17,6 +17,7 @@ import { useUserMode } from '../../context/UserModeContext';
 import LinearGradient from 'react-native-linear-gradient';
 import { getUserData } from '../../services/auth/authService';
 import { useProfile } from '../../hooks/useProfile';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DashboardScreen = ({ navigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
@@ -41,6 +42,35 @@ const DashboardScreen = ({ navigation }: any) => {
 
   // Fetch profile data
   const { data: profileData } = useProfile(userData?.id, !!userData?.id);
+
+  // Sync AsyncStorage with latest approval status when profile is fetched
+  React.useEffect(() => {
+    const syncB2CStatus = async () => {
+      if (profileData?.shop?.approval_status && userData?.id) {
+        try {
+          const approvalStatus = profileData.shop.approval_status;
+          await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
+          console.log('✅ DashboardScreen: Synced @b2c_approval_status to AsyncStorage:', approvalStatus);
+          
+          // If rejected, navigate to signup screen
+          if (approvalStatus === 'rejected') {
+            console.log('✅ B2C approval status is rejected - navigating to B2CSignup');
+            // Small delay to ensure navigation is ready
+            setTimeout(() => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'B2CSignup' }],
+              });
+            }, 500);
+          }
+        } catch (error) {
+          console.error('❌ Error syncing B2C status:', error);
+        }
+      }
+    };
+    
+    syncB2CStatus();
+  }, [profileData?.shop?.approval_status, userData?.id, navigation]);
 
   const handleSwitchMode = async () => {
     if (isSwitchingMode) return;

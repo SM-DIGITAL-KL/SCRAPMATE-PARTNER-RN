@@ -61,8 +61,19 @@ const DealerDashboardScreen = ({ navigation }: any) => {
           await AsyncStorage.setItem('@b2b_status', approvalStatus);
           console.log('✅ DealerDashboardScreen: Synced @b2b_status to AsyncStorage:', approvalStatus);
           
+          // If rejected, navigate to signup screen
+          if (approvalStatus === 'rejected') {
+            console.log('✅ B2B approval status is rejected - navigating to DealerSignup');
+            // Small delay to ensure navigation is ready
+            setTimeout(() => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'DealerSignup' }],
+              });
+            }, 500);
+          }
           // If B2B is approved, add B2C to allowed dashboards
-          if (approvalStatus === 'approved') {
+          else if (approvalStatus === 'approved') {
             const storedDashboards = await AsyncStorage.getItem('@allowed_dashboards');
             let dashboards: ('b2b' | 'b2c' | 'delivery')[] = [];
             

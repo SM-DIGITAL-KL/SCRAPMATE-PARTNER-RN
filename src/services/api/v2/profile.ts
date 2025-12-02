@@ -33,6 +33,26 @@ export interface ProfileData {
     is_online?: boolean;
     aadhar_card?: string | null;
     driving_license?: string | null;
+    vehicle_type?: string;
+    vehicle_model?: string;
+    vehicle_registration_number?: string;
+    approval_status?: string;
+    rejection_reason?: string | null;
+  };
+  delivery_boy?: {
+    id: string | number;
+    name: string;
+    address: string;
+    contact: string;
+    delivery_mode?: 'deliver' | 'deliverPicking' | 'picker';
+    is_online?: boolean;
+    aadhar_card?: string | null;
+    driving_license?: string | null;
+    vehicle_type?: string;
+    vehicle_model?: string;
+    vehicle_registration_number?: string;
+    approval_status?: string;
+    rejection_reason?: string | null;
   };
   created_at?: string;
   updated_at?: string;
@@ -46,12 +66,22 @@ export interface UpdateProfileData {
     ownername?: string;
     address?: string;
     contact?: string;
+    vehicle_type?: string;
+    vehicle_model?: string;
+    vehicle_registration_number?: string;
+    aadhar_card?: string;
+    driving_license?: string;
   };
   delivery?: {
     name?: string;
     address?: string;
     contact?: string;
     delivery_mode?: 'deliver' | 'deliverPicking' | 'picker';
+    vehicle_type?: string;
+    vehicle_model?: string;
+    vehicle_registration_number?: string;
+    aadhar_card?: string;
+    driving_license?: string;
   };
 }
 
@@ -295,6 +325,35 @@ export const uploadDrivingLicense = async (
   
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to upload driving license');
+  }
+
+  return result.data;
+};
+
+/**
+ * Complete delivery signup manually (fallback endpoint)
+ * This is used if the regular updateProfile doesn't update user_type to 'D'
+ */
+export const completeDeliverySignup = async (
+  userId: string | number
+): Promise<ProfileData> => {
+  const url = buildApiUrl(API_ROUTES.v2.profile.completeDeliverySignup(userId));
+  const headers = getApiHeaders();
+
+  const response = await fetchWithLogging(url, {
+    method: 'PUT',
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || 'Failed to complete delivery signup');
+  }
+
+  const result: ProfileResponse = await response.json();
+  
+  if (result.status === 'error' || !result.data) {
+    throw new Error(result.msg || 'Failed to complete delivery signup');
   }
 
   return result.data;

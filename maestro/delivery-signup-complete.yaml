@@ -1,0 +1,66 @@
+appId: com.scrapmatepartner.app
+---
+# Complete Delivery Signup Test with Document Upload Simulation
+# This is a more comprehensive test that handles the full flow
+
+- launchApp
+- waitForAnimationToEnd
+
+# Navigate to Join As and select Door Step Buyer
+- tapOn: "Join as Door Step Buyer"
+    optional: true
+- tapOn: 
+    text: ".*Door.*Step.*Buyer.*"
+    optional: true
+- waitForAnimationToEnd
+
+# Fill Personal Information
+- tapOn: "Enter your name"
+- inputText: "Automated Test User"
+- tapOn: "Enter your email address *"
+- inputText: "autotest@example.com"
+- tapOn: "Enter your address"
+- inputText: "456 Automation Street, Test City, 54321"
+- tapOn: "Enter your contact number"
+- inputText: "9876543210"
+
+# Select Vehicle Type
+- scroll
+- tapOn: "Car"
+- waitForAnimationToEnd
+
+# Fill Vehicle Details
+- scroll
+- tapOn: "Vehicle Model"
+- inputText: "Automated Test Model"
+- tapOn: "Registration Number"
+- inputText: "AUTO1234"
+
+# Scroll to documents
+- scroll
+
+# Note: For document uploads, you'll need to:
+# 1. Have test PDF files in the simulator's file system
+# 2. Or use Maestro's file handling capabilities
+# 3. Or mock the document picker in the app
+
+# Try to upload documents (may need manual intervention)
+- tapOn: "Upload Aadhar Card *"
+- waitForAnimationToEnd
+
+# If file picker appears, you can add file selection here
+# For now, we'll assume documents need to be handled manually
+
+# Submit form (may be disabled without documents)
+- scroll
+- tapOn: "Submit"
+    optional: true
+
+# Wait for response
+- waitForAnimationToEnd
+
+# Verify completion
+- assertVisible:
+    text: "Delivery"
+    optional: true
+

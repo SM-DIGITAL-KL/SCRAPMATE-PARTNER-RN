@@ -6,6 +6,8 @@ import {
     Image,
     TouchableOpacity,
     StatusBar,
+    ScrollView,
+    Platform,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,12 +18,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTabBar } from '../../context/TabBarContext';
 import { useTheme } from '../../components/ThemeProvider';
 import { useUserMode } from '../../context/UserModeContext';
+import { useTranslation } from 'react-i18next';
+import { isLoggedIn, getUserData } from '../../services/auth/authService';
+import { DeviceEventEmitter, CommonActions } from 'react-native';
 
 const JoinAsScreen = () => {
     const navigation = useNavigation();
     const { setTabBarVisible } = useTabBar();
     const { theme, isDark, themeName } = useTheme();
     const { setMode } = useUserMode();
+    const { t } = useTranslation();
     const [selectedOption, setSelectedOption] = React.useState<'b2b' | 'b2c' | 'delivery' | null>(null);
     const styles = getStyles(theme, isDark, themeName);
 
@@ -38,15 +44,37 @@ const JoinAsScreen = () => {
     }, [setTabBarVisible]);
 
     const handleContinue = async () => {
-        if (!selectedOption) {
-            return;
-        }
-        
         // Mark join as screen as shown
         await AsyncStorage.setItem('@join_as_shown', 'true');
-        await setMode(selectedOption);
         
-        // Navigate to login screen
+        if (!selectedOption) {
+            // No option selected - just navigate to login without setting join type
+            // This allows existing users to login without selecting a type
+            navigation.navigate('Login' as never);
+            return;
+        }
+
+        // Store the selected join type
+        await AsyncStorage.setItem('@selected_join_type', selectedOption);
+
+        // Clear previous signup flags
+        await AsyncStorage.removeItem('@b2b_status');
+        await AsyncStorage.removeItem('@b2c_signup_needed');
+        await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
+
+        // Set the appropriate flag based on selected option
+        if (selectedOption === 'b2b') {
+            await AsyncStorage.setItem('@b2b_status', 'new_user');
+        } else if (selectedOption === 'b2c') {
+            await AsyncStorage.setItem('@b2c_signup_needed', 'true');
+        } else if (selectedOption === 'delivery') {
+            await AsyncStorage.setItem('@delivery_vehicle_info_needed', 'true');
+        }
+
+        await setMode(selectedOption);
+
+        // Always navigate to login screen to force OTP verification
+        // This ensures users always go through the OTP flow as requested
         navigation.navigate('Login' as never);
     };
 
@@ -56,18 +84,18 @@ const JoinAsScreen = () => {
     };
 
     // Create gradient colors based on theme
-    const gradientColors = isDark 
-        ? [theme.background, theme.card] 
+    const gradientColors = isDark
+        ? [theme.background, theme.card]
         : [theme.background, theme.accent || theme.background];
-    
+
     // Choose illustration asset based on current theme
     const illustrationSource = isDark
         ? require("../../assets/images/joinaswhite1.png")
         : require("../../assets/images/Joinasblack.png");
-    
+
     // Create button gradient colors based on theme (primary to secondary)
     const buttonGradientColors = [theme.primary, theme.secondary];
-    
+
     return (
         <LinearGradient
             colors={gradientColors}
@@ -79,97 +107,114 @@ const JoinAsScreen = () => {
                     backgroundColor="transparent"
                     translucent
                 />
-                <View style={styles.content}>
-                    {/* Top illustration */}
-                    <View style={styles.topSection}>
-                        <Image
-                            source={illustrationSource}
-                            style={styles.illustration}
-                            resizeMode="contain"
-                        />
-                    </View>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    bounces={true}
+                >
+                    <View style={styles.content}>
+                        {/* Top illustration */}
+                        <View style={styles.topSection}>
+                            <Image
+                                source={illustrationSource}
+                                style={styles.illustration}
+                                resizeMode="contain"
+                            />
+                        </View>
 
-                    {/* Features list */}
-                    <View style={styles.featuresSection}>
-                        <FeatureItem
-                            id="b2b"
-                            title="Join as B2B"
-                            description="For Industrial and Wholesale scrap sellers and buyers. Manage bulk orders and business transactions."
-                            isSelected={selectedOption === 'b2b'}
-                            onSelect={() => setSelectedOption('b2b')}
-                            styles={styles}
-                            theme={theme}
-                        />
-                        <FeatureItem
-                            id="b2c"
-                            title="Join as B2C"
-                            description="For Retail scrap buyers and sellers. Sell directly to customers and manage retail orders."
-                            isSelected={selectedOption === 'b2c'}
-                            onSelect={() => setSelectedOption('b2c')}
-                            styles={styles}
-                            theme={theme}
-                        />
-                        <FeatureItem
-                            id="delivery"
-                            title="Join as Door Step Buyer"
-                            description="Become a delivery partner. Pick up scrap from customers and earn on every delivery."
-                            isSelected={selectedOption === 'delivery'}
-                            onSelect={() => setSelectedOption('delivery')}
-                            styles={styles}
-                            theme={theme}
-                        />
-                    </View>
+                        {/* Features list */}
+                        <View style={styles.featuresSection}>
+                            <FeatureItem
+                                id="b2b"
+                                title={t('joinAs.b2b.title')}
+                                description={t('joinAs.b2b.description')}
+                                isSelected={selectedOption === 'b2b'}
+                                onSelect={() => {
+                                    // Toggle selection - if already selected, deselect it
+                                    setSelectedOption(selectedOption === 'b2b' ? null : 'b2b');
+                                }}
+                                styles={styles}
+                                theme={theme}
+                            />
+                            <FeatureItem
+                                id="b2c"
+                                title={t('joinAs.b2c.title')}
+                                description={t('joinAs.b2c.description')}
+                                isSelected={selectedOption === 'b2c'}
+                                onSelect={() => {
+                                    // Toggle selection - if already selected, deselect it
+                                    setSelectedOption(selectedOption === 'b2c' ? null : 'b2c');
+                                }}
+                                styles={styles}
+                                theme={theme}
+                            />
+                            <FeatureItem
+                                id="delivery"
+                                title={t('joinAs.delivery.title')}
+                                description={t('joinAs.delivery.description')}
+                                isSelected={selectedOption === 'delivery'}
+                                onSelect={() => {
+                                    // Toggle selection - if already selected, deselect it
+                                    setSelectedOption(selectedOption === 'delivery' ? null : 'delivery');
+                                }}
+                                styles={styles}
+                                theme={theme}
+                            />
+                        </View>
 
-                    {/* Bottom CTA button */}
-                    <View style={styles.buttonWrapper}>
-                        <TouchableOpacity 
-                            activeOpacity={0.9} 
-                            style={[styles.buttonTouchable, !selectedOption && styles.buttonDisabled]}
-                            onPress={handleContinue}
-                            disabled={!selectedOption}
-                        >
-                            <LinearGradient
-                                colors={buttonGradientColors}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.button}
+                        {/* Bottom CTA button */}
+                        <View style={styles.buttonWrapper}>
+                            <TouchableOpacity
+                                activeOpacity={0.9}
+                                style={styles.buttonTouchable}
+                                onPress={handleContinue}
                             >
-                                <Text style={styles.buttonText}>Continue</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        <View style={styles.alreadyAccountWrapper}>
-                            <Text style={styles.alreadyAccountText}>Already have an account?</Text>
-                            <TouchableOpacity onPress={handleAlreadyHaveAccount} activeOpacity={0.7}>
-                                <Text style={styles.alreadyAccountLink}>Log in</Text>
+                                <LinearGradient
+                                    colors={buttonGradientColors}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.button}
+                                >
+                                    <Text style={styles.buttonText}>
+                                        {selectedOption ? t('joinAs.continue') : (t('joinAs.login') || 'Login')}
+                                    </Text>
+                                </LinearGradient>
                             </TouchableOpacity>
+
+                            <View style={styles.alreadyAccountWrapper}>
+                                <Text style={styles.alreadyAccountText}>{t('joinAs.alreadyHaveAccount')}</Text>
+                                <TouchableOpacity onPress={handleAlreadyHaveAccount} activeOpacity={0.7}>
+                                    <Text style={styles.alreadyAccountLink}>{t('joinAs.login')}</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
+                </ScrollView>
             </SafeAreaView>
         </LinearGradient>
     );
 };
 
-const FeatureItem = ({ 
-    id, 
-    title, 
-    description, 
-    isSelected, 
+const FeatureItem = ({
+    id,
+    title,
+    description,
+    isSelected,
     onSelect,
     styles,
     theme
-}: { 
-    id: string; 
-    title: string; 
-    description: string; 
-    isSelected: boolean; 
+}: {
+    id: string;
+    title: string;
+    description: string;
+    isSelected: boolean;
     onSelect: () => void;
     styles: any;
     theme: any;
 }) => {
     return (
-        <TouchableOpacity 
+        <TouchableOpacity
             style={[styles.featureItem, isSelected && styles.featureItemSelected]}
             onPress={onSelect}
             activeOpacity={0.7}
@@ -197,22 +242,24 @@ const getStyles = (theme: any, isDark: boolean, themeName: string) =>
         container: {
             flex: 1,
         },
+        scrollContent: {
+            flexGrow: 1,
+            paddingBottom: Platform.OS === 'ios' ? '24@vs' : '20@vs',
+        },
         content: {
-            flex: 1,
             paddingHorizontal: '24@s',
-            paddingTop: '40@vs',
-            paddingBottom: '32@vs',
-            justifyContent: 'space-between',
+            paddingTop: '20@vs',
+            paddingBottom: Platform.OS === 'ios' ? '12@vs' : '16@vs',
         },
         topSection: {
             alignItems: "center",
-            marginTop: '-10@vs',
-            marginBottom: '24@vs',
+            marginTop: '0@vs',
+            marginBottom: '8@vs',
         },
         illustration: {
             width: "90%",
-            height: '170@vs',
-            marginBottom: '12@vs',
+            height: '150@vs',
+            marginBottom: '0@vs',
         },
         title: {
             fontSize: '22@s',
@@ -222,16 +269,14 @@ const getStyles = (theme: any, isDark: boolean, themeName: string) =>
             textAlign: "center",
         },
         featuresSection: {
-            marginTop: '8@vs',
-            flex: 1,
-            justifyContent: 'center',
-            paddingBottom: '32@vs', // ensure CTA has breathing room
+            marginTop: '0@vs',
+            marginBottom: '8@vs',
         },
         featureItem: {
             flexDirection: "row",
             alignItems: "flex-start",
-            marginBottom: '20@vs',
-            padding: '16@s',
+            marginBottom: '12@vs',
+            padding: '14@s',
             borderRadius: '12@ms',
             borderWidth: 1,
             borderColor: theme.border,
@@ -270,7 +315,7 @@ const getStyles = (theme: any, isDark: boolean, themeName: string) =>
             lineHeight: '18@vs',
             color: theme.textPrimary,
             fontFamily: "Poppins-Medium",
-            marginBottom: '4@vs',
+            marginBottom: '2@vs',
         },
         featureDescription: {
             fontSize: '12@s',
@@ -279,7 +324,7 @@ const getStyles = (theme: any, isDark: boolean, themeName: string) =>
             fontFamily: "Poppins-Regular",
         },
         buttonWrapper: {
-            marginTop: '24@vs',
+            paddingTop: '8@vs',
             paddingHorizontal: '8@s',
             alignItems: 'center',
         },
@@ -307,7 +352,7 @@ const getStyles = (theme: any, isDark: boolean, themeName: string) =>
         alreadyAccountWrapper: {
             flexDirection: 'row',
             alignItems: 'center',
-            marginTop: '16@vs',
+            marginTop: '12@vs',
         },
         alreadyAccountText: {
             fontSize: '12@s',

@@ -75,7 +75,13 @@
     "changeLanguage": "زبان تبدیل کریں",
     "joinB2BNetwork": "ہمارے B2B نیٹ ورک میں شامل ہوں",
     "privacyPolicy": "رازداری کی پالیسی",
-    "terms": "شرائط"
+    "terms": "شرائط",
+    "approvalStatus": "منظوری کی حیثیت",
+    "approved": "منظور شدہ",
+    "pending": "زیر التوا",
+    "rejected": "مسترد",
+    "logoutMessage": "کیا آپ واقعی لاگ آؤٹ کرنا چاہتے ہیں؟",
+    "logoutTitle": "لاگ آؤٹ کی تصدیق کریں"
   },
   "addCategory": {
     "title": "زمرہ شامل کریں",
@@ -142,6 +148,49 @@
       "categoriesOperating": "عمل میں زمرے",
       "online": "آن لائن",
       "offline": "آف لائن"
+    },
+    "earnings": {
+      "activeGigs": "فعال گگز",
+      "avgEarningsPerGig": "اوسط کمائی/گگ",
+      "completionRate": "تکمیل کی شرح",
+      "currentlyWorking": "فی الحال کام کر رہا ہے",
+      "date": "تاریخ",
+      "earnings": "کمائی",
+      "earningsTrend": "کمائی کا رجحان",
+      "last30Days": "گزشتہ 30 دن",
+      "last6Months": "گزشتہ 6 ماہ",
+      "orderId": "آرڈر آئی ڈی",
+      "overallFeedback": "مجموعی رائے",
+      "rating": "درجہ بندی",
+      "recentOrders": "حالیہ آرڈرز",
+      "status": "حیثیت",
+      "thisMonth": "اس مہینے",
+      "title": "گگز کی کمائی",
+      "totalEarnings": "کل کمائی",
+      "vsLastMonth": "گزشتہ ماہ کے مقابلے میں"
+    },
+    "vehicle": {
+      "addDocument": "+ دستاویز شامل کریں",
+      "car": "کار",
+      "documentUploads": "دستاویز اپ لوڈز",
+      "driversLicenseBack": "ڈرائیونگ لائسنس (پچھلی طرف)",
+      "motorcycle": "موٹر سائیکل",
+      "registrationNumber": "رجسٹریشن نمبر",
+      "registrationNumberPlaceholder": "مثال کے طور پر، ABC-123-XY",
+      "selectVehicleType": "گاڑی کی قسم منتخب کریں",
+      "submitVehicleInfo": "گاڑی کی معلومات جمع کریں",
+      "title": "گاڑی کی معلومات",
+      "truck": "ٹرک",
+      "uploadFailed": "اپ لوڈ ناکام",
+      "uploadPending": "اپ لوڈ زیر التوا",
+      "uploadedSuccessfully": "کامیابی سے اپ لوڈ کیا گیا",
+      "van": "وین",
+      "vehicleDetails": "گاڑی کی تفصیلات",
+      "vehicleInsurance": "گاڑی کی انشورنس پالیسی",
+      "vehicleModel": "گاڑی کا ماڈل",
+      "vehicleModelPlaceholder": "مثال کے طور پر، ٹویوٹا کیمری",
+      "vehicleRegistration": "گاڑی کا رجسٹریشن سرٹیفکیٹ",
+      "signupAsDoorStepBuyer": "ڈور اسٹیپ بائر کے طور پر سائن اپ کریں"
     }
   },
   "dealerSignup": {
@@ -221,22 +270,43 @@
     "submitForVerification": "تصدیق کے لیے جمع کریں"
   },
   "approvalWorkflow": {
-    "title": "منظوری کی حالت",
-    "applicationPending": "درخواست زیر التواء",
-    "applicationPendingDesc": "آپ کی درخواست فی الحال ہماری انتظامی ٹیم کے زیر جائزہ ہے۔ فیصلہ ہونے کے بعد ہم آپ کو مطلع کریں گے۔ آپ کے صبر کا شکریہ۔",
-    "inReview": "جائزے میں",
+    "title": "منظوری کی حیثیت",
+    "applicationPending": "درخواست زیر التوا",
+    "applicationPendingDesc": "آپ کی درخواست کا فی الحال جائزہ لیا جا رہا ہے۔ فیصلہ ہونے کے بعد ہم آپ کو مطلع کریں گے۔",
+    "inReview": "جائزہ میں",
     "lastUpdated": "آخری اپ ڈیٹ: 2 منٹ پہلے",
-    "applicationProgress": "درخواست کی پیش رفت",
+    "applicationProgress": "درخواست کی پیشرفت",
     "recentUpdates": "حالیہ اپ ڈیٹس",
-    "applicationSubmitted": "درخواست جمع کی گئی",
-    "applicationSubmittedDesc": "آپ کا کاروباری سائن اپ اور دستاویز اپ لوڈ مکمل ہو گیا ہے۔ درخواست اب جائزے کے لیے قطار میں ہے۔",
-    "documentsVerified": "دستاویزات تصدیق شدہ",
-    "documentsVerifiedDesc": "اپ لوڈ کیے گئے کاروباری لائسنس اور KYC دستاویزات کامیابی سے تصدیق شدہ ہیں۔",
-    "internalReviewInitiated": "اندرونی جائزہ شروع کیا گیا",
-    "internalReviewInitiatedDesc": "آپ کی درخواست ہماری کمپلائنس ٹیم کے ذریعے تفصیلی اندرونی چیک سے گزر رہی ہے۔",
+    "applicationSubmitted": "درخواست جمع کرائی گئی",
+    "applicationSubmittedDesc": "کاروباری سائن اپ اور دستاویزات کامیابی سے جمع کرائے گئے۔ یہ اب تصدیق کی قطار میں ہے۔",
+    "documentsVerified": "دستاویزات کی تصدیق ہو گئی",
+    "documentsVerifiedDesc": "اپ لوڈ کردہ لائسنس اور کے وائی سی دستاویزات کی کامیابی سے تصدیق ہو گئی۔",
+    "internalReviewInitiated": "اندرونی جائزہ شروع ہو گیا",
+    "internalReviewInitiatedDesc": "ہماری تعمیل ٹیم آپ کی درخواست کا تفصیل سے جائزہ لے رہی ہے۔",
     "contactSupport": "سپورٹ سے رابطہ کریں",
-    "pending": "زیر التواء",
+    "pending": "زیر التوا",
     "approved": "منظور شدہ",
-    "rejected": "مسترد"
+    "rejected": "مسترد",
+    "applicationApproved": "درخواست منظور ہو گئی",
+    "applicationApprovedDesc": "آپ کی B2B درخواست منظور ہو گئی ہے۔ اب آپ تمام خصوصیات تک رسائی حاصل کر سکتے ہیں۔",
+    "applicationRejected": "درخواست مسترد کر دی گئی",
+    "applicationRejectedDesc": "آپ کی B2B درخواست مسترد کر دی گئی ہے۔ مزید معلومات کے لیے براہ کرم سپورٹ سے رابطہ کریں۔"
+  },
+  "joinAs": {
+    "alreadyHaveAccount": "کیا پہلے سے اکاؤنٹ ہے؟",
+    "b2b": {
+      "description": "صنعتی اور ہول سیل سکریپ بیچنے والوں اور خریداروں کے لیے۔ بلک آرڈرز اور کاروباری لین دین کا انتظام کریں۔",
+      "title": "B2B کے طور پر شامل ہوں"
+    },
+    "b2c": {
+      "description": "ریٹیل سکریپ خریداروں اور بیچنے والوں کے لیے۔ براہ راست صارفین کو بیچیں اور ریٹیل آرڈرز کا انتظام کریں۔",
+      "title": "B2C کے طور پر شامل ہوں"
+    },
+    "continue": "جاری رکھیں",
+    "delivery": {
+      "description": "ڈیلیوری پارٹنر بنیں۔ صارفین سے سکریپ جمع کریں اور ہر ڈیلیوری پر کمائیں۔",
+      "title": "ڈور اسٹیپ بائر کے طور پر شامل ہوں"
+    },
+    "login": "لاگ ان کریں"
   }
 }

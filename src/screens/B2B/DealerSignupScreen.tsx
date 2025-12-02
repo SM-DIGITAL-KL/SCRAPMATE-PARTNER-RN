@@ -10,9 +10,10 @@ import {
   Keyboard,
   Animated,
   Easing,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, CommonActions } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../components/ThemeProvider';
 import { useTabBar } from '../../context/TabBarContext';
@@ -22,9 +23,11 @@ import { ScaledSheet } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
 import { getUserData } from '../../services/auth/authService';
 import { submitB2BSignup, B2BSignupData } from '../../services/api/v2/b2bSignup';
-import { Alert } from 'react-native';
+import { Alert, DeviceEventEmitter } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useProfile } from '../../hooks/useProfile';
 
-const DealerSignupScreen = ({ navigation }: any) => {
+const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -32,6 +35,7 @@ const DealerSignupScreen = ({ navigation }: any) => {
   const { setTabBarVisible } = useTabBar();
   const buttonTranslateY = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(1)).current;
+  const navigation = useNavigation();
 
   // Form state
   const [companyName, setCompanyName] = useState('');
@@ -44,7 +48,7 @@ const DealerSignupScreen = ({ navigation }: any) => {
   const [userData, setUserData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load user data
+  // Load user data and profile
   useEffect(() => {
     const loadUserData = async () => {
       const data = await getUserData();
@@ -52,6 +56,45 @@ const DealerSignupScreen = ({ navigation }: any) => {
     };
     loadUserData();
   }, []);
+
+  // Fetch profile data for auto-filling v1 user details
+  const { data: profileData } = useProfile(userData?.id, !!userData?.id);
+
+  // Auto-fill form fields from v1 user profile
+  useEffect(() => {
+    if (profileData && userData) {
+      const isV1User = !userData.app_version || userData.app_version === 'v1' || userData.app_version === 'v1.0';
+      
+      if (isV1User) {
+        console.log('📝 Auto-filling B2B signup form for v1 user');
+        
+        // Auto-fill from shop data if available
+        if (profileData.shop) {
+          if (profileData.shop.shopname && !companyName) {
+            setCompanyName(profileData.shop.shopname);
+          }
+          if (profileData.shop.address && !businessAddress) {
+            setBusinessAddress(profileData.shop.address);
+          }
+          if (profileData.shop.contact && !contactNumber) {
+            setContactNumber(profileData.shop.contact);
+          }
+        }
+        
+        // Auto-fill from user data
+        if (profileData.name && !companyName && !contactPersonName) {
+          setCompanyName(profileData.name);
+          setContactPersonName(profileData.name);
+        }
+        if (profileData.email && !contactEmail) {
+          setContactEmail(profileData.email);
+        }
+        if (profileData.phone && !contactNumber) {
+          setContactNumber(profileData.phone);
+        }
+      }
+    }
+  }, [profileData, userData]);
 
   // Function to hide UI (tab bar and button)
   const hideUI = useCallback(() => {
@@ -111,14 +154,62 @@ const DealerSignupScreen = ({ navigation }: any) => {
     };
   }, [showUI]);
 
-  // Restore tab bar visibility when screen loses focus
+  // Navigate to JoinAs screen helper function
+  const navigateToJoinAs = useCallback(async () => {
+    // Clear all signup flags to allow user to select a different signup type
+    await AsyncStorage.removeItem('@join_as_shown');
+    await AsyncStorage.removeItem('@b2b_status');
+    await AsyncStorage.removeItem('@b2c_signup_needed');
+    await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
+    await AsyncStorage.removeItem('@selected_join_type');
+    console.log('✅ DealerSignupScreen: Cleared all signup flags to allow type switching');
+    
+    // Emit event to navigate to JoinAs (this will be handled by AppNavigator)
+    DeviceEventEmitter.emit('NAVIGATE_TO_JOIN_AS');
+    
+    // Also try direct navigation
+    try {
+      // Get root navigator (AppNavigator level)
+      const rootNavigation = navigation.getParent()?.getParent()?.getParent();
+      
+      if (rootNavigation) {
+        // Reset navigation to show AuthFlow with JoinAs screen
+        rootNavigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'AuthFlow',
+                state: {
+                  routes: [{ name: 'JoinAs' }],
+                  index: 0,
+                },
+              },
+            ],
+          })
+        );
+      }
+    } catch (error) {
+      console.log('Error navigating to JoinAs:', error);
+    }
+  }, [navigation]);
+
+  // Handle hardware back button - navigate to JoinAs screen
   useFocusEffect(
     React.useCallback(() => {
+      const onBackPress = () => {
+        navigateToJoinAs();
+        return true; // Prevent default back behavior
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
       return () => {
+        backHandler.remove();
         // Restore tab bar when leaving screen
         setTabBarVisible(true);
       };
-    }, [setTabBarVisible])
+    }, [setTabBarVisible, navigateToJoinAs])
   );
 
   return (
@@ -130,7 +221,10 @@ const DealerSignupScreen = ({ navigation }: any) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={navigateToJoinAs}
+          style={styles.backButton}
+        >
           <MaterialCommunityIcons name="arrow-left" size={24} color={theme.textPrimary} />
         </TouchableOpacity>
         <AutoText style={styles.headerTitle}>{t('dealerSignup.title')}</AutoText>
@@ -222,6 +316,19 @@ const DealerSignupScreen = ({ navigation }: any) => {
               onFocus={hideUI}
             />
           </View>
+
+          {/* Rejection Reason Display */}
+          {profileData?.shop?.approval_status === 'rejected' && profileData?.shop?.rejection_reason && (
+            <View style={styles.rejectionReasonCard}>
+              <View style={styles.rejectionReasonHeader}>
+                <MaterialCommunityIcons name="alert-circle" size={20} color="#F44336" />
+                <AutoText style={styles.rejectionReasonTitle}>Rejection Reason</AutoText>
+              </View>
+              <AutoText style={styles.rejectionReasonText}>
+                {profileData.shop.rejection_reason}
+              </AutoText>
+            </View>
+          )}
         </ScrollView>
 
         {/* Next Button */}
@@ -335,6 +442,32 @@ const getStyles = (theme: any, themeName?: string) =>
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 5,
+    },
+    rejectionReasonCard: {
+      marginHorizontal: '18@s',
+      marginBottom: '18@vs',
+      padding: '16@s',
+      borderRadius: '12@ms',
+      backgroundColor: '#F4433622',
+      borderWidth: 1,
+      borderColor: '#F44336',
+    },
+    rejectionReasonHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: '8@vs',
+      gap: '8@s',
+    },
+    rejectionReasonTitle: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '14@s',
+      color: '#F44336',
+    },
+    rejectionReasonText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '13@s',
+      lineHeight: '20@vs',
+      color: '#721c24',
     },
   });
 

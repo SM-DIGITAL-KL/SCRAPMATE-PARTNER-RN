@@ -51,7 +51,7 @@ const SplashScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
             style={styles.gradient}
           >
             <Text style={styles.businessText}>
-              Business
+              Partner
             </Text>
           </LinearGradient>
         </View>

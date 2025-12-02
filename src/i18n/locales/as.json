@@ -75,7 +75,13 @@
     "changeLanguage": "ভাষা সলনি কৰক",
     "joinB2BNetwork": "আমাৰ B2B নেটৱৰ্কত যোগদান কৰক",
     "privacyPolicy": "গোপনীয়তা নীতি",
-    "terms": "চৰ্ত"
+    "terms": "চৰ্ত",
+    "approvalStatus": "অনুমোদনৰ স্থিতি",
+    "approved": "অনুমোদিত",
+    "pending": "বিচাৰাধীন",
+    "rejected": "প্ৰত্যাখ্যান কৰা হৈছে",
+    "logoutMessage": "আপুনি নিশ্চিতনে যে আপুনি লগ আউট কৰিব বিচাৰে?",
+    "logoutTitle": "লগ আউট নিশ্চিত কৰক"
   },
   "addCategory": {
     "title": "শ্ৰেণী যোগ কৰক",
@@ -142,6 +148,49 @@
       "categoriesOperating": "চালু বিভাগ",
       "online": "অনলাইন",
       "offline": "অফলাইন"
+    },
+    "earnings": {
+      "activeGigs": "সক্ৰিয় গিগছ",
+      "avgEarningsPerGig": "গড় উপাৰ্জন/গিগ",
+      "completionRate": "সম্পূৰ্ণ হোৱাৰ হাৰ",
+      "currentlyWorking": "বৰ্তমান কাম কৰি আছে",
+      "date": "তাৰিখ",
+      "earnings": "উপাৰ্জন",
+      "earningsTrend": "উপাৰ্জনৰ ধাৰা",
+      "last30Days": "যোৱা ৩০ দিন",
+      "last6Months": "যোৱা ৬ মাহ",
+      "orderId": "অৰ্ডাৰ আইডি",
+      "overallFeedback": "সামগ্ৰিক মতামত",
+      "rating": "ৰেটিং",
+      "recentOrders": "শেহতীয়া অৰ্ডাৰ",
+      "status": "স্থিতি",
+      "thisMonth": "এই মাহত",
+      "title": "গিগছ উপাৰ্জন",
+      "totalEarnings": "মুঠ উপাৰ্জন",
+      "vsLastMonth": "যোৱা মাহৰ তুলনাত"
+    },
+    "vehicle": {
+      "addDocument": "+ নথি যোগ কৰক",
+      "car": "গাড়ী",
+      "documentUploads": "নথি আপলোড",
+      "driversLicenseBack": "ড্ৰাইভিং লাইচেঞ্চ (পিছফাল)",
+      "motorcycle": "মটৰ চাইকেল",
+      "registrationNumber": "পঞ্জীয়ন নম্বৰ",
+      "registrationNumberPlaceholder": "উদাহৰণস্বৰূপে, ABC-123-XY",
+      "selectVehicleType": "বাহনৰ প্ৰকাৰ নিৰ্বাচন কৰক",
+      "submitVehicleInfo": "বাহনৰ তথ্য জমা দিয়ক",
+      "title": "বাহনৰ তথ্য",
+      "truck": "ট্ৰাক",
+      "uploadFailed": "আপলোড বিফল হৈছে",
+      "uploadPending": "আপলোড বিচাৰাধীন",
+      "uploadedSuccessfully": "সফলভাৱে আপলোড কৰা হৈছে",
+      "van": "ভেন",
+      "vehicleDetails": "বাহনৰ বিৱৰণ",
+      "vehicleInsurance": "বাহন বীমা পলিচি",
+      "vehicleModel": "বাহনৰ মডেল",
+      "vehicleModelPlaceholder": "উদাহৰণস্বৰূপে, টয়োটা কেমৰী",
+      "vehicleRegistration": "বাহন পঞ্জীয়ন প্ৰমাণপত্ৰ",
+      "signupAsDoorStepBuyer": "ড’ৰ ষ্টেপ বায়াৰ হিচাপে চাইন আপ কৰক"
     }
   },
   "dealerSignup": {
@@ -221,22 +270,43 @@
     "submitForVerification": "যাচাইকৰণৰ বাবে দাখিল কৰক"
   },
   "approvalWorkflow": {
-    "title": "অনুমোদন অৱস্থা",
-    "applicationPending": "আবেদন বাকী",
-    "applicationPendingDesc": "আপোনাৰ আবেদন বৰ্তমানে আমাৰ প্ৰশাসনিক দলৰ দ্বাৰা পৰ্যালোচনা কৰা হৈছে। সিদ্ধান্ত লোৱাৰ পিছত আমি আপোনাক জনাব। আপোনাৰ ধৈৰ্যৰ বাবে ধন্যবাদ।",
+    "title": "অনুমোদনৰ স্থিতি",
+    "applicationPending": "আবেদন বিচাৰাধীন",
+    "applicationPendingDesc": "আপোনাৰ আবেদন বৰ্তমান পৰ্যালোচনা কৰা হৈছে। সিদ্ধান্ত লোৱাৰ পিছত আমি আপোনাক অৱগত কৰিম।",
     "inReview": "পৰ্যালোচনাত",
-    "lastUpdated": "শেষ আপডেট: 2 মিনিট আগতে",
-    "applicationProgress": "আবেদন অগ্ৰগতি",
-    "recentUpdates": "সাম্প্ৰতিক আপডেট",
-    "applicationSubmitted": "আবেদন দাখিল কৰা হৈছে",
-    "applicationSubmittedDesc": "আপোনাৰ ব্যৱসায়িক ছাইনআপ আৰু দস্তাবেজ আপলোড সম্পূৰ্ণ হৈছে। আবেদন এতিয়া পৰ্যালোচনাৰ বাবে ৰৈ আছে।",
-    "documentsVerified": "দস্তাবেজ যাচাই কৰা হৈছে",
-    "documentsVerifiedDesc": "আপলোড কৰা ব্যৱসায়িক লাইচেন্স আৰু KYC দস্তাবেজ সফলতাৰে যাচাই কৰা হৈছে।",
-    "internalReviewInitiated": "অভ্যন্তৰীণ পৰ্যালোচনা আৰম্ভ কৰা হৈছে",
-    "internalReviewInitiatedDesc": "আপোনাৰ আবেদন আমাৰ কমপ্লায়েন্স দলৰ দ্বাৰা বিস্তাৰিত অভ্যন্তৰীণ পৰীক্ষাৰ মাজেৰে যাব লাগিছে।",
+    "lastUpdated": "শেহতীয়া আপডেট: ২ মিনিট আগতে",
+    "applicationProgress": "আবেদনৰ অগ্ৰগতি",
+    "recentUpdates": "শেহতীয়া আপডেটসমূহ",
+    "applicationSubmitted": "আবেদন জমা দিয়া হৈছে",
+    "applicationSubmittedDesc": "ব্যৱসায় চাইনআপ আৰু নথিপত্ৰ সফলভাৱে জমা দিয়া হৈছে। ই এতিয়া যাচাইকৰণ শাৰীত আছে।",
+    "documentsVerified": "নথিপত্ৰ যাচাই কৰা হৈছে",
+    "documentsVerifiedDesc": "আপলোড কৰা লাইচেঞ্চ আৰু কেৱাইচি নথিপত্ৰ সফলভাৱে যাচাই কৰা হৈছে।",
+    "internalReviewInitiated": "আভ্যন্তৰীণ পৰ্যালোচনা আৰম্ভ হৈছে",
+    "internalReviewInitiatedDesc": "আমাৰ অনুপালন দলে আপোনাৰ আবেদন বিতংভাৱে পৰ্যালোচনা কৰি আছে।",
     "contactSupport": "সমৰ্থনৰ সৈতে যোগাযোগ কৰক",
-    "pending": "বাকী",
+    "pending": "বিচাৰাধীন",
     "approved": "অনুমোদিত",
-    "rejected": "প্ৰত্যাখ্যান কৰা হৈছে"
+    "rejected": "প্ৰত্যাখ্যান কৰা হৈছে",
+    "applicationApproved": "আবেদন অনুমোদিত",
+    "applicationApprovedDesc": "আপোনাৰ B2B আবেদন অনুমোদিত হৈছে। আপুনি এতিয়া সকলো বৈশিষ্ট্য প্ৰৱেশ কৰিব পাৰে।",
+    "applicationRejected": "আবেদন প্ৰত্যাখ্যান কৰা হৈছে",
+    "applicationRejectedDesc": "আপোনাৰ B2B আবেদন প্ৰত্যাখ্যান কৰা হৈছে। অধিক তথ্যৰ বাবে অনুগ্ৰহ কৰি সমৰ্থনৰ সৈতে যোগাযোগ কৰক।"
+  },
+  "joinAs": {
+    "alreadyHaveAccount": "ইতিমধ্যে একাউণ্ট আছেনে?",
+    "b2b": {
+      "description": "ঔদ্যোগিক আৰু পাইকাৰী স্ক্ৰেপ বিক্ৰেতা আৰু ক্ৰেতাসকলৰ বাবে। পাইকাৰী অৰ্ডাৰ আৰু ব্যৱসায়িক লেনদেন পৰিচালনা কৰক।",
+      "title": "B2B হিচাপে যোগদান কৰক"
+    },
+    "b2c": {
+      "description": "খুচুৰা স্ক্ৰেপ ক্ৰেতা আৰু বিক্ৰেতাসকলৰ বাবে। গ্ৰাহকসকলক পোনপটীয়াকৈ বিক্ৰী কৰক আৰু খুচুৰা অৰ্ডাৰ পৰিচালনা কৰক।",
+      "title": "B2C হিচাপে যোগদান কৰক"
+    },
+    "continue": "অব্যাহত ৰাখক",
+    "delivery": {
+      "description": "ডেলিভাৰী পাৰ্টনাৰ হওক। গ্ৰাহকৰ পৰা স্ক্ৰেপ সংগ্ৰহ কৰক আৰু প্ৰতিটো ডেলিভাৰীত উপাৰ্জন কৰক।",
+      "title": "ড’ৰ ষ্টেপ বায়াৰ হিচাপে যোগদান কৰক"
+    },
+    "login": "লগ ইন কৰক"
   }
 }

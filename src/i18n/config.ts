@@ -12,7 +12,7 @@ import kn from './locales/kn.json';
 import ml from './locales/ml.json';
 import pa from './locales/pa.json';
 import or from './locales/or.json';
-import as from './locales/as.json';
+import asLocale from './locales/as.json';
 import ur from './locales/ur.json';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
@@ -40,7 +40,7 @@ export const setStoredLanguage = async (language: string): Promise<void> => {
 i18n
   .use(initReactI18next)
   .init({
-    compatibilityJSON: 'v3',
+    compatibilityJSON: 'v4',
     resources: {
       en: { translation: en },
       hi: { translation: hi },
@@ -53,7 +53,7 @@ i18n
       ml: { translation: ml },
       pa: { translation: pa },
       or: { translation: or },
-      as: { translation: as },
+      as: { translation: asLocale },
       ur: { translation: ur },
     },
     lng: 'en',

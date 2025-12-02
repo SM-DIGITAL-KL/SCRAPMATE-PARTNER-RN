@@ -75,7 +75,13 @@
     "changeLanguage": "ଭାଷା ବଦଳାନ୍ତୁ",
     "joinB2BNetwork": "ଆମର B2B ନେଟୱର୍କରେ ଯୋଗ ଦିଅନ୍ତୁ",
     "privacyPolicy": "ଗୋପନୀୟତା ନୀତି",
-    "terms": "ସର୍ତ୍ତାବଳୀ"
+    "terms": "ସର୍ତ୍ତାବଳୀ",
+    "approvalStatus": "ଅନୁମୋଦନ ସ୍ଥିତି",
+    "approved": "ଅନୁମୋଦିତ",
+    "pending": "ବକେୟା",
+    "rejected": "ପ୍ରତ୍ୟାଖ୍ୟାନ କରାଯାଇଛି",
+    "logoutMessage": "ଆପଣ ନିଶ୍ଚିତ କି ଆପଣ ଲଗ୍ ଆଉଟ୍ କରିବାକୁ ଚାହୁଁଛନ୍ତି?",
+    "logoutTitle": "ଲଗ୍ ଆଉଟ୍ ନିଶ୍ଚିତ କରନ୍ତୁ"
   },
   "addCategory": {
     "title": "ବର୍ଗ ଯୋଡ଼ନ୍ତୁ",
@@ -142,6 +148,49 @@
       "categoriesOperating": "କାର୍ଯ୍ୟରତ ବର୍ଗ",
       "online": "ଅନଲାଇନ୍",
       "offline": "ଅଫଲାଇନ୍"
+    },
+    "earnings": {
+      "activeGigs": "ସକ୍ରିୟ ଗିଗ୍ସ",
+      "avgEarningsPerGig": "ହାରାହାରି ରୋଜଗାର/ଗିଗ୍",
+      "completionRate": "ସମାପ୍ତି ହାର",
+      "currentlyWorking": "ବର୍ତ୍ତମାନ କାମ କରୁଛନ୍ତି",
+      "date": "ତାରିଖ",
+      "earnings": "ରୋଜଗାର",
+      "earningsTrend": "ରୋଜଗାର ଧାରା",
+      "last30Days": "ଗତ 30 ଦିନ",
+      "last6Months": "ଗତ 6 ମାସ",
+      "orderId": "ଅର୍ଡର ଆଇଡି",
+      "overallFeedback": "ସାମଗ୍ରିକ ମତାମତ",
+      "rating": "ରେଟିଂ",
+      "recentOrders": "ସାମ୍ପ୍ରତିକ ଅର୍ଡର",
+      "status": "ସ୍ଥିତି",
+      "thisMonth": "ଏହି ମାସ",
+      "title": "ଗିଗ୍ସ ରୋଜଗାର",
+      "totalEarnings": "ମୋଟ ରୋଜଗାର",
+      "vsLastMonth": "ଗତ ମାସ ତୁଳନାରେ"
+    },
+    "vehicle": {
+      "addDocument": "+ ଡକ୍ୟୁମେଣ୍ଟ୍ ଯୋଡନ୍ତୁ",
+      "car": "କାର୍",
+      "documentUploads": "ଡକ୍ୟୁମେଣ୍ଟ୍ ଅପଲୋଡ୍",
+      "driversLicenseBack": "ଡ୍ରାଇଭିଂ ଲାଇସେନ୍ସ (ପଛ ପାର୍ଶ୍ୱ)",
+      "motorcycle": "ମୋଟରସାଇକେଲ୍",
+      "registrationNumber": "ପଞ୍ଜୀକରଣ ନମ୍ବର",
+      "registrationNumberPlaceholder": "ଉଦାହରଣ, ABC-123-XY",
+      "selectVehicleType": "ଯାନ ପ୍ରକାର ଚୟନ କରନ୍ତୁ",
+      "submitVehicleInfo": "ଯାନ ସୂଚନା ଦାଖଲ କରନ୍ତୁ",
+      "title": "ଯାନ ସୂଚନା",
+      "truck": "ଟ୍ରକ୍",
+      "uploadFailed": "ଅପଲୋଡ୍ ବିଫଳ ହୋଇଛି",
+      "uploadPending": "ଅପଲୋଡ୍ ବକେୟା ଅଛି",
+      "uploadedSuccessfully": "ସଫଳତାର ସହ ଅପଲୋଡ୍ ହୋଇଛି",
+      "van": "ଭ୍ୟାନ୍",
+      "vehicleDetails": "ଯାନ ବିବରଣୀ",
+      "vehicleInsurance": "ଯାନ ବୀମା ପଲିସି",
+      "vehicleModel": "ଯାନ ମଡେଲ୍",
+      "vehicleModelPlaceholder": "ଉଦାହରଣ, ଟୟୋଟା କ୍ୟାମ୍ରି",
+      "vehicleRegistration": "ଯାନ ପଞ୍ଜୀକରଣ ପ୍ରମାଣପତ୍ର",
+      "signupAsDoorStepBuyer": "ଡୋର ଷ୍ଟେପ୍ ବାୟର୍ ଭାବରେ ସାଇନ୍ ଅପ୍ କରନ୍ତୁ"
     }
   },
   "dealerSignup": {
@@ -222,21 +271,42 @@
   },
   "approvalWorkflow": {
     "title": "ଅନୁମୋଦନ ସ୍ଥିତି",
-    "applicationPending": "ଆବେଦନ ବାକି",
-    "applicationPendingDesc": "ଆପଣଙ୍କର ଆବେଦନ ବର୍ତ୍ତମାନ ଆମର ପ୍ରଶାସନିକ ଦଳ ଦ୍ୱାରା ସମୀକ୍ଷା ହେଉଛି। ନିଷ୍ପତ୍ତି ନିଆଯିବା ପରେ ଆମେ ଆପଣଙ୍କୁ ସୂଚିତ କରିବୁ। ଆପଣଙ୍କର ଧୈର୍ଯ୍ୟ ପାଇଁ ଧନ୍ୟବାଦ।",
-    "inReview": "ସମୀକ୍ଷାରେ",
+    "applicationPending": "ଆବେଦନ ବକେୟା ଅଛି",
+    "applicationPendingDesc": "ଆପଣଙ୍କ ଆବେଦନ ବର୍ତ୍ତମାନ ସମୀକ୍ଷା କରାଯାଉଛି। ନିଷ୍ପତ୍ତି ନିଆଯିବା ପରେ ଆମେ ଆପଣଙ୍କୁ ଜଣାଇବୁ।",
+    "inReview": "ସମୀକ୍ଷା ଅଧୀନରେ",
     "lastUpdated": "ଶେଷ ଅପଡେଟ୍: 2 ମିନିଟ୍ ପୂର୍ବେ",
     "applicationProgress": "ଆବେଦନ ପ୍ରଗତି",
-    "recentUpdates": "ସାମ୍ପ୍ରତିକ ଅପଡେଟ୍‌ଗୁଡ଼ିକ",
+    "recentUpdates": "ସାମ୍ପ୍ରତିକ ଅପଡେଟ୍",
     "applicationSubmitted": "ଆବେଦନ ଦାଖଲ କରାଯାଇଛି",
-    "applicationSubmittedDesc": "ଆପଣଙ୍କର ବ୍ୟବସାୟ ସାଇନଅପ୍ ଏବଂ ଦସ୍ତାବେଜ୍ ଅପଲୋଡ୍ ସମ୍ପୂର୍ଣ୍ଣ ହୋଇଛି। ଆବେଦନ ବର୍ତ୍ତମାନ ସମୀକ୍ଷା ପାଇଁ କ୍ୟୁରେ ଅଛି।",
-    "documentsVerified": "ଦସ୍ତାବେଜ୍‌ଗୁଡ଼ିକ ଯାଞ୍ଚ ହୋଇଛି",
-    "documentsVerifiedDesc": "ଅପଲୋଡ୍ କରାଯାଇଥିବା ବ୍ୟବସାୟ ଲାଇସେନ୍ସ ଏବଂ KYC ଦସ୍ତାବେଜ୍‌ଗୁଡ଼ିକ ସଫଳତାର ସହିତ ଯାଞ୍ଚ ହୋଇଛି।",
+    "applicationSubmittedDesc": "ବ୍ୟବସାୟ ସାଇନ୍ ଅପ୍ ଏବଂ ଡକ୍ୟୁମେଣ୍ଟ୍ ସଫଳତାର ସହ ଦାଖଲ କରାଯାଇଛି। ଏହା ବର୍ତ୍ତମାନ ଯାଞ୍ଚ କ୍ୟୁରେ ଅଛି।",
+    "documentsVerified": "ଡକ୍ୟୁମେଣ୍ଟ୍ ଯାଞ୍ଚ କରାଯାଇଛି",
+    "documentsVerifiedDesc": "ଅପଲୋଡ୍ ହୋଇଥିବା ଲାଇସେନ୍ସ ଏବଂ KYC ଡକ୍ୟୁମେଣ୍ଟ୍ ସଫଳତାର ସହ ଯାଞ୍ଚ କରାଯାଇଛି।",
     "internalReviewInitiated": "ଆଭ୍ୟନ୍ତରୀଣ ସମୀକ୍ଷା ଆରମ୍ଭ ହୋଇଛି",
-    "internalReviewInitiatedDesc": "ଆପଣଙ୍କର ଆବେଦନ ଆମର ଅନୁପାଲନ ଦଳ ଦ୍ୱାରା ବିସ୍ତୃତ ଆଭ୍ୟନ୍ତରୀଣ ଯାଞ୍ଚରେ ଅଛି।",
-    "contactSupport": "ସହାୟତା ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ",
-    "pending": "ବାକି",
+    "internalReviewInitiatedDesc": "ଆମର ଅନୁପାଳନ ଟିମ୍ ଆପଣଙ୍କ ଆବେଦନକୁ ବିସ୍ତୃତ ଭାବରେ ସମୀକ୍ଷା କରୁଛି।",
+    "contactSupport": "ସମର୍ଥନ ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ",
+    "pending": "ବକେୟା",
     "approved": "ଅନୁମୋଦିତ",
-    "rejected": "ପ୍ରତ୍ୟାଖ୍ୟାନ"
+    "rejected": "ପ୍ରତ୍ୟାଖ୍ୟାନ କରାଯାଇଛି",
+    "applicationApproved": "ଆବେଦନ ଅନୁମୋଦିତ",
+    "applicationApprovedDesc": "ଆପଣଙ୍କ B2B ଆବେଦନ ଅନୁମୋଦିତ ହୋଇଛି। ଆପଣ ବର୍ତ୍ତମାନ ସମସ୍ତ ବୈଶିଷ୍ଟ୍ୟ ଆକ୍ସେସ୍ କରିପାରିବେ।",
+    "applicationRejected": "ଆବେଦନ ପ୍ରତ୍ୟାଖ୍ୟାନ କରାଯାଇଛି",
+    "applicationRejectedDesc": "ଆପଣଙ୍କ B2B ଆବେଦନ ପ୍ରତ୍ୟାଖ୍ୟାନ କରାଯାଇଛି। ଅଧିକ ସୂଚନା ପାଇଁ ଦୟାକରି ସମର୍ଥନ ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ।"
+  },
+  "joinAs": {
+    "alreadyHaveAccount": "ପୂର୍ବରୁ ଆକାଉଣ୍ଟ ଅଛି କି?",
+    "b2b": {
+      "description": "ଶିଳ୍ପ ଏବଂ ହୋଲସେଲ ସ୍କ୍ରାପ୍ ବିକ୍ରେତା ଏବଂ କ୍ରେତାମାନଙ୍କ ପାଇଁ। ବଲ୍କ ଅର୍ଡର ଏବଂ ବ୍ୟବସାୟ କାରବାର ପରିଚାଳନା କରନ୍ତୁ।",
+      "title": "B2B ଭାବରେ ଯୋଗ ଦିଅନ୍ତୁ"
+    },
+    "b2c": {
+      "description": "ଖୁଚୁରା ସ୍କ୍ରାପ୍ କ୍ରେତା ଏବଂ ବିକ୍ରେତାମାନଙ୍କ ପାଇଁ। ଗ୍ରାହକଙ୍କୁ ସିଧାସଳଖ ବିକ୍ରୟ କରନ୍ତୁ ଏବଂ ଖୁଚୁରା ଅର୍ଡର ପରିଚାଳନା କରନ୍ତୁ।",
+      "title": "B2C ଭାବରେ ଯୋଗ ଦିଅନ୍ତୁ"
+    },
+    "continue": "ଜାରି ରଖନ୍ତୁ",
+    "delivery": {
+      "description": "ଡେଲିଭରି ପାର୍ଟନର ହୁଅନ୍ତୁ। ଗ୍ରାହକଙ୍କଠାରୁ ସ୍କ୍ରାପ୍ ସଂଗ୍ରହ କରନ୍ତୁ ଏବଂ ପ୍ରତ୍ୟେକ ଡେଲିଭରିରେ ରୋଜଗାର କରନ୍ତୁ।",
+      "title": "ଡୋର ଷ୍ଟେପ୍ ବାୟର୍ ଭାବରେ ଯୋଗ ଦିଅନ୍ତୁ"
+    },
+    "login": "ଲଗ୍ ଇନ୍ କରନ୍ତୁ"
   }
 }

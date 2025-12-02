@@ -1,4 +1,4 @@
-package com.scrapmatepartner.app
+package com.app.scrapmatepartner
 
 import android.content.Context
 import android.content.res.Configuration

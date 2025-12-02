@@ -297,7 +297,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
               if (item.action === 'EditProfile') {
                 navigation.navigate('EditProfile');
               } else if (item.action === 'ApprovalStatus') {
-                navigation.navigate('ApprovalWorkflow');
+                navigation.navigate('ApprovalWorkflow', { fromProfile: true });
               } else if (item.action === 'Appearance') {
                 setShowThemeModal(true);
               } else if (item.action === 'ChangeLanguage') {

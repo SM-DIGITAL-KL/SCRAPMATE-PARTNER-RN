@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import LinearGradient from 'react-native-linear-gradient';
 import { getUserData } from '../../services/auth/authService';
 import { useProfile } from '../../hooks/useProfile';
+import { useUserMode } from '../../context/UserModeContext';
 import UPIPaymentService from '../../services/upi/UPIPaymentService';
 import { getSubscriptionPackages, SubscriptionPackage } from '../../services/api/v2/subscriptionPackages';
 
@@ -21,6 +22,7 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { mode } = useUserMode();
   const [userData, setUserData] = useState<any>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -48,8 +50,9 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
       const fetchPackages = async () => {
         try {
           setLoading(true);
-          // Determine user type from profile or default to 'b2b' for B2B stack
-          const userType = 'b2b'; // This screen is in B2B stack, so always B2B
+          // Determine user type from UserModeContext (b2c or b2b)
+          // Default to 'b2c' if mode is not available
+          const userType = (mode === 'b2b' || mode === 'b2c') ? mode : 'b2c';
           const response = await getSubscriptionPackages(userType);
           
           if (response.status === 'success' && response.data) {
@@ -71,7 +74,7 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
       if (userData?.id) {
         fetchPackages();
       }
-    }, [userData?.id])
+    }, [userData?.id, mode])
   );
 
   const handleSelectPlan = (planId: string) => {

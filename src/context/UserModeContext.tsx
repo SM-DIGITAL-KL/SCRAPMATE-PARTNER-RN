@@ -30,13 +30,26 @@ export const UserModeProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const loadMode = async () => {
       try {
-        const storedMode = await AsyncStorage.getItem(STORAGE_KEY);
-        if (
-          storedMode === 'b2c' ||
-          storedMode === 'b2b' ||
-          storedMode === 'delivery'
-        ) {
-          setModeState(storedMode as UserMode);
+        // Check user_type first - if 'D' (Delivery), force delivery mode
+        const { getUserData } = await import('../services/auth/authService');
+        const userData = await getUserData();
+        const userType = userData?.user_type;
+        
+        // If user_type is 'D' (Delivery), always set mode to delivery
+        if (userType === 'D') {
+          console.log('✅ UserModeContext: User type is D (Delivery) - setting mode to delivery');
+          setModeState('delivery');
+          await AsyncStorage.setItem(STORAGE_KEY, 'delivery');
+        } else {
+          // Otherwise, use stored mode
+          const storedMode = await AsyncStorage.getItem(STORAGE_KEY);
+          if (
+            storedMode === 'b2c' ||
+            storedMode === 'b2b' ||
+            storedMode === 'delivery'
+          ) {
+            setModeState(storedMode as UserMode);
+          }
         }
       } catch (error) {
         console.error('Error loading mode:', error);
@@ -50,8 +63,29 @@ export const UserModeProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const setMode = useCallback(async (newMode: UserMode) => {
-    setModeState(newMode);
-    await AsyncStorage.setItem(STORAGE_KEY, newMode);
+    try {
+      // Check user_type before setting mode - if 'D' (Delivery), always force delivery
+      const { getUserData } = await import('../services/auth/authService');
+      const userData = await getUserData();
+      const userType = userData?.user_type;
+      
+      // If user_type is 'D' (Delivery), always set mode to delivery regardless of requested mode
+      if (userType === 'D') {
+        console.log('✅ UserModeContext.setMode: User type is D (Delivery) - forcing delivery mode');
+        console.log(`   Requested mode was: ${newMode}, but forcing to: delivery`);
+        setModeState('delivery');
+        await AsyncStorage.setItem(STORAGE_KEY, 'delivery');
+      } else {
+        // For non-delivery users, allow mode change
+        setModeState(newMode);
+        await AsyncStorage.setItem(STORAGE_KEY, newMode);
+      }
+    } catch (error) {
+      console.error('Error in setMode:', error);
+      // Fallback: set mode anyway if we can't check user_type
+      setModeState(newMode);
+      await AsyncStorage.setItem(STORAGE_KEY, newMode);
+    }
   }, []);
 
   return (

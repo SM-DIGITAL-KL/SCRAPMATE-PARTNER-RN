@@ -227,14 +227,14 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
             resizeMode="contain"
           />
           <AutoText style={styles.headerTitle} numberOfLines={1}>
-            {t('delivery.title') || 'Delivery'}
+            Delivery
           </AutoText>
         </View>
         <View style={styles.iconRow}>
           {/* Online/Offline Switch */}
           <View style={styles.onlineStatusContainer}>
             <AutoText style={styles.onlineStatusText} numberOfLines={1}>
-              {isOnline ? t('delivery.dashboard.online') || 'Online' : t('delivery.dashboard.offline') || 'Offline'}
+              {isOnline ? 'Online' : 'Offline'}
             </AutoText>
             <Switch
               value={isOnline}
@@ -569,9 +569,11 @@ const getStyles = (theme: any, themeName: string) =>
     },
     onlineStatusText: {
       fontFamily: 'Poppins-Medium',
-      fontSize: '11@s',
+      fontSize: '10@s',
       color: theme.textPrimary,
-      minWidth: '40@s',
+      minWidth: '35@s',
+      maxWidth: '60@s',
+      flexShrink: 1,
     },
     iconButton: {
       padding: '4@s',
@@ -583,11 +585,12 @@ const getStyles = (theme: any, themeName: string) =>
     },
     sectionTitle: {
       fontFamily: 'Poppins-SemiBold',
-      fontSize: '15@s',
+      fontSize: '14@s',
       color: theme.textPrimary,
       marginBottom: '10@vs',
       flex: 1,
       flexShrink: 1,
+      minWidth: 0,
     },
     detailRow: {
       flexDirection: 'row',
@@ -616,15 +619,19 @@ const getStyles = (theme: any, themeName: string) =>
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: theme.accent,
-      paddingHorizontal: '16@s',
+      paddingHorizontal: '12@s',
       paddingVertical: '10@vs',
       borderRadius: '12@ms',
       gap: '4@s',
+      flexShrink: 1,
+      minWidth: 0,
     },
     acceptButtonText: {
       fontFamily: 'Poppins-SemiBold',
-      fontSize: '12@s',
+      fontSize: '11@s',
       color: theme.textPrimary,
+      flexShrink: 1,
+      minWidth: 0,
     },
     activeHeader: {
       flexDirection: 'row',
@@ -635,15 +642,17 @@ const getStyles = (theme: any, themeName: string) =>
     },
     statusTag: {
       backgroundColor: '#FFB3BA',
-      paddingHorizontal: '10@s',
+      paddingHorizontal: '8@s',
       paddingVertical: '3@vs',
       borderRadius: '10@ms',
       flexShrink: 0,
+      maxWidth: '100@s',
     },
     statusText: {
       fontFamily: 'Poppins-Medium',
-      fontSize: '11@s',
+      fontSize: '10@s',
       color: '#C2185B',
+      flexShrink: 1,
     },
     viewButton: {
       marginTop: '8@vs',
@@ -676,16 +685,20 @@ const getStyles = (theme: any, themeName: string) =>
     },
     impactLabel: {
       fontFamily: 'Poppins-Medium',
-      fontSize: '10@s',
+      fontSize: '9@s',
       color: theme.textPrimary,
       textAlign: 'center',
       marginBottom: '2@vs',
+      flexShrink: 1,
+      minWidth: 0,
     },
     impactSubLabel: {
       fontFamily: 'Poppins-Regular',
       fontSize: '8@s',
       color: theme.textSecondary,
       textAlign: 'center',
+      flexShrink: 1,
+      minWidth: 0,
     },
     subtitle: {
       fontFamily: 'Poppins-Regular',
@@ -804,8 +817,9 @@ const getStyles = (theme: any, themeName: string) =>
     },
     modeButton: {
       flex: 1,
-      paddingVertical: '10@vs',
-      paddingHorizontal: '12@s',
+      minWidth: 0,
+      paddingVertical: '12@vs',
+      paddingHorizontal: '8@s',
       borderRadius: '8@ms',
       backgroundColor: theme.card,
       borderWidth: 1,
@@ -819,13 +833,14 @@ const getStyles = (theme: any, themeName: string) =>
     },
     modeButtonText: {
       fontFamily: 'Poppins-Medium',
-      fontSize: '12@s',
+      fontSize: '11@s',
       color: theme.textSecondary,
       textAlign: 'center',
+      flexShrink: 1,
     },
     modeButtonTextSmall: {
-      fontSize: '10@s',
-      lineHeight: '12@s',
+      fontSize: '9@s',
+      lineHeight: '11@s',
     },
     modeButtonTextActive: {
       color: theme.card,

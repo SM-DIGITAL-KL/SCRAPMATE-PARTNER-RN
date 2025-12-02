@@ -1,4 +1,4 @@
-package com.scrapmatepartner.app
+package com.app.scrapmatepartner
 
 import android.app.Application
 import com.facebook.react.PackageList
@@ -6,8 +6,8 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
-import com.scrapmatepartner.app.NavigationBarPackage
-import com.scrapmatepartner.app.UPIPaymentPackage
+import com.app.scrapmatepartner.NavigationBarPackage
+import com.app.scrapmatepartner.UPIPaymentPackage
 
 class MainApplication : Application(), ReactApplication {
 

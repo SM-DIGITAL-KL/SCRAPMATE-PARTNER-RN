@@ -239,7 +239,20 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
       await queryClient.invalidateQueries({ queryKey: profileQueryKeys.detail(userData.id) });
       await queryClient.invalidateQueries({ queryKey: profileQueryKeys.current() });
       
-      // Update B2B status to 'pending' in AsyncStorage
+      // Refresh user data to get updated user_type
+      const updatedUserData = await getUserData();
+      console.log('✅ Updated user type after B2B signup:', updatedUserData?.user_type);
+      
+      // If user_type is no longer 'N', clear the 'new_user' flag
+      if (updatedUserData?.user_type && updatedUserData.user_type !== 'N') {
+        const currentB2bStatus = await AsyncStorage.getItem('@b2b_status');
+        if (currentB2bStatus === 'new_user') {
+          console.log('✅ B2B signup complete - clearing new_user flag');
+          await AsyncStorage.removeItem('@b2b_status');
+        }
+      }
+      
+      // Update B2B status to 'pending' in AsyncStorage (for approval workflow)
       await AsyncStorage.setItem('@b2b_status', 'pending');
       console.log('✅ B2B status updated to pending after document submission');
       

@@ -15,13 +15,14 @@ import SelectLanguageScreen from '../screens/B2C/SelectLanguageScreen';
 import PrivacyPolicyScreen from '../screens/Common/PrivacyPolicyScreen';
 import TermsScreen from '../screens/Common/TermsScreen';
 import { useTheme } from '../components/ThemeProvider';
+import { getUserData } from '../services/auth/authService';
 
 export type B2BStackParamList = {
   Placeholder: undefined;
   DealerDashboard: undefined;
   DealerSignup: undefined;
   DocumentUpload: undefined;
-  ApprovalWorkflow: undefined;
+  ApprovalWorkflow: { fromProfile?: boolean } | undefined;
   BulkScrapRequest: undefined;
   UserProfile: undefined;
   SubscriptionPlans: undefined;
@@ -49,30 +50,63 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
         const b2bStatus = await AsyncStorage.getItem('@b2b_status');
         console.log(`🔍 B2BStack: B2B status from storage (attempt ${retryCount + 1}):`, b2bStatus);
         
+        // Also check user_type as fallback - if user_type is 'N', route to signup
+        let userType: string | null = null;
+        try {
+          const userData = await getUserData();
+          userType = userData?.user_type || null;
+          console.log(`🔍 B2BStack: User type from userData:`, userType);
+        } catch (error) {
+          console.error('❌ B2BStack: Error getting user data:', error);
+        }
+        
         // If no status found and this is the first attempt, retry a few times
-        if (!b2bStatus && retryCount < 3) {
+        if (!b2bStatus && !userType && retryCount < 3) {
           console.log(`⏳ B2BStack: Status not found, retrying in ${(retryCount + 1) * 200}ms...`);
           return checkB2BStatusAndSetRoute(retryCount + 1);
         }
         
         let route: keyof B2BStackParamList = 'DealerDashboard';
         
-        if (b2bStatus === 'new_user') {
-          console.log('✅ B2BStack: Setting initial route to DealerSignup (new_user)');
-          route = 'DealerSignup';
-        } else if (b2bStatus === 'pending') {
-          console.log('✅ B2BStack: Setting initial route to ApprovalWorkflow (pending)');
-          route = 'ApprovalWorkflow';
-        } else if (b2bStatus === 'approved') {
-          console.log('✅ B2BStack: Setting initial route to DealerDashboard (approved)');
-          route = 'DealerDashboard';
-          // Clear B2B status after setting route
-          await AsyncStorage.removeItem('@b2b_status');
+        // IMPORTANT: Check user_type first - if user_type is not 'N', signup is complete
+        // Only route to signup if user_type is 'N' (new_user) AND @selected_join_type is 'b2b'
+        if (userType === 'N') {
+          // Check if user selected B2B in JoinAs screen
+          const selectedJoinType = await AsyncStorage.getItem('@selected_join_type');
+          if (selectedJoinType === 'b2b') {
+            console.log('✅ B2BStack: User type is N and selected B2B - routing to DealerSignup');
+            route = 'DealerSignup';
+            // Don't set AsyncStorage flags until signup is complete
+          } else {
+            // User type is N but didn't select B2B - route to dashboard (they'll be routed to correct stack)
+            console.log('✅ B2BStack: User type is N but selected type is:', selectedJoinType, '- routing to DealerDashboard');
+            route = 'DealerDashboard';
+          }
         } else {
-          // No status or unknown - default to dashboard
-          console.log('⚠️  B2BStack: No B2B status found or status is null/empty, defaulting to DealerDashboard');
-          console.log('   This might mean the user is not a new B2B user or status was not stored during login');
-          route = 'DealerDashboard';
+          // User type is not 'N' - signup is complete, check approval status
+          if (b2bStatus === 'rejected') {
+            // If rejected, route to signup screen to allow user to fix issues
+            console.log('✅ B2BStack: Status is rejected - routing to DealerSignup to fix issues');
+            route = 'DealerSignup';
+            // Keep rejected status in AsyncStorage
+          } else if (b2bStatus === 'pending') {
+            console.log('✅ B2BStack: Setting initial route to ApprovalWorkflow (pending)');
+            route = 'ApprovalWorkflow';
+          } else if (b2bStatus === 'approved') {
+            console.log('✅ B2BStack: Setting initial route to DealerDashboard (approved)');
+            route = 'DealerDashboard';
+            // Clear B2B status after setting route
+            await AsyncStorage.removeItem('@b2b_status');
+          } else {
+            // No status or unknown - default to dashboard (signup complete)
+            // Clear any leftover 'new_user' flag to prevent future issues
+            if (b2bStatus === 'new_user') {
+              console.log('✅ B2BStack: User type is not N, clearing @b2b_status flag');
+              await AsyncStorage.removeItem('@b2b_status');
+            }
+            console.log('✅ B2BStack: Setting initial route to DealerDashboard (signup complete, user_type: ' + userType + ')');
+            route = 'DealerDashboard';
+          }
         }
         
         console.log('🎯 B2BStack: Final initial route set to:', route);

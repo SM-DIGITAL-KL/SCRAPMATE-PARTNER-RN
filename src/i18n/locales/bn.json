@@ -73,7 +73,15 @@
     "changeLanguage": "ভাষা পরিবর্তন করুন",
     "joinB2BNetwork": "আমাদের B2B নেটওয়ার্কে যোগ দিন",
     "privacyPolicy": "গোপনীয়তা নীতি",
-    "terms": "শর্তাবলী"
+    "terms": "শর্তাবলী",
+    "approvalStatus": "অনুমোদনের স্থিতি",
+    "approved": "অনুমোদিত",
+    "darkGreen": "Forest Night",
+    "pending": "অপেক্ষমান",
+    "rejected": "প্রত্যাখ্যাত",
+    "whitePurple": "Lavender Dream",
+    "logoutMessage": "আপনি কি নিশ্চিত যে আপনি লগ আউট করতে চান?",
+    "logoutTitle": "লগ আউট নিশ্চিত করুন"
   },
   "addCategory": {
     "title": "বিভাগ যোগ করুন",
@@ -140,6 +148,49 @@
       "categoriesOperating": "চালু বিভাগ",
       "online": "অনলাইন",
       "offline": "অফলাইন"
+    },
+    "earnings": {
+      "activeGigs": "সক্রিয় গিগস",
+      "avgEarningsPerGig": "গড় আয়/গিগ",
+      "completionRate": "সম্পূর্ণতার হার",
+      "currentlyWorking": "বর্তমানে কাজ করছেন",
+      "date": "তারিখ",
+      "earnings": "আয়",
+      "earningsTrend": "আয়ের প্রবণতা",
+      "last30Days": "গত ৩০ দিন",
+      "last6Months": "গত ৬ মাস",
+      "orderId": "অর্ডার আইডি",
+      "overallFeedback": "সামগ্রিক প্রতিক্রিয়া",
+      "rating": "রেটিং",
+      "recentOrders": "সাম্প্রতিক অর্ডার",
+      "status": "স্থিতি",
+      "thisMonth": "এই মাসে",
+      "title": "গিগস আয়",
+      "totalEarnings": "মোট আয়",
+      "vsLastMonth": "গত মাসের তুলনায়"
+    },
+    "vehicle": {
+      "addDocument": "+ নথি যোগ করুন",
+      "car": "গাড়ি",
+      "documentUploads": "নথি আপলোড",
+      "driversLicenseBack": "ড্রাইভিং লাইসেন্স (পিছনের দিক)",
+      "motorcycle": "মোটরসাইকেল",
+      "registrationNumber": "নিবন্ধন নম্বর",
+      "registrationNumberPlaceholder": "যেমন, ABC-123-XY",
+      "selectVehicleType": "যানবাহনের ধরন নির্বাচন করুন",
+      "submitVehicleInfo": "যানবাহনের তথ্য জমা দিন",
+      "title": " যানবাহনের তথ্য",
+      "truck": "ট্রাক",
+      "uploadFailed": "আপলোড ব্যর্থ হয়েছে",
+      "uploadPending": "আপলোড অপেক্ষমান",
+      "uploadedSuccessfully": "সফলভাবে আপলোড করা হয়েছে",
+      "van": "ভ্যান",
+      "vehicleDetails": "যানবাহনের বিবরণ",
+      "vehicleInsurance": "যানবাহন বীমা পলিসি",
+      "vehicleModel": "যানবাহনের মডেল",
+      "vehicleModelPlaceholder": "যেমন, টয়োটা ক্যামরি",
+      "vehicleRegistration": "যানবাহন নিবন্ধন শংসাপত্র",
+      "signupAsDoorStepBuyer": "ডোর স্টেপ বায়ার হিসেবে সাইন আপ করুন"
     }
   },
   "dealerSignup": {
@@ -219,22 +270,43 @@
     "submitForVerification": "যাচাইকরণের জন্য জমা দিন"
   },
   "approvalWorkflow": {
-    "title": "অনুমোদন অবস্থা",
-    "applicationPending": "আবেদন মুলতুবি",
-    "applicationPendingDesc": "আপনার আবেদন বর্তমানে আমাদের প্রশাসনিক দল দ্বারা পর্যালোচনার অধীনে রয়েছে। সিদ্ধান্ত নেওয়ার পরে আমরা আপনাকে জানাব। আপনার ধৈর্যের জন্য ধন্যবাদ।",
+    "title": "অনুমোদনের স্থিতি",
+    "applicationPending": "আবেদন অপেক্ষমান",
+    "applicationPendingDesc": "আপনার আবেদন বর্তমানে পর্যালোচনা করা হচ্ছে। সিদ্ধান্ত নেওয়ার পর আমরা আপনাকে জানাব।",
     "inReview": "পর্যালোচনায়",
-    "lastUpdated": "সর্বশেষ আপডেট: 2 মিনিট আগে",
-    "applicationProgress": "আবেদন অগ্রগতি",
+    "lastUpdated": "সর্বশেষ আপডেট: ২ মিনিট আগে",
+    "applicationProgress": "আবেদনের অগ্রগতি",
     "recentUpdates": "সাম্প্রতিক আপডেট",
     "applicationSubmitted": "আবেদন জমা দেওয়া হয়েছে",
-    "applicationSubmittedDesc": "আপনার ব্যবসায়িক সাইনআপ এবং নথি আপলোড সম্পূর্ণ হয়েছে। আবেদন এখন পর্যালোচনার জন্য সারিতে রয়েছে।",
+    "applicationSubmittedDesc": "ব্যবসা সাইনআপ এবং নথি সফলভাবে জমা দেওয়া হয়েছে। এটি এখন যাচাইকরণ লাইনে আছে।",
     "documentsVerified": "নথি যাচাই করা হয়েছে",
-    "documentsVerifiedDesc": "আপলোড করা ব্যবসায়িক লাইসেন্স এবং KYC নথি সফলভাবে যাচাই করা হয়েছে।",
-    "internalReviewInitiated": "অভ্যন্তরীণ পর্যালোচনা শুরু করা হয়েছে",
-    "internalReviewInitiatedDesc": "আপনার আবেদন আমাদের সম্মতি দল দ্বারা বিস্তারিত অভ্যন্তরীণ চেকের মধ্য দিয়ে যাচ্ছে।",
-    "contactSupport": "সহায়তা যোগাযোগ করুন",
-    "pending": "মুলতুবি",
+    "documentsVerifiedDesc": "আপলোড করা লাইসেন্স এবং কেওয়াইসি নথি সফলভাবে যাচাই করা হয়েছে।",
+    "internalReviewInitiated": "অভ্যন্তরীণ পর্যালোচনা শুরু হয়েছে",
+    "internalReviewInitiatedDesc": "আমাদের কমপ্লায়েন্স টিম আপনার আবেদন বিস্তারিতভাবে পর্যালোচনা করছে।",
+    "contactSupport": "সহায়তার সাথে যোগাযোগ করুন",
+    "pending": "অপেক্ষমান",
     "approved": "অনুমোদিত",
-    "rejected": "প্রত্যাখ্যান করা হয়েছে"
+    "rejected": "প্রত্যাখ্যাত",
+    "applicationApproved": "আবেদন অনুমোদিত",
+    "applicationApprovedDesc": "আপনার B2B আবেদন অনুমোদিত হয়েছে। আপনি এখন সমস্ত বৈশিষ্ট্য অ্যাক্সেস করতে পারেন।",
+    "applicationRejected": "আবেদন প্রত্যাখ্যাত",
+    "applicationRejectedDesc": "আপনার B2B আবেদন প্রত্যাখ্যান করা হয়েছে। আরও তথ্যের জন্য অনুগ্রহ করে সহায়তার সাথে যোগাযোগ করুন।"
+  },
+  "joinAs": {
+    "alreadyHaveAccount": "ইতিমধ্যে একটি অ্যাকাউন্ট আছে?",
+    "b2b": {
+      "description": "শিল্প এবং পাইকারি স্ক্র্যাপ বিক্রেতা এবং ক্রেতাদের জন্য। বাল্ক অর্ডার এবং ব্যবসায়িক লেনদেন পরিচালনা করুন।",
+      "title": "B2B হিসেবে যোগ দিন"
+    },
+    "b2c": {
+      "description": "খুচরা স্ক্র্যাপ ক্রেতা এবং বিক্রেতাদের জন্য। সরাসরি গ্রাহকদের কাছে বিক্রি করুন এবং খুচরা অর্ডার পরিচালনা করুন।",
+      "title": "B2C হিসেবে যোগ দিন"
+    },
+    "continue": "চালিয়ে যান",
+    "delivery": {
+      "description": "ডেলিভারি পার্টনার হন। গ্রাহকদের কাছ থেকে স্ক্র্যাপ সংগ্রহ করুন এবং প্রতিটি ডেলিভারিতে আয় করুন।",
+      "title": "ডোর স্টেপ বায়ার হিসেবে যোগ দিন"
+    },
+    "login": "লগ ইন করুন"
   }
 }

@@ -54,6 +54,23 @@ const UserProfileScreen = ({ navigation, route }: any) => {
   // Prioritize query result over params to ensure fresh data
   const profile = profileFromQuery || profileDataFromParams;
   const completionPercentage = profile?.completion_percentage || 32;
+
+  // Sync AsyncStorage with latest approval status when profile is fetched
+  React.useEffect(() => {
+    const syncB2CStatus = async () => {
+      if (profile?.shop?.approval_status && userData?.id) {
+        try {
+          const approvalStatus = profile.shop.approval_status;
+          await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
+          console.log('✅ UserProfileScreen: Synced @b2c_approval_status to AsyncStorage:', approvalStatus);
+        } catch (error) {
+          console.error('❌ Error syncing B2C status:', error);
+        }
+      }
+    };
+    
+    syncB2CStatus();
+  }, [profile?.shop?.approval_status, userData?.id]);
   
   // Get user's name from profile or userData
   const userName = profile?.name || userData?.name || 'User';
@@ -73,6 +90,35 @@ const UserProfileScreen = ({ navigation, route }: any) => {
       default:
         return t('userProfile.light');
     }
+  };
+
+  // Check if B2C signup is complete (has all required fields)
+  const hasCompletedSignup = React.useMemo(() => {
+    if (!profile) return false;
+    const shop = profile.shop;
+    if (!shop || !shop.id) return false;
+    
+    // Check if all required B2C signup fields are present
+    const hasName = profile.name && profile.name.trim() !== '';
+    const hasEmail = profile.email && profile.email.trim() !== '';
+    const hasAddress = shop.address && shop.address.trim() !== '';
+    const hasContact = shop.contact && shop.contact.trim() !== '';
+    const hasAadhar = shop.aadhar_card && shop.aadhar_card.trim() !== '';
+    
+    return hasName && hasEmail && hasAddress && hasContact && hasAadhar;
+  }, [profile]);
+
+  // Get approval status label
+  const getApprovalStatusLabel = () => {
+    const approvalStatus = profile?.shop?.approval_status;
+    if (approvalStatus === 'approved') {
+      return t('userProfile.approved') || 'Approved';
+    } else if (approvalStatus === 'pending') {
+      return t('userProfile.pending') || 'Pending';
+    } else if (approvalStatus === 'rejected') {
+      return t('userProfile.rejected') || 'Rejected';
+    }
+    return t('userProfile.pending') || 'Pending';
   };
 
   const handleLogout = () => {
@@ -111,11 +157,14 @@ const UserProfileScreen = ({ navigation, route }: any) => {
       navigation.navigate('Terms');
     } else if (item.action === 'JoinB2BNetwork') {
       navigation.navigate('DealerSignup');
+    } else if (item.action === 'ApprovalStatus') {
+      navigation.navigate('ApprovalWorkflow', { fromProfile: true });
     }
   };
 
   const menuItems = [
     { icon: 'account', label: t('userProfile.yourProfile') || 'Your Profile', subtitle: `${completionPercentage}% completed`, action: 'EditProfile' },
+    ...(hasCompletedSignup ? [{ icon: 'check-circle', label: t('userProfile.approvalStatus') || 'Approval Status', subtitle: getApprovalStatusLabel(), action: 'ApprovalStatus' }] : []),
     { icon: 'package-variant', label: t('userProfile.myOrders'), action: 'MyOrders' },
     { icon: 'truck-delivery-outline', label: t('userProfile.pickupStatus'), action: 'PickupStatus' },
     { icon: 'weather-sunny', label: t('userProfile.appearance'), subtitle: getThemeSubtitle(), action: 'Appearance' },
@@ -154,7 +203,11 @@ const UserProfileScreen = ({ navigation, route }: any) => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerCard}>
+        <TouchableOpacity
+          style={styles.headerCard}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('SubscriptionPlans')}
+        >
           {Platform.OS === 'ios' ? (
             <>
               <View style={styles.iosGradientWrapper}>
@@ -261,7 +314,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
               </View>
             </LinearGradient>
           )}
-        </View>
+        </TouchableOpacity>
 
         {menuItems.map((item, index) => (
           <TouchableOpacity

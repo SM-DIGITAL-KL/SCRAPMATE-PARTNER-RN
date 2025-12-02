@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, StatusBar, Platform, Alert, DeviceEventEmitter, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
+import { DeliveryStackParamList } from '../../navigation/DeliveryStack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../components/ThemeProvider';
@@ -11,8 +12,10 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n/config';
 import { getUserData, logout } from '../../services/auth/authService';
 import { useProfile } from '../../hooks/useProfile';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DeliveryUserProfileScreen = ({ navigation, route }: any) => {
+const DeliveryUserProfileScreen = ({ route }: any) => {
+  const navigation = useNavigation<NavigationProp<DeliveryStackParamList>>();
   const { theme, isDark, themeName, setTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -53,6 +56,63 @@ const DeliveryUserProfileScreen = ({ navigation, route }: any) => {
   const profile = profileFromQuery || profileDataFromParams;
   const completionPercentage = profile?.completion_percentage || 32;
   
+  // Sync AsyncStorage with latest approval status when profile is fetched
+  React.useEffect(() => {
+    const syncDeliveryStatus = async () => {
+      const deliveryData = profile?.delivery_boy || profile?.delivery;
+      if (deliveryData?.approval_status && userData?.id) {
+        try {
+          const approvalStatus = deliveryData.approval_status;
+          await AsyncStorage.setItem('@delivery_approval_status', approvalStatus);
+          console.log('✅ DeliveryUserProfileScreen: Synced @delivery_approval_status to AsyncStorage:', approvalStatus);
+        } catch (error) {
+          console.error('❌ Error syncing delivery status:', error);
+        }
+      }
+    };
+    
+    syncDeliveryStatus();
+  }, [profile?.delivery_boy?.approval_status, profile?.delivery?.approval_status, userData?.id]);
+  
+  // Check if delivery signup is complete (has all required fields)
+  const hasCompletedSignup = React.useMemo(() => {
+    if (!profile) return false;
+    const deliveryData = profile.delivery_boy || profile.delivery;
+    if (!deliveryData || !deliveryData.id) return false;
+    
+    // Check if all required delivery signup fields are present
+    const hasName = profile.name && profile.name.trim() !== '';
+    const hasEmail = profile.email && profile.email.trim() !== '';
+    const hasAddress = deliveryData.address && deliveryData.address.trim() !== '';
+    const hasContact = deliveryData.contact && deliveryData.contact.trim() !== '';
+    const hasAadhar = deliveryData.aadhar_card && deliveryData.aadhar_card.trim() !== '';
+    
+    // Vehicle details are required unless vehicle type is cycle
+    const hasVehicleDetails = deliveryData.vehicle_type === 'cycle' || 
+      (deliveryData.vehicle_model && deliveryData.vehicle_model.trim() !== '' &&
+       deliveryData.vehicle_registration_number && deliveryData.vehicle_registration_number.trim() !== '');
+    
+    // Driving license is required unless vehicle type is cycle
+    const hasDrivingLicense = deliveryData.vehicle_type === 'cycle' || 
+      (deliveryData.driving_license && deliveryData.driving_license.trim() !== '');
+    
+    return hasName && hasEmail && hasAddress && hasContact && hasAadhar && hasVehicleDetails && hasDrivingLicense;
+  }, [profile]);
+
+  // Get approval status label
+  const getApprovalStatusLabel = () => {
+    const deliveryData = profile?.delivery_boy || profile?.delivery;
+    const approvalStatus = deliveryData?.approval_status;
+    if (approvalStatus === 'approved') {
+      return t('userProfile.approved') || 'Approved';
+    } else if (approvalStatus === 'pending') {
+      return t('userProfile.pending') || 'Pending';
+    } else if (approvalStatus === 'rejected') {
+      return t('userProfile.rejected') || 'Rejected';
+    }
+    return t('userProfile.pending') || 'Pending';
+  };
+  
   // Get user's name from profile or userData
   const userName = profile?.name || userData?.name || 'User';
   const userInitial = userName.charAt(0).toUpperCase();
@@ -89,8 +149,15 @@ const DeliveryUserProfileScreen = ({ navigation, route }: any) => {
     }
   };
 
+  // Check if approval status exists (show it even if signup is not complete)
+  const hasApprovalStatus = React.useMemo(() => {
+    const deliveryData = profile?.delivery_boy || profile?.delivery;
+    return !!deliveryData?.approval_status;
+  }, [profile]);
+
   const menuItems = [
     { icon: 'account', label: t('userProfile.yourProfile') || 'Your Profile', subtitle: `${completionPercentage}% completed`, action: 'EditProfile' },
+    ...(hasApprovalStatus ? [{ icon: 'check-circle', label: t('userProfile.approvalStatus') || 'Approval Status', subtitle: getApprovalStatusLabel(), action: 'ApprovalStatus' }] : []),
     { icon: 'package-variant', label: t('userProfile.myOrders'), action: 'MyOrders' },
     { icon: 'truck-delivery-outline', label: t('userProfile.pickupStatus'), action: 'PickupStatus' },
     { icon: 'weather-sunny', label: t('userProfile.appearance'), subtitle: getThemeSubtitle(), action: 'Appearance' },
@@ -243,6 +310,8 @@ const DeliveryUserProfileScreen = ({ navigation, route }: any) => {
             onPress={() => {
               if (item.action === 'EditProfile') {
                 navigation.navigate('EditProfile');
+              } else if (item.action === 'ApprovalStatus') {
+                navigation.navigate('ApprovalWorkflow', { fromProfile: true });
               } else if (item.action === 'MyOrders') {
                 // Navigate to orders if available
                 Alert.alert(t('userProfile.myOrders'), 'Orders feature coming soon');

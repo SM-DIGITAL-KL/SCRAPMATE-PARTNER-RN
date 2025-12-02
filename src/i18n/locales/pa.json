@@ -75,7 +75,13 @@
     "changeLanguage": "ਭਾਸ਼ਾ ਬਦਲੋ",
     "joinB2BNetwork": "ਸਾਡੇ B2B ਨੈੱਟਵਰਕ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਵੋ",
     "privacyPolicy": "ਗੁਪਤਤਾ ਨੀਤੀ",
-    "terms": "ਸ਼ਰਤਾਂ"
+    "terms": "ਸ਼ਰਤਾਂ",
+    "approvalStatus": "ਮਨਜ਼ੂਰੀ ਦੀ ਸਥਿਤੀ",
+    "approved": "ਮਨਜ਼ੂਰ",
+    "pending": "ਬਕਾਇਆ",
+    "rejected": "ਰੱਦ ਕੀਤਾ",
+    "logoutMessage": "ਕੀ ਤੁਸੀਂ ਸੱਚਮੁੱਚ ਲੌਗ ਆਉਟ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ?",
+    "logoutTitle": "ਲੌਗ ਆਉਟ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ"
   },
   "addCategory": {
     "title": "ਸ਼੍ਰੇਣੀ ਜੋੜੋ",
@@ -142,6 +148,49 @@
       "categoriesOperating": "ਕੰਮ ਕਰ ਰਹੀਆਂ ਸ਼੍ਰੇਣੀਆਂ",
       "online": "ਔਨਲਾਈਨ",
       "offline": "ਔਫਲਾਈਨ"
+    },
+    "earnings": {
+      "activeGigs": "ਸਰਗਰਮ ਗਿਗਸ",
+      "avgEarningsPerGig": "ਔਸਤ ਕਮਾਈ/ਗਿਗ",
+      "completionRate": "ਪੂਰਾ ਹੋਣ ਦੀ ਦਰ",
+      "currentlyWorking": "ਵਰਤਮਾਨ ਵਿੱਚ ਕੰਮ ਕਰ ਰਿਹਾ ਹੈ",
+      "date": "ਮਿਤੀ",
+      "earnings": "ਕਮਾਈ",
+      "earningsTrend": "ਕਮਾਈ ਦਾ ਰੁਝਾਨ",
+      "last30Days": "ਪਿਛਲੇ 30 ਦਿਨ",
+      "last6Months": "ਪਿਛਲੇ 6 ਮਹੀਨੇ",
+      "orderId": "ਆਰਡਰ ਆਈਡੀ",
+      "overallFeedback": "ਕੁੱਲ ਫੀਡਬੈਕ",
+      "rating": "ਰੇਟਿੰਗ",
+      "recentOrders": "ਹਾਲੀਆ ਆਰਡਰ",
+      "status": "ਸਥਿਤੀ",
+      "thisMonth": "ਇਸ ਮਹੀਨੇ",
+      "title": "ਗਿਗਸ ਕਮਾਈ",
+      "totalEarnings": "ਕੁੱਲ ਕਮਾਈ",
+      "vsLastMonth": "ਪਿਛਲੇ ਮਹੀਨੇ ਦੇ ਮੁਕਾਬਲੇ"
+    },
+    "vehicle": {
+      "addDocument": "+ ਦਸਤਾਵੇਜ਼ ਸ਼ਾਮਲ ਕਰੋ",
+      "car": "ਕਾਰ",
+      "documentUploads": "ਦਸਤਾਵੇਜ਼ ਅਪਲੋਡ",
+      "driversLicenseBack": "ਡਰਾਈਵਿੰਗ ਲਾਇਸੈਂਸ (ਪਿੱਛੇ ਵਾਲਾ ਪਾਸਾ)",
+      "motorcycle": "ਮੋਟਰਸਾਈਕਲ",
+      "registrationNumber": "ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਨੰਬਰ",
+      "registrationNumberPlaceholder": "ਉਦਾਹਰਨ, ABC-123-XY",
+      "selectVehicleType": "ਵਾਹਨ ਦੀ ਕਿਸਮ ਚੁਣੋ",
+      "submitVehicleInfo": "ਵਾਹਨ ਜਾਣਕਾਰੀ ਜਮ੍ਹਾਂ ਕਰੋ",
+      "title": "ਵਾਹਨ ਜਾਣਕਾਰੀ",
+      "truck": "ਟਰੱਕ",
+      "uploadFailed": "ਅਪਲੋਡ ਅਸਫਲ",
+      "uploadPending": "ਅਪਲੋਡ ਬਕਾਇਆ",
+      "uploadedSuccessfully": "ਸਫਲਤਾਪੂਰਵਕ ਅਪਲੋਡ ਕੀਤਾ ਗਿਆ",
+      "van": "ਵੈਨ",
+      "vehicleDetails": "ਵਾਹਨ ਦੇ ਵੇਰਵੇ",
+      "vehicleInsurance": "ਵਾਹਨ ਬੀਮਾ ਪਾਲਿਸੀ",
+      "vehicleModel": "ਵਾਹਨ ਮਾਡਲ",
+      "vehicleModelPlaceholder": "ਉਦਾਹਰਨ, ਟੋਯੋਟਾ ਕੈਮਰੀ",
+      "vehicleRegistration": "ਵਾਹਨ ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਸਰਟੀਫਿਕੇਟ",
+      "signupAsDoorStepBuyer": "ਡੋਰ ਸਟੈਪ ਬਾਇਰ ਵਜੋਂ ਸਾਈਨ ਅੱਪ ਕਰੋ"
     }
   },
   "dealerSignup": {
@@ -221,22 +270,43 @@
     "submitForVerification": "ਪੜਤਾਲ ਲਈ ਜਮ੍ਹਾ ਕਰੋ"
   },
   "approvalWorkflow": {
-    "title": "ਮਨਜ਼ੂਰੀ ਸਥਿਤੀ",
-    "applicationPending": "ਅਰਜ਼ੀ ਬਾਕੀ",
-    "applicationPendingDesc": "ਤੁਹਾਡੀ ਅਰਜ਼ੀ ਇਸ ਸਮੇਂ ਸਾਡੀ ਪ੍ਰਸ਼ਾਸਨਿਕ ਟੀਮ ਦੁਆਰਾ ਜਾਂਚ ਹੇਠ ਹੈ। ਫੈਸਲਾ ਲੈਣ ਤੋਂ ਬਾਅਦ ਅਸੀਂ ਤੁਹਾਨੂੰ ਸੂਚਿਤ ਕਰਾਂਗੇ। ਤੁਹਾਡੇ ਧੀਰਜ ਲਈ ਧੰਨਵਾਦ।",
-    "inReview": "ਜਾਂਚ ਵਿੱਚ",
-    "lastUpdated": "ਆਖਰੀ ਅਪਡੇਟ: 2 ਮਿੰਟ ਪਹਿਲਾਂ",
-    "applicationProgress": "ਅਰਜ਼ੀ ਪ੍ਰਗਤੀ",
-    "recentUpdates": "ਤਾਜ਼ਾ ਅਪਡੇਟਸ",
-    "applicationSubmitted": "ਅਰਜ਼ੀ ਜਮ੍ਹਾ ਕੀਤੀ",
-    "applicationSubmittedDesc": "ਤੁਹਾਡਾ ਵਪਾਰਕ ਸਾਇਨਅੱਪ ਅਤੇ ਦਸਤਾਵੇਜ਼ ਅਪਲੋਡ ਪੂਰਾ ਹੋ ਗਿਆ ਹੈ। ਅਰਜ਼ੀ ਹੁਣ ਜਾਂਚ ਲਈ ਕਤਾਰ ਵਿੱਚ ਹੈ।",
-    "documentsVerified": "ਦਸਤਾਵੇਜ਼ ਪੜਤਾਲੇ ਗਏ",
-    "documentsVerifiedDesc": "ਅਪਲੋਡ ਕੀਤੇ ਵਪਾਰਕ ਲਾਇਸੈਂਸ ਅਤੇ KYC ਦਸਤਾਵੇਜ਼ ਸਫਲਤਾਪੂਰਵਕ ਪੜਤਾਲੇ ਗਏ ਹਨ।",
-    "internalReviewInitiated": "ਅੰਦਰੂਨੀ ਜਾਂਚ ਸ਼ੁਰੂ ਕੀਤੀ",
-    "internalReviewInitiatedDesc": "ਤੁਹਾਡੀ ਅਰਜ਼ੀ ਸਾਡੀ ਅਨੁਪਾਲਨ ਟੀਮ ਦੁਆਰਾ ਵਿਸਤ੍ਰਿਤ ਅੰਦਰੂਨੀ ਜਾਂਚਾਂ ਤੋਂ ਲੰਘ ਰਹੀ ਹੈ।",
+    "title": "ਮਨਜ਼ੂਰੀ ਦੀ ਸਥਿਤੀ",
+    "applicationPending": "ਅਰਜ਼ੀ ਬਕਾਇਆ",
+    "applicationPendingDesc": "ਤੁਹਾਡੀ ਅਰਜ਼ੀ ਦੀ ਵਰਤਮਾਨ ਵਿੱਚ ਸਮੀਖਿਆ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ। ਫੈਸਲਾ ਲੈਣ ਤੋਂ ਬਾਅਦ ਅਸੀਂ ਤੁਹਾਨੂੰ ਸੂਚਿਤ ਕਰਾਂਗੇ।",
+    "inReview": "ਸਮੀਖਿਆ ਅਧੀਨ",
+    "lastUpdated": "ਆਖਰੀ ਅੱਪਡੇਟ: 2 ਮਿੰਟ ਪਹਿਲਾਂ",
+    "applicationProgress": "ਅਰਜ਼ੀ ਦੀ ਪ੍ਰਗਤੀ",
+    "recentUpdates": "ਹਾਲੀਆ ਅੱਪਡੇਟ",
+    "applicationSubmitted": "ਅਰਜ਼ੀ ਜਮ੍ਹਾਂ ਕੀਤੀ ਗਈ",
+    "applicationSubmittedDesc": "ਕਾਰੋਬਾਰੀ ਸਾਈਨਅਪ ਅਤੇ ਦਸਤਾਵੇਜ਼ ਸਫਲਤਾਪੂਰਵਕ ਜਮ੍ਹਾਂ ਕੀਤੇ ਗਏ। ਇਹ ਹੁਣ ਤਸਦੀਕ ਕਤਾਰ ਵਿੱਚ ਹੈ।",
+    "documentsVerified": "ਦਸਤਾਵੇਜ਼ ਤਸਦੀਕ ਕੀਤੇ ਗਏ",
+    "documentsVerifiedDesc": "ਅਪਲੋਡ ਕੀਤੇ ਲਾਇਸੈਂਸ ਅਤੇ ਕੇਵਾਈਸੀ ਦਸਤਾਵੇਜ਼ ਸਫਲਤਾਪੂਰਵਕ ਤਸਦੀਕ ਕੀਤੇ ਗਏ।",
+    "internalReviewInitiated": "ਅੰਦਰੂਨੀ ਸਮੀਖਿਆ ਸ਼ੁਰੂ",
+    "internalReviewInitiatedDesc": "ਸਾਡੀ ਪਾਲਣਾ ਟੀਮ ਤੁਹਾਡੀ ਅਰਜ਼ੀ ਦੀ ਵਿਸਥਾਰ ਨਾਲ ਸਮੀਖਿਆ ਕਰ ਰਹੀ ਹੈ।",
     "contactSupport": "ਸਹਾਇਤਾ ਨਾਲ ਸੰਪਰਕ ਕਰੋ",
-    "pending": "ਬਾਕੀ",
+    "pending": "ਬਕਾਇਆ",
     "approved": "ਮਨਜ਼ੂਰ",
-    "rejected": "ਅਸਵੀਕਾਰ"
+    "rejected": "ਰੱਦ ਕੀਤਾ",
+    "applicationApproved": "ਅਰਜ਼ੀ ਮਨਜ਼ੂਰ",
+    "applicationApprovedDesc": "ਤੁਹਾਡੀ B2B ਅਰਜ਼ੀ ਮਨਜ਼ੂਰ ਹੋ ਗਈ ਹੈ। ਤੁਸੀਂ ਹੁਣ ਸਾਰੀਆਂ ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ ਤੱਕ ਪਹੁੰਚ ਕਰ ਸਕਦੇ ਹੋ।",
+    "applicationRejected": "ਅਰਜ਼ੀ ਰੱਦ ਕੀਤੀ ਗਈ",
+    "applicationRejectedDesc": "ਤੁਹਾਡੀ B2B ਅਰਜ਼ੀ ਰੱਦ ਕਰ ਦਿੱਤੀ ਗਈ ਹੈ। ਹੋਰ ਜਾਣਕਾਰੀ ਲਈ ਕਿਰਪਾ ਕਰਕੇ ਸਹਾਇਤਾ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।"
+  },
+  "joinAs": {
+    "alreadyHaveAccount": "ਕੀ ਪਹਿਲਾਂ ਹੀ ਖਾਤਾ ਹੈ?",
+    "b2b": {
+      "description": "ਉਦਯੋਗਿਕ ਅਤੇ ਥੋਕ ਸਕ੍ਰੈਪ ਵਿਕਰੇਤਾਵਾਂ ਅਤੇ ਖਰੀਦਦਾਰਾਂ ਲਈ। ਥੋਕ ਆਰਡਰ ਅਤੇ ਵਪਾਰਕ ਲੈਣ-ਦੇਣ ਦਾ ਪ੍ਰਬੰਧਨ ਕਰੋ।",
+      "title": "B2B ਵਜੋਂ ਸ਼ਾਮਲ ਹੋਵੋ"
+    },
+    "b2c": {
+      "description": "ਪ੍ਰਚੂਨ ਸਕ੍ਰੈਪ ਖਰੀਦਦਾਰਾਂ ਅਤੇ ਵਿਕਰੇਤਾਵਾਂ ਲਈ। ਸਿੱਧੇ ਗਾਹਕਾਂ ਨੂੰ ਵੇਚੋ ਅਤੇ ਪ੍ਰਚੂਨ ਆਰਡਰਾਂ ਦਾ ਪ੍ਰਬੰਧਨ ਕਰੋ।",
+      "title": "B2C ਵਜੋਂ ਸ਼ਾਮਲ ਹੋਵੋ"
+    },
+    "continue": "ਜਾਰੀ ਰੱਖੋ",
+    "delivery": {
+      "description": "ਡਿਲੀਵਰੀ ਪਾਰਟਨਰ ਬਣੋ। ਗਾਹਕਾਂ ਤੋਂ ਸਕ੍ਰੈਪ ਇਕੱਠਾ ਕਰੋ ਅਤੇ ਹਰ ਡਿਲੀਵਰੀ 'ਤੇ ਕਮਾਓ।",
+      "title": "ਡੋਰ ਸਟੈਪ ਬਾਇਰ ਵਜੋਂ ਸ਼ਾਮਲ ਹੋਵੋ"
+    },
+    "login": "ਲੌਗ ਇਨ ਕਰੋ"
   }
 }

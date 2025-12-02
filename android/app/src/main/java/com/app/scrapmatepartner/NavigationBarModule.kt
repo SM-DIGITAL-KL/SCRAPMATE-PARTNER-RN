@@ -1,4 +1,4 @@
-package com.scrapmatepartner.app
+package com.app.scrapmatepartner
 
 import android.app.Activity
 import android.os.Build

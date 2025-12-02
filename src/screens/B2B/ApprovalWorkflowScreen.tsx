@@ -12,13 +12,16 @@ import { getUserData } from '../../services/auth/authService';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ApprovalWorkflowScreen = ({ navigation }: any) => {
+const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
   const { theme, isDark, themeName } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [userData, setUserData] = useState<any>(null);
   const [demoStatus, setDemoStatus] = useState<'Pending' | 'Approved' | 'Rejected'>('Pending');
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
+  
+  // Check if user came from profile settings
+  const fromProfile = route?.params?.fromProfile || false;
 
   // Load user data
   useFocusEffect(
@@ -47,8 +50,9 @@ const ApprovalWorkflowScreen = ({ navigation }: any) => {
     }, [userData?.id, refetchProfile])
   );
   
-  // Get approval status from profile - use actual status, not demo
-  const approvalStatus = profileData?.shop?.approval_status || 'pending';
+  // Get approval status from profile - support both shop (B2B/B2C) and delivery/delivery_boy (Delivery)
+  const approvalStatus = profileData?.shop?.approval_status || profileData?.delivery?.approval_status || profileData?.delivery_boy?.approval_status || 'pending';
+  const rejectionReason = profileData?.shop?.rejection_reason || profileData?.delivery?.rejection_reason || profileData?.delivery_boy?.rejection_reason || null;
   
   // Map approval status to display status
   const getDisplayStatus = (): 'Pending' | 'Approved' | 'Rejected' => {
@@ -59,46 +63,114 @@ const ApprovalWorkflowScreen = ({ navigation }: any) => {
   
   const status = getDisplayStatus(); // Use actual approval status from API
 
-  // Sync AsyncStorage with latest approval status
+  // Sync AsyncStorage with latest approval status (for both B2B and B2C)
   React.useEffect(() => {
-    const syncB2BStatus = async () => {
+    const syncApprovalStatus = async () => {
       if (approvalStatus && userData?.id) {
         try {
-          // Update AsyncStorage with latest approval status
-          await AsyncStorage.setItem('@b2b_status', approvalStatus);
-          console.log('✅ ApprovalWorkflowScreen: Synced @b2b_status to AsyncStorage:', approvalStatus);
+          // Check user type to determine which status to sync
+          const userType = userData?.user_type;
           
-          // If approved, navigate to dashboard
-          if (approvalStatus === 'approved') {
-            console.log('✅ Approval status is approved, navigating to DealerDashboard');
-            setTimeout(() => {
-              navigation.replace('DealerDashboard');
-            }, 1000);
+          if (userType === 'S' || userType === 'SR') {
+            // B2B user - sync to @b2b_status
+            await AsyncStorage.setItem('@b2b_status', approvalStatus);
+            console.log('✅ ApprovalWorkflowScreen: Synced @b2b_status to AsyncStorage:', approvalStatus);
+            
+            // Handle rejected status - navigate to signup screen
+            if (!fromProfile && approvalStatus === 'rejected') {
+              console.log('✅ Approval status is rejected, navigating to DealerSignup');
+              setTimeout(() => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'DealerSignup' }],
+                });
+              }, 1000);
+            }
+            // Only auto-navigate if NOT coming from profile settings
+            else if (!fromProfile && approvalStatus === 'approved') {
+              console.log('✅ Approval status is approved, navigating to DealerDashboard');
+              setTimeout(() => {
+                navigation.replace('DealerDashboard');
+              }, 1000);
+            }
+          } else if (userType === 'R' || userType === 'SR') {
+            // B2C user - sync to @b2c_approval_status
+            await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
+            console.log('✅ ApprovalWorkflowScreen: Synced @b2c_approval_status to AsyncStorage:', approvalStatus);
+            
+            // Handle rejected status - navigate to signup screen
+            if (!fromProfile && approvalStatus === 'rejected') {
+              console.log('✅ Approval status is rejected, navigating to B2CSignup');
+              setTimeout(() => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'B2CSignup' }],
+                });
+              }, 1000);
+            }
+            // Only auto-navigate if NOT coming from profile settings
+            else if (!fromProfile && approvalStatus === 'approved') {
+              console.log('✅ Approval status is approved, navigating to Dashboard');
+              setTimeout(() => {
+                navigation.replace('Dashboard');
+              }, 1000);
+            }
+          } else if (userType === 'D') {
+            // Delivery/Door Step user - sync to @delivery_approval_status
+            await AsyncStorage.setItem('@delivery_approval_status', approvalStatus);
+            console.log('✅ ApprovalWorkflowScreen: Synced @delivery_approval_status to AsyncStorage:', approvalStatus);
+            
+            // Handle rejected status - navigate to signup screen
+            if (!fromProfile && approvalStatus === 'rejected') {
+              console.log('✅ Approval status is rejected, navigating to VehicleInformation');
+              setTimeout(() => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'VehicleInformation' }],
+                });
+              }, 1000);
+            }
+            // Only auto-navigate if NOT coming from profile settings
+            else if (!fromProfile && approvalStatus === 'approved') {
+              console.log('✅ Approval status is approved, navigating to Dashboard');
+              setTimeout(() => {
+                navigation.replace('Dashboard');
+              }, 1000);
+            }
           }
         } catch (error) {
-          console.error('❌ Error syncing B2B status:', error);
+          console.error('❌ Error syncing approval status:', error);
         }
       }
     };
     
-    syncB2BStatus();
-  }, [approvalStatus, userData?.id, navigation]);
+    syncApprovalStatus();
+  }, [approvalStatus, userData?.id, userData?.user_type, fromProfile, navigation]);
 
-  // Auto-navigate to dashboard after 3 seconds if status is pending
+  // Auto-navigate to dashboard after 3 seconds if status is pending (only if NOT from profile)
   React.useEffect(() => {
+    // Don't auto-navigate if user came from profile settings
+    if (fromProfile) {
+      return;
+    }
+    
     // Check actual approval status from API
     const isPending = approvalStatus === 'pending' || approvalStatus === null || approvalStatus === '';
     
     if (isPending) {
-      console.log('⏳ Approval status is pending, will navigate to dashboard in 3 seconds');
+      // Determine which dashboard to navigate to based on user type
+      const userType = userData?.user_type;
+      const targetDashboard = (userType === 'S' || userType === 'SR') ? 'DealerDashboard' : 'Dashboard';
+      
+      console.log(`⏳ Approval status is pending, will navigate to ${targetDashboard} in 3 seconds`);
       const timer = setTimeout(() => {
-        console.log('✅ Navigating to DealerDashboard after 3 seconds');
-        navigation.replace('DealerDashboard');
+        console.log(`✅ Navigating to ${targetDashboard} after 3 seconds`);
+        navigation.replace(targetDashboard);
       }, 3000);
 
       return () => clearTimeout(timer);
     }
-  }, [approvalStatus, navigation]);
+  }, [approvalStatus, userData?.user_type, navigation, fromProfile]);
 
   const updates = [
     {
@@ -160,11 +232,27 @@ const ApprovalWorkflowScreen = ({ navigation }: any) => {
           </AutoText>
           <AutoText style={styles.statusDescription} numberOfLines={4}>
             {status === 'Approved'
-              ? t('approvalWorkflow.applicationApprovedDesc') || 'Your B2B application has been approved. You can now access all features.'
+              ? t('approvalWorkflow.applicationApprovedDesc') || 'Your application has been approved. You can now access all features.'
               : status === 'Rejected'
-              ? t('approvalWorkflow.applicationRejectedDesc') || 'Your B2B application has been rejected. Please contact support for more information.'
+              ? t('approvalWorkflow.applicationRejectedDesc') || 'Your application has been rejected. Please contact support for more information.'
               : t('approvalWorkflow.applicationPendingDesc')}
           </AutoText>
+          
+          {/* Rejection Reason */}
+          {status === 'Rejected' && rejectionReason && (
+            <View style={[styles.rejectionReasonCard, { backgroundColor: '#F4433622', borderColor: '#F44336' }]}>
+              <View style={styles.rejectionReasonHeader}>
+                <MaterialCommunityIcons name="alert-circle" size={20} color="#F44336" />
+                <AutoText style={[styles.rejectionReasonTitle, { color: '#F44336' }]}>
+                  Rejection Reason
+                </AutoText>
+              </View>
+              <AutoText style={[styles.rejectionReasonText, { color: '#721c24' }]}>
+                {rejectionReason}
+              </AutoText>
+            </View>
+          )}
+          
           <View style={[
             styles.statusPill,
             status === 'Approved' && { backgroundColor: '#4CAF5022' },
@@ -304,6 +392,28 @@ const getStyles = (theme: any) =>
       fontFamily: 'Poppins-Regular',
       fontSize: '12@s',
       color: theme.textSecondary,
+    },
+    rejectionReasonCard: {
+      marginTop: '16@vs',
+      marginBottom: '16@vs',
+      padding: '16@s',
+      borderRadius: '12@ms',
+      borderWidth: 1,
+    },
+    rejectionReasonHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: '8@vs',
+      gap: '8@s',
+    },
+    rejectionReasonTitle: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '14@s',
+    },
+    rejectionReasonText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '13@s',
+      lineHeight: '20@vs',
     },
     progressCard: {
       backgroundColor: theme.card,
