@@ -12,7 +12,8 @@
     "completed": "مکمل",
     "pending": "زیر التواء",
     "cancelled": "منسوخ",
-    "scheduled": "شیڈول"
+    "scheduled": "شیڈول",
+    "deleting": "حذف ہو رہا ہے..."
   },
   "selectLanguage": {
     "title": "زبان منتخب کریں",
@@ -34,7 +35,12 @@
     "categoriesOperating": "عمل میں زمرے",
     "add": "شامل کریں",
     "acceptOrder": "آرڈر قبول کریں",
-    "viewDetails": "تفصیلات دیکھیں"
+    "viewDetails": "تفصیلات دیکھیں",
+    "ordersCompleted": "آرڈرز",
+    "trees": "درخت",
+    "noEarningsData": "آمدنی کا ڈیٹا دستیاب نہیں",
+    "pickupLocation": "پک اپ مقام",
+    "viewOnMap": "نقشے پر دیکھیں"
   },
   "deliveryTracking": {
     "title": "آرڈر ٹریکنگ",
@@ -62,6 +68,7 @@
     "title": "پروفائل ترتیبات",
     "freePlan": "مفت پلان",
     "saved": "محفوظ",
+    "upgradeToPremium": "پریمیم میں اپ گریڈ کریں",
     "yourProfile": "آپ کا پروفائل",
     "completed": "32% مکمل",
     "myOrders": "میرے آرڈر",
@@ -81,7 +88,10 @@
     "pending": "زیر التوا",
     "rejected": "مسترد",
     "logoutMessage": "کیا آپ واقعی لاگ آؤٹ کرنا چاہتے ہیں؟",
-    "logoutTitle": "لاگ آؤٹ کی تصدیق کریں"
+    "logoutTitle": "لاگ آؤٹ کی تصدیق کریں",
+    "deleteAccount": "اکاؤنٹ حذف کریں",
+    "deleteAccountMessage": "کیا آپ واقعی اپنا اکاؤنٹ حذف کرنا چاہتے ہیں؟ یہ عمل واپس نہیں کیا جا سکتا اور آپ کا تمام ڈیٹا مستقل طور پر حذف ہو جائے گا۔",
+    "deleteAccountTitle": "اکاؤنٹ حذف کریں"
   },
   "addCategory": {
     "title": "زمرہ شامل کریں",
@@ -147,7 +157,12 @@
       "months": "مہینے",
       "categoriesOperating": "عمل میں زمرے",
       "online": "آن لائن",
-      "offline": "آف لائن"
+      "offline": "آف لائن",
+      "ordersCompleted": "آرڈرز",
+      "trees": "درخت",
+      "noEarningsData": "آمدنی کا ڈیٹا دستیاب نہیں",
+      "pickupLocation": "پک اپ مقام",
+      "viewOnMap": "نقشے پر دیکھیں"
     },
     "earnings": {
       "activeGigs": "فعال گگز",

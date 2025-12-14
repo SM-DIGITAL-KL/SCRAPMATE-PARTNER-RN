@@ -186,16 +186,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     try {
       const cleanedPhone = phoneNumber.replace(/\D/g, '');
       
-      // Get join type from AsyncStorage (for both new and existing users)
+      // Get join type from AsyncStorage or current mode (for both new and existing users)
       // This ensures we use the user's selected join type, not the API's dashboardType
       let joinType: 'b2b' | 'b2c' | 'delivery' | undefined;
       const storedJoinType = await AsyncStorage.getItem('@selected_join_type');
       if (storedJoinType === 'b2b' || storedJoinType === 'b2c' || storedJoinType === 'delivery') {
         joinType = storedJoinType as 'b2b' | 'b2c' | 'delivery';
         console.log('📝 LoginScreen: Using stored join type:', joinType);
-      } else if (isNewUser) {
-        // Fallback: if no stored join type and it's a new user, we need joinType
-        console.log('⚠️ LoginScreen: No stored join type found for new user');
+      } else {
+        // Fallback: if no stored join type, use current mode from UserModeContext
+        // This works for new users who selected a type in JoinAsScreen but it wasn't stored
+        const { useUserMode } = await import('../../context/UserModeContext');
+        // We can't use hooks here, so we'll use a different approach
+        // Instead, we'll temporarily store it in JoinAsScreen just for the login flow
+        console.log('⚠️ LoginScreen: No stored join type found - will use API dashboardType or mode');
       }
 
       const response = await verifyOtp(cleanedPhone, otpString, joinType);
@@ -213,6 +217,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         console.log('🔍 LoginScreen: App type/version:', appType);
         console.log('🔍 LoginScreen: Dashboard type:', response.data.dashboardType);
         console.log('🔍 LoginScreen: Join type (from user selection):', joinType);
+        
         
         // Determine dashboard type based on user_type (only if app_type is V2)
         let determinedDashboardType: 'b2b' | 'b2c' | 'delivery' | null = null;
@@ -237,95 +242,120 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           console.log('⚠️ LoginScreen: app_type is not V2 - using API dashboardType or stored join type');
         }
         
-        // If we determined a dashboard type from user_type, use it
-        if (determinedDashboardType) {
-          await AsyncStorage.setItem('@selected_join_type', determinedDashboardType);
-          console.log('✅ LoginScreen: Set @selected_join_type based on user_type:', determinedDashboardType);
-          
-          // Clear any incorrect flags
-          if (determinedDashboardType === 'delivery') {
-            await AsyncStorage.removeItem('@b2b_status');
-            await AsyncStorage.removeItem('@b2c_signup_needed');
-          } else if (determinedDashboardType === 'b2c') {
-            await AsyncStorage.removeItem('@b2b_status');
-          } else if (determinedDashboardType === 'b2b') {
-            await AsyncStorage.removeItem('@b2c_signup_needed');
-          }
-        } else {
-          // Fallback to existing logic for other user types or if SR is not V2
-          const currentJoinType = await AsyncStorage.getItem('@selected_join_type');
-          if (!currentJoinType && response.data.dashboardType) {
-            await AsyncStorage.setItem('@selected_join_type', response.data.dashboardType);
-            console.log('📝 LoginScreen: Stored dashboardType as join type:', response.data.dashboardType);
-          } else {
-            console.log('📝 LoginScreen: Keeping existing join type:', currentJoinType);
-          }
-        }
-        
-        // IMPORTANT: If user_type is 'N' (new_user), they must complete signup
-        // Don't set any AsyncStorage flags here - let the navigation stacks handle routing
-        // based on @selected_join_type
+        // IMPORTANT: If user_type is 'N' (new_user), DO NOT store any AsyncStorage data
+        // Only use joinType temporarily for routing - user can change it later
         if (userType === 'N') {
-          console.log('✅ LoginScreen: User type is N (new_user) - navigation stacks will route based on @selected_join_type');
-          // Clear any old flags to ensure clean state
+          console.log('✅ LoginScreen: User type is N (new_user) - NOT storing AsyncStorage data');
+          console.log('🔍 LoginScreen: Using joinType for routing only:', joinType);
+          
+          // Clear ALL AsyncStorage flags for new users - they start fresh
           await AsyncStorage.removeItem('@b2b_status');
           await AsyncStorage.removeItem('@b2c_signup_needed');
           await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
-        } else if (userType !== 'D') {
-          // User type is not 'N' and not 'D' - use existing logic for B2B/B2C users
-          const b2bStatus = response.data.b2bStatus;
-          console.log('🔍 LoginScreen: Received b2bStatus from API:', b2bStatus);
+          await AsyncStorage.removeItem('@allowed_dashboards');
+          // IMPORTANT: Clear @selected_join_type for new users - they can change it anytime
+          await AsyncStorage.removeItem('@selected_join_type');
+          console.log('✅ LoginScreen: Cleared @selected_join_type for new user - they can change join type anytime');
           
-          if (b2bStatus && response.data.dashboardType === 'b2b') {
-            await AsyncStorage.setItem('@b2b_status', b2bStatus);
-            console.log('✅ LoginScreen: Stored b2bStatus in AsyncStorage:', b2bStatus);
-          } else {
-            await AsyncStorage.removeItem('@b2b_status');
-            console.log('🗑️  LoginScreen: Removed b2bStatus from AsyncStorage (not B2B or no status)');
-          }
+          // Determine final dashboard type to pass to callback
+          // Use joinType (from user's selection) instead of API dashboardType
+          finalDashboardTypeForCallback = joinType || response.data.dashboardType || 'b2c';
+          console.log('🔍 LoginScreen: Final dashboard type for new user:', finalDashboardTypeForCallback);
           
-          // Check if B2C user needs to complete signup (new user or v1 user)
-          if (response.data.dashboardType === 'b2c') {
-            const isV1User = user?.app_version === 'v1' || user?.app_version === 'v1.0';
-            const isNewUserFlag = isNewUser; // Use the state variable
+          // Call success callback with dashboard type and allowed dashboards
+          onLoginSuccess?.(
+            phoneNumber, 
+            finalDashboardTypeForCallback,
+            response.data.allowedDashboards
+          );
+        } else {
+          // For registered users (not 'N'), store data normally
+          // If we determined a dashboard type from user_type, use it
+          if (determinedDashboardType) {
+            await AsyncStorage.setItem('@selected_join_type', determinedDashboardType);
+            console.log('✅ LoginScreen: Set @selected_join_type based on user_type:', determinedDashboardType);
             
-            // Check if profile is incomplete
-            // For B2C users, check name, and shop address/contact (if shop exists)
-            const hasName = user?.name && user.name.trim() !== '';
-            const hasAddress = user?.shop?.address && user.shop.address.trim() !== '';
-            const hasContact = user?.shop?.contact && user.shop.contact.trim() !== '';
-            const hasIncompleteProfile = !hasName || !hasAddress || !hasContact;
-            
-            const needsSignup = isV1User || isNewUserFlag || hasIncompleteProfile;
-            
-            if (needsSignup) {
-              await AsyncStorage.setItem('@b2c_signup_needed', 'true');
-              console.log('✅ LoginScreen: B2C signup needed (v1 user or new user or incomplete profile)');
-              console.log('   isV1User:', isV1User, 'isNewUser:', isNewUserFlag, 'hasIncompleteProfile:', hasIncompleteProfile);
-              console.log('   hasName:', hasName, 'hasAddress:', hasAddress, 'hasContact:', hasContact);
-            } else {
+            // Clear any incorrect flags
+            if (determinedDashboardType === 'delivery') {
+              await AsyncStorage.removeItem('@b2b_status');
               await AsyncStorage.removeItem('@b2c_signup_needed');
-              console.log('🗑️  LoginScreen: B2C signup not needed (profile complete)');
+            } else if (determinedDashboardType === 'b2c') {
+              await AsyncStorage.removeItem('@b2b_status');
+            } else if (determinedDashboardType === 'b2b') {
+              await AsyncStorage.removeItem('@b2c_signup_needed');
             }
           } else {
-            await AsyncStorage.removeItem('@b2c_signup_needed');
+            // Fallback to existing logic for other user types or if SR is not V2
+            // BUT: Don't save for new users (user_type 'N')
+            if (userType !== 'N') {
+            const currentJoinType = await AsyncStorage.getItem('@selected_join_type');
+            if (!currentJoinType && response.data.dashboardType) {
+              await AsyncStorage.setItem('@selected_join_type', response.data.dashboardType);
+              console.log('📝 LoginScreen: Stored dashboardType as join type:', response.data.dashboardType);
+            } else {
+              console.log('📝 LoginScreen: Keeping existing join type:', currentJoinType);
+              }
+            } else {
+              console.log('✅ LoginScreen: User type is N - NOT storing @selected_join_type in fallback');
+            }
           }
+          
+          if (userType !== 'D') {
+            // User type is not 'N' and not 'D' - use existing logic for B2B/B2C users
+            const b2bStatus = response.data.b2bStatus;
+            console.log('🔍 LoginScreen: Received b2bStatus from API:', b2bStatus);
+            
+            if (b2bStatus && response.data.dashboardType === 'b2b') {
+              await AsyncStorage.setItem('@b2b_status', b2bStatus);
+              console.log('✅ LoginScreen: Stored b2bStatus in AsyncStorage:', b2bStatus);
+            } else {
+              await AsyncStorage.removeItem('@b2b_status');
+              console.log('🗑️  LoginScreen: Removed b2bStatus from AsyncStorage (not B2B or no status)');
+            }
+            
+            // Check if B2C user needs to complete signup (new user or v1 user)
+            if (response.data.dashboardType === 'b2c') {
+              const isV1User = user?.app_version === 'v1' || user?.app_version === 'v1.0';
+              const isNewUserFlag = isNewUser; // Use the state variable
+              
+              // Check if profile is incomplete
+              // For B2C users, check name, and shop address/contact (if shop exists)
+              const hasName = user?.name && user.name.trim() !== '';
+              const hasAddress = user?.shop?.address && user.shop.address.trim() !== '';
+              const hasContact = user?.shop?.contact && user.shop.contact.trim() !== '';
+              const hasIncompleteProfile = !hasName || !hasAddress || !hasContact;
+              
+              const needsSignup = isV1User || isNewUserFlag || hasIncompleteProfile;
+              
+              if (needsSignup) {
+                await AsyncStorage.setItem('@b2c_signup_needed', 'true');
+                console.log('✅ LoginScreen: B2C signup needed (v1 user or new user or incomplete profile)');
+                console.log('   isV1User:', isV1User, 'isNewUser:', isNewUserFlag, 'hasIncompleteProfile:', hasIncompleteProfile);
+                console.log('   hasName:', hasName, 'hasAddress:', hasAddress, 'hasContact:', hasContact);
+              } else {
+                await AsyncStorage.removeItem('@b2c_signup_needed');
+                console.log('🗑️  LoginScreen: B2C signup not needed (profile complete)');
+              }
+            } else {
+              await AsyncStorage.removeItem('@b2c_signup_needed');
+            }
+          }
+          
+          // Verify the status was stored
+          const storedStatus = await AsyncStorage.getItem('@b2b_status');
+          console.log('🔍 LoginScreen: Verified stored b2bStatus:', storedStatus);
+          
+          // Determine final dashboard type to pass to callback
+          // Use determinedDashboardType if available, otherwise use API dashboardType
+          finalDashboardTypeForCallback = determinedDashboardType || response.data.dashboardType;
+          
+          // Call success callback with dashboard type and allowed dashboards
+          onLoginSuccess?.(
+            phoneNumber, 
+            finalDashboardTypeForCallback,
+            response.data.allowedDashboards
+          );
         }
-        
-        // Verify the status was stored
-        const storedStatus = await AsyncStorage.getItem('@b2b_status');
-        console.log('🔍 LoginScreen: Verified stored b2bStatus:', storedStatus);
-        
-        // Determine final dashboard type to pass to callback
-        // Use determinedDashboardType if available, otherwise use API dashboardType
-        finalDashboardTypeForCallback = determinedDashboardType || response.data.dashboardType;
-        
-        // Call success callback with dashboard type and allowed dashboards
-        onLoginSuccess?.(
-          phoneNumber, 
-          finalDashboardTypeForCallback,
-          response.data.allowedDashboards
-        );
       } else {
         Alert.alert('Error', response.message || 'Invalid OTP. Please try again.');
         // Clear OTP on error
@@ -335,8 +365,28 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     } catch (error: any) {
       const errorMessage = error.message || 'Invalid OTP. Please try again.';
       
+      // Check if error is about B2B/B2C users trying to join as delivery
+      if (errorMessage.includes('B2B or B2C users cannot login or register as delivery') ||
+          errorMessage.includes('cannot login or register as delivery partners')) {
+        console.log('⚠️ LoginScreen: B2B/B2C user tried to join as delivery');
+        console.log('🗑️  Clearing auth data and join type');
+        
+        // Clear auth data since login should not proceed
+        await AsyncStorage.removeItem('auth_token');
+        await AsyncStorage.removeItem('user_data');
+        await AsyncStorage.removeItem('@selected_join_type');
+        await AsyncStorage.removeItem('@b2b_status');
+        await AsyncStorage.removeItem('@b2c_signup_needed');
+        await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
+        await AsyncStorage.removeItem('@allowed_dashboards');
+        
+        // Show error modal with backend message and navigate to JoinAs
+        setErrorModalMessage(errorMessage);
+        setShouldNavigateToJoinAs(true);
+        setShowErrorModal(true);
+      }
       // If error is about delivery users trying to login as B2B/B2C, show modal and navigate to JoinAs
-      if (errorMessage.includes('Delivery partners cannot login') || 
+      else if (errorMessage.includes('Delivery partners cannot login') || 
           errorMessage.includes('delivery account') ||
           errorMessage.includes('Delivery partners')) {
         console.log('⚠️ LoginScreen: Delivery user tried to login with wrong join type');

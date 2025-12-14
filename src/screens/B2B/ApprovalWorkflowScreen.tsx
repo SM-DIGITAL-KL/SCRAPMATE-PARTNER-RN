@@ -54,6 +54,42 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
   const approvalStatus = profileData?.shop?.approval_status || profileData?.delivery?.approval_status || profileData?.delivery_boy?.approval_status || 'pending';
   const rejectionReason = profileData?.shop?.rejection_reason || profileData?.delivery?.rejection_reason || profileData?.delivery_boy?.rejection_reason || null;
   
+  // Get timestamps from profile - support both shop (B2B/B2C) and delivery/delivery_boy (Delivery)
+  const applicationSubmittedAt = profileData?.shop?.application_submitted_at || profileData?.delivery?.application_submitted_at || profileData?.delivery_boy?.application_submitted_at || null;
+  const documentsVerifiedAt = profileData?.shop?.documents_verified_at || profileData?.delivery?.documents_verified_at || profileData?.delivery_boy?.documents_verified_at || null;
+  const reviewInitiatedAt = profileData?.shop?.review_initiated_at || profileData?.delivery?.review_initiated_at || profileData?.delivery_boy?.review_initiated_at || null;
+  
+  // Format timestamp for display
+  const formatTimestamp = (timestamp: string | null) => {
+    if (!timestamp) return null;
+    try {
+      const date = new Date(timestamp);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Check if it's today
+      if (date.toDateString() === today.toDateString()) {
+        return `Today, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+      }
+      // Check if it's yesterday
+      if (date.toDateString() === yesterday.toDateString()) {
+        return `Yesterday, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+      }
+      // Otherwise show date and time
+      return date.toLocaleString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: true 
+      });
+    } catch (e) {
+      return null;
+    }
+  };
+  
   // Map approval status to display status
   const getDisplayStatus = (): 'Pending' | 'Approved' | 'Rejected' => {
     if (approvalStatus === 'approved') return 'Approved';
@@ -62,6 +98,16 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
   };
   
   const status = getDisplayStatus(); // Use actual approval status from API
+
+  // Calculate application progress based on approval status
+  const getApplicationProgress = (): number => {
+    if (approvalStatus === 'approved') return 100;
+    if (approvalStatus === 'rejected') return 0;
+    if (approvalStatus === 'pending') return 50;
+    return 50; // Default to 50% for unknown status
+  };
+
+  const applicationProgress = getApplicationProgress();
 
   // Sync AsyncStorage with latest approval status (for both B2B and B2C)
   React.useEffect(() => {
@@ -172,29 +218,76 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
     }
   }, [approvalStatus, userData?.user_type, navigation, fromProfile]);
 
-  const updates = [
-    {
+  // Build updates array dynamically based on available timestamps
+  const updates = [];
+  
+  // Application Submitted - always show if timestamp exists
+  if (applicationSubmittedAt) {
+    updates.push({
       id: '1',
       title: t('approvalWorkflow.applicationSubmitted'),
       description: t('approvalWorkflow.applicationSubmittedDesc'),
-      time: 'Today, 10:00 AM',
+      time: formatTimestamp(applicationSubmittedAt) || 'N/A',
       icon: 'check-circle',
-    },
-    {
+      completed: true,
+    });
+  }
+  
+  // Documents Verified - show if timestamp exists
+  if (documentsVerifiedAt) {
+    updates.push({
       id: '2',
       title: t('approvalWorkflow.documentsVerified'),
       description: t('approvalWorkflow.documentsVerifiedDesc'),
-      time: 'Today, 11:30 AM',
+      time: formatTimestamp(documentsVerifiedAt) || 'N/A',
       icon: 'file-check',
-    },
-    {
+      completed: true,
+    });
+  } else if (approvalStatus === 'approved' || approvalStatus === 'rejected') {
+    // Show as pending if status is approved/rejected but no timestamp (shouldn't happen, but handle gracefully)
+    updates.push({
+      id: '2',
+      title: t('approvalWorkflow.documentsVerified'),
+      description: t('approvalWorkflow.documentsVerifiedDesc'),
+      time: 'Pending',
+      icon: 'file-check',
+      completed: false,
+    });
+  }
+  
+  // Internal Review Initiated - show if timestamp exists
+  if (reviewInitiatedAt) {
+    updates.push({
       id: '3',
       title: t('approvalWorkflow.internalReviewInitiated'),
       description: t('approvalWorkflow.internalReviewInitiatedDesc'),
-      time: 'Today, 01:00 PM',
+      time: formatTimestamp(reviewInitiatedAt) || 'N/A',
       icon: 'clock-outline',
-    },
-  ];
+      completed: true,
+    });
+  } else if (approvalStatus === 'pending') {
+    // Show as pending if status is pending but no timestamp yet
+    updates.push({
+      id: '3',
+      title: t('approvalWorkflow.internalReviewInitiated'),
+      description: t('approvalWorkflow.internalReviewInitiatedDesc'),
+      time: 'Pending',
+      icon: 'clock-outline',
+      completed: false,
+    });
+  }
+  
+  // If no updates available, show default message
+  if (updates.length === 0) {
+    updates.push({
+      id: '1',
+      title: t('approvalWorkflow.applicationSubmitted'),
+      description: t('approvalWorkflow.applicationSubmittedDesc'),
+      time: 'Pending',
+      icon: 'check-circle',
+      completed: false,
+    });
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -281,10 +374,10 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
         <View style={styles.progressCard}>
           <View style={styles.progressHeader}>
             <AutoText style={styles.progressTitle}>{t('approvalWorkflow.applicationProgress')}</AutoText>
-            <AutoText style={styles.progressPercent}>70%</AutoText>
+            <AutoText style={styles.progressPercent}>{applicationProgress}%</AutoText>
           </View>
           <View style={styles.progressBar}>
-            <View style={styles.progressInner} />
+            <View style={[styles.progressInner, { width: `${applicationProgress}%` }]} />
           </View>
         </View>
 
@@ -293,15 +386,27 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
           <AutoText style={styles.sectionTitle}>{t('approvalWorkflow.recentUpdates')}</AutoText>
           {updates.map((update, index) => (
             <View key={update.id} style={styles.updateItem}>
-              <View style={styles.updateIconContainer}>
-                <MaterialCommunityIcons name={update.icon as any} size={20} color={theme.primary} />
+              <View style={[
+                styles.updateIconContainer,
+                update.completed && { backgroundColor: theme.primary + '40' }
+              ]}>
+                <MaterialCommunityIcons 
+                  name={update.icon as any} 
+                  size={20} 
+                  color={update.completed ? theme.primary : theme.textSecondary} 
+                />
               </View>
               <View style={styles.updateContent}>
                 <AutoText style={styles.updateTitle}>{update.title}</AutoText>
                 <AutoText style={styles.updateDescription} numberOfLines={3}>
                   {update.description}
                 </AutoText>
-                <AutoText style={styles.updateTime}>{update.time}</AutoText>
+                <AutoText style={[
+                  styles.updateTime,
+                  !update.completed && { color: theme.textSecondary, fontStyle: 'italic' }
+                ]}>
+                  {update.time}
+                </AutoText>
               </View>
             </View>
           ))}
@@ -449,7 +554,6 @@ const getStyles = (theme: any) =>
       height: '10@vs',
       borderRadius: '18@ms',
       backgroundColor: theme.primary,
-      width: '70%',
     },
     updatesSection: {
       marginBottom: '18@vs',

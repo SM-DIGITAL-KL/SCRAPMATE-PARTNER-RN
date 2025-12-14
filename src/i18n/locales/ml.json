@@ -12,7 +12,8 @@
     "completed": "പൂർത്തിയായി",
     "pending": "തീർപ്പാക്കാത്ത",
     "cancelled": "റദ്ദാക്കി",
-    "scheduled": "ഷെഡ്യൂൾ ചെയ്തു"
+    "scheduled": "ഷെഡ്യൂൾ ചെയ്തു",
+    "deleting": "ഇല്ലാതാക്കുന്നു..."
   },
   "selectLanguage": {
     "title": "ഭാഷ തിരഞ്ഞെടുക്കുക",
@@ -34,7 +35,12 @@
     "categoriesOperating": "പ്രവർത്തിക്കുന്ന വിഭാഗങ്ങൾ",
     "add": "ചേർക്കുക",
     "acceptOrder": "ഓർഡർ സ്വീകരിക്കുക",
-    "viewDetails": "വിശദാംശങ്ങൾ കാണുക"
+    "viewDetails": "വിശദാംശങ്ങൾ കാണുക",
+    "ordersCompleted": "ഓർഡറുകൾ",
+    "trees": "മരങ്ങൾ",
+    "noEarningsData": "വരുമാന ഡാറ്റ ലഭ്യമല്ല",
+    "pickupLocation": "പിക്കപ്പ് സ്ഥാനം",
+    "viewOnMap": "മാപ്പിൽ കാണുക"
   },
   "deliveryTracking": {
     "title": "ഓർഡർ ട്രാക്കിംഗ്",
@@ -62,6 +68,7 @@
     "title": "പ്രൊഫൈൽ സെറ്റിംഗുകൾ",
     "freePlan": "സൗജന്യ പ്ലാൻ",
     "saved": "സേവ് ചെയ്തു",
+    "upgradeToPremium": "പ്രീമിയം ആയി അപ്‌ഗ്രേഡ് ചെയ്യുക",
     "yourProfile": "നിങ്ങളുടെ പ്രൊഫൈൽ",
     "completed": "32% പൂർത്തിയായി",
     "myOrders": "എന്റെ ഓർഡറുകൾ",
@@ -81,7 +88,10 @@
     "pending": "തീർപ്പാക്കാത്ത",
     "rejected": "നിരസിച്ചു",
     "logoutMessage": "ലോഗൗട്ട് ചെയ്യാൻ നിങ്ങൾക്ക് ഉറപ്പാണോ?",
-    "logoutTitle": "ലോഗൗട്ട് സ്ഥിരീകരിക്കുക"
+    "logoutTitle": "ലോഗൗട്ട് സ്ഥിരീകരിക്കുക",
+    "deleteAccount": "അക്കൗണ്ട് ഇല്ലാതാക്കുക",
+    "deleteAccountMessage": "നിങ്ങൾക്ക് ശരിക്കും നിങ്ങളുടെ അക്കൗണ്ട് ഇല്ലാതാക്കണോ? ഈ പ്രവർത്തനം പൂർവ്വസ്ഥിതിയിലാക്കാൻ കഴിയില്ല, നിങ്ങളുടെ എല്ലാ ഡാറ്റയും സ്ഥിരമായി ഇല്ലാതാക്കപ്പെടും।",
+    "deleteAccountTitle": "അക്കൗണ്ട് ഇല്ലാതാക്കുക"
   },
   "addCategory": {
     "title": "വിഭാഗം ചേർക്കുക",
@@ -147,7 +157,12 @@
       "months": "മാസങ്ങൾ",
       "categoriesOperating": "പ്രവർത്തിക്കുന്ന വിഭാഗങ്ങൾ",
       "online": "ഓൺലൈൻ",
-      "offline": "ഓഫ്‌ലൈൻ"
+      "offline": "ഓഫ്‌ലൈൻ",
+      "ordersCompleted": "ഓർഡറുകൾ",
+      "trees": "മരങ്ങൾ",
+      "noEarningsData": "വരുമാന ഡാറ്റ ലഭ്യമല്ല",
+      "pickupLocation": "പിക്കപ്പ് സ്ഥാനം",
+      "viewOnMap": "മാപ്പിൽ കാണുക"
     },
     "earnings": {
       "activeGigs": "സജീവ ഗിഗുകൾ",

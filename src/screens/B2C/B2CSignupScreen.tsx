@@ -194,12 +194,34 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
 
   // Navigate to JoinAs screen helper function
   const navigateToJoinAs = useCallback(async () => {
+    // Check if user is new (type 'N') - always clear @selected_join_type for new users
+    let isNewUser = false;
+    try {
+      const userData = await getUserData();
+      if (userData?.user_type === 'N') {
+        isNewUser = true;
+        console.log('✅ B2CSignupScreen: User type is N - clearing @selected_join_type');
+      }
+    } catch (error) {
+      console.log('B2CSignupScreen: Error checking user data:', error);
+    }
+    
     // Clear all signup flags to allow user to select a different signup type
     await AsyncStorage.removeItem('@join_as_shown');
     await AsyncStorage.removeItem('@b2b_status');
     await AsyncStorage.removeItem('@b2c_signup_needed');
     await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
+    
+    // Always clear @selected_join_type for new users, or if user is not logged in yet
+    if (isNewUser) {
     await AsyncStorage.removeItem('@selected_join_type');
+      console.log('✅ B2CSignupScreen: Cleared @selected_join_type for new user');
+    } else {
+      // For existing users, also clear it to allow type switching
+      await AsyncStorage.removeItem('@selected_join_type');
+      console.log('✅ B2CSignupScreen: Cleared @selected_join_type to allow type switching');
+    }
+    
     console.log('✅ B2CSignupScreen: Cleared all signup flags to allow type switching');
     
     // Emit event to navigate to JoinAs (this will be handled by AppNavigator)

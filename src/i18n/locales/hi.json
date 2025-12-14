@@ -12,7 +12,8 @@
     "completed": "पूर्ण",
     "pending": "लंबित",
     "cancelled": "रद्द",
-    "scheduled": "निर्धारित"
+    "scheduled": "निर्धारित",
+    "deleting": "हटाया जा रहा है..."
   },
   "selectLanguage": {
     "title": "भाषा चुनें",
@@ -34,7 +35,14 @@
     "categoriesOperating": "संचालित श्रेणियां",
     "add": "जोड़ें",
     "acceptOrder": "ऑर्डर स्वीकार करें",
-    "viewDetails": "विवरण देखें"
+    "viewDetails": "विवरण देखें",
+    "ordersCompleted": "ऑर्डर",
+    "trees": "पेड़",
+    "noEarningsData": "आय डेटा उपलब्ध नहीं है",
+      "pickupLocation": "پک اپ مقام",
+      "viewOnMap": "نقشے پر دیکھیں",
+    "pickupLocation": "पिकअप स्थान",
+    "viewOnMap": "नक्शे पर देखें"
   },
   "deliveryTracking": {
     "title": "ऑर्डर ट्रैकिंग",
@@ -62,6 +70,7 @@
     "title": "प्रोफ़ाइल सेटिंग्स",
     "freePlan": "मुफ्त योजना",
     "saved": "बचाया",
+    "upgradeToPremium": "प्रीमियम में अपग्रेड करें",
     "yourProfile": "आपकी प्रोफ़ाइल",
     "completed": "32% पूर्ण",
     "myOrders": "मेरे ऑर्डर",
@@ -81,7 +90,10 @@
     "rejected": "നിരസിച്ചു",
     "whitePurple": "Lavender Dream",
     "logoutMessage": "ലോഗൗട്ട് ചെയ്യാൻ നിങ്ങൾക്ക് ഉറപ്പാണോ?",
-    "logoutTitle": "ലോഗൗട്ട് സ്ഥിരീകരിക്കുക"
+    "logoutTitle": "ലോഗൗട്ട് സ്ഥിരീകരിക്കുക",
+    "deleteAccount": "खाता हटाएं",
+    "deleteAccountMessage": "क्या आप वाकई अपना खाता हटाना चाहते हैं? यह कार्रवाई पूर्ववत नहीं की जा सकती और आपका सभी डेटा स्थायी रूप से हटा दिया जाएगा।",
+    "deleteAccountTitle": "खाता हटाएं"
   },
   "addCategory": {
     "title": "श्रेणी जोड़ें",
@@ -147,7 +159,14 @@
       "months": "महीने",
       "categoriesOperating": "संचालित श्रेणियां",
       "online": "ऑनलाइन",
-      "offline": "ऑफलाइन"
+      "offline": "ऑफलाइन",
+      "ordersCompleted": "ऑर्डर",
+      "trees": "पेड़",
+      "noEarningsData": "आय डेटा उपलब्ध नहीं है",
+      "pickupLocation": "پک اپ مقام",
+      "viewOnMap": "نقشے پر دیکھیں",
+      "pickupLocation": "पिकअप स्थान",
+      "viewOnMap": "नक्शे पर देखें"
     },
     "earnings": {
       "activeGigs": "सक्रिय गिग्स",

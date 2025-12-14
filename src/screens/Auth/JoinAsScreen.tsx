@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScaledSheet } from 'react-native-size-matters';
-import LinearGradient from "react-native-linear-gradient";
+import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTabBar } from '../../context/TabBarContext';
 import { useTheme } from '../../components/ThemeProvider';
@@ -54,22 +54,17 @@ const JoinAsScreen = () => {
             return;
         }
 
-        // Store the selected join type
+            // Clear previous signup flags
+            await AsyncStorage.removeItem('@b2b_status');
+            await AsyncStorage.removeItem('@b2c_signup_needed');
+            await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
+
+        // IMPORTANT: Store @selected_join_type temporarily for login flow
+        // It will be cleared after login if user is type 'N' (new user)
+        // This allows LoginScreen to read it and use it for routing
         await AsyncStorage.setItem('@selected_join_type', selectedOption);
-
-        // Clear previous signup flags
-        await AsyncStorage.removeItem('@b2b_status');
-        await AsyncStorage.removeItem('@b2c_signup_needed');
-        await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
-
-        // Set the appropriate flag based on selected option
-        if (selectedOption === 'b2b') {
-            await AsyncStorage.setItem('@b2b_status', 'new_user');
-        } else if (selectedOption === 'b2c') {
-            await AsyncStorage.setItem('@b2c_signup_needed', 'true');
-        } else if (selectedOption === 'delivery') {
-            await AsyncStorage.setItem('@delivery_vehicle_info_needed', 'true');
-        }
+        console.log('✅ JoinAsScreen: Stored join type temporarily for login flow:', selectedOption);
+        console.log('   (Will be cleared after login if user is type N)');
 
         await setMode(selectedOption);
 
@@ -99,6 +94,8 @@ const JoinAsScreen = () => {
     return (
         <LinearGradient
             colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.root}
         >
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -346,7 +343,7 @@ const getStyles = (theme: any, isDark: boolean, themeName: string) =>
         },
         buttonText: {
             fontSize: '15@s',
-            color: "#FFFFFF",
+            color: themeName === 'darkGreen' ? '#000000' : '#FFFFFF',
             fontFamily: "Poppins-SemiBold",
         },
         alreadyAccountWrapper: {

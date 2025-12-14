@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, StatusBar, Text, Vibration, Platform, Image } from 'react-native';
+import { View, ScrollView, TouchableOpacity, StatusBar, Text, Vibration, Platform, Image, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -14,6 +14,9 @@ import { getUserData } from '../../services/auth/authService';
 import { useUserMode } from '../../context/UserModeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfile, useUpdateDeliveryMode, useUpdateOnlineStatus } from '../../hooks/useProfile';
+import { useRecyclingStats } from '../../hooks/useRecycling';
+import { useMonthlyBreakdown } from '../../hooks/useEarnings';
+import { useActivePickup, useAvailablePickupRequests, useAcceptPickupRequest } from '../../hooks/useOrders';
 import { Switch } from 'react-native';
 
 const DeliveryDashboardScreen = ({ navigation }: any) => {
@@ -41,6 +44,63 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
   const { data: profileData } = useProfile(userData?.id, !!userData?.id);
   const updateDeliveryModeMutation = useUpdateDeliveryMode(userData?.id || 0);
   const updateOnlineStatusMutation = useUpdateOnlineStatus(userData?.id || 0);
+
+  // Get recycling statistics
+  const { data: recyclingStats, isLoading: loadingRecyclingStats } = useRecyclingStats(
+    userData?.id,
+    'delivery',
+    !!userData?.id
+  );
+
+  // Get monthly earnings breakdown
+  const { data: monthlyBreakdownData, isLoading: loadingMonthlyBreakdown } = useMonthlyBreakdown(
+    userData?.id,
+    'delivery',
+    6,
+    !!userData?.id
+  );
+
+  // Get active pickup order (for D type users in Delivery dashboard)
+  const { data: activePickup, isLoading: loadingActivePickup } = useActivePickup(
+    userData?.id,
+    'D', // Delivery dashboard is for D (Delivery) type users
+    !!userData?.id
+  );
+
+  // Get available pickup requests (for accepting new orders)
+  const { data: availablePickupRequests, isLoading: loadingAvailableRequests, refetch: refetchAvailableRequests } = useAvailablePickupRequests(
+    userData?.id,
+    'D', // Delivery dashboard is for D (Delivery) type users
+    undefined, // No location filtering for now
+    undefined,
+    10,
+    !!userData?.id
+  );
+
+  // Accept pickup request mutation
+  const acceptPickupMutation = useAcceptPickupRequest();
+
+  // Get first available request to show in "General Waste Collection" section
+  const firstAvailableRequest = availablePickupRequests && availablePickupRequests.length > 0 
+    ? availablePickupRequests[0] 
+    : null;
+
+  // Handle accept order
+  const handleAcceptOrder = async () => {
+    if (!firstAvailableRequest || !userData?.id) return;
+    
+    try {
+      await acceptPickupMutation.mutateAsync({
+        orderId: firstAvailableRequest.order_number,
+        userId: userData.id,
+        userType: 'D'
+      });
+      // Refetch available requests after accepting
+      refetchAvailableRequests();
+    } catch (error) {
+      console.error('Error accepting order:', error);
+    }
+  };
   
   // Initialize delivery mode from profile, default to 'deliver' if not set
   const [deliveryMode, setDeliveryMode] = useState<'deliver' | 'deliverPicking' | 'picker'>('deliver');
@@ -57,6 +117,35 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
       setIsOnline(profileData.delivery.is_online);
     }
   }, [profileData]);
+
+  // Check approval status and redirect to VehicleInformation if rejected
+  useEffect(() => {
+    const checkApprovalStatus = async () => {
+      if (profileData?.delivery?.approval_status || profileData?.delivery_boy?.approval_status) {
+        try {
+          const approvalStatus = profileData?.delivery?.approval_status || profileData?.delivery_boy?.approval_status;
+          await AsyncStorage.setItem('@delivery_approval_status', approvalStatus);
+          console.log('✅ DeliveryDashboardScreen: Synced @delivery_approval_status to AsyncStorage:', approvalStatus);
+          
+          // If rejected, navigate to VehicleInformation screen to fill documents
+          if (approvalStatus === 'rejected') {
+            console.log('✅ Delivery approval status is rejected - navigating to VehicleInformation');
+            // Small delay to ensure navigation is ready
+            setTimeout(() => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'VehicleInformation' }],
+              });
+            }, 500);
+          }
+        } catch (error) {
+          console.error('❌ Error syncing delivery approval status:', error);
+        }
+      }
+    };
+    
+    checkApprovalStatus();
+  }, [profileData?.delivery?.approval_status, profileData?.delivery_boy?.approval_status, navigation]);
   
   // Handle delivery mode change and save to database
   const handleDeliveryModeChange = async (newMode: 'deliver' | 'deliverPicking' | 'picker') => {
@@ -161,27 +250,16 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
     return <View style={{ flex: 1, backgroundColor: theme.background }} />;
   }
   
-  // Monthly earnings data
-  const monthlyEarnings = [400, 550, 600, 750, 800, 900];
-  const maxEarning = Math.max(...monthlyEarnings);
-  const totalEarnings = monthlyEarnings.reduce((sum, val) => sum + val, 0);
-  
-  // Get last 6 months dynamically
-  const getLast6Months = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentDate = new Date();
-    const last6Months = [];
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-      last6Months.push(months[date.getMonth()]);
-    }
-    return last6Months;
-  };
-  
-  const monthLabels = getLast6Months();
+  // Use API data for earnings breakdown, fallback to empty if loading
+  const monthlyEarnings = monthlyBreakdownData?.monthlyBreakdown?.map(month => month.earnings) || [];
+  const monthLabels = monthlyBreakdownData?.monthlyBreakdown?.map(month => month.monthName) || [];
+  const totalEarnings = monthlyBreakdownData?.totalEarnings || 0;
+  const currency = monthlyBreakdownData?.currency || 'USD';
+  const maxEarning = monthlyEarnings.length > 0 ? Math.max(...monthlyEarnings) : 0;
   
   // Calculate Y-axis values dynamically based on max earning
   const getYAxisValues = () => {
+    if (maxEarning === 0) return [100, 75, 50, 25, 0];
     const roundedMax = Math.ceil(maxEarning / 100) * 100;
     return [
       roundedMax,
@@ -196,10 +274,11 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
   
   // Format Y-axis labels to be shorter
   const formatYAxisLabel = (value: number) => {
+    const symbol = currency === 'USD' ? '$' : '₹';
     if (value >= 1000) {
-      return `$${(value / 1000).toFixed(0)}K`;
+      return `${symbol}${(value / 1000).toFixed(0)}K`;
     }
-    return `$${value}`;
+    return `${symbol}${value}`;
   };
   
   const categories = [
@@ -270,7 +349,12 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
               onPress={() => handleDeliveryModeChange('deliver')}
               activeOpacity={0.7}
             >
-              <AutoText style={[styles.modeButtonText, deliveryMode === 'deliver' && styles.modeButtonTextActive]}>
+              <AutoText 
+                style={[styles.modeButtonText, deliveryMode === 'deliver' && styles.modeButtonTextActive]}
+                numberOfLines={2}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.8}
+              >
                 {t('delivery.dashboard.deliver')}
               </AutoText>
             </TouchableOpacity>
@@ -283,6 +367,8 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
                 style={[styles.modeButtonText, styles.modeButtonTextSmall, deliveryMode === 'deliverPicking' && styles.modeButtonTextActive]}
                 numberOfLines={3}
                 textAlign="center"
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.75}
               >
                 {t('delivery.dashboard.deliver')}{'\n'}+{'\n'}{t('delivery.dashboard.picker')}
               </AutoText>
@@ -292,109 +378,214 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
               onPress={() => handleDeliveryModeChange('picker')}
               activeOpacity={0.7}
             >
-              <AutoText style={[styles.modeButtonText, deliveryMode === 'picker' && styles.modeButtonTextActive]}>
+              <AutoText 
+                style={[styles.modeButtonText, deliveryMode === 'picker' && styles.modeButtonTextActive]}
+                numberOfLines={2}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.8}
+              >
                 {t('delivery.dashboard.picker')}
               </AutoText>
             </TouchableOpacity>
           </View>
         </SectionCard>
 
-        {/* General Waste Collection */}
-        <SectionCard>
-          <AutoText style={styles.sectionTitle} numberOfLines={2}>
-            {t('delivery.dashboard.generalWaste')}
-          </AutoText>
-          <AutoText style={styles.detailText} numberOfLines={1}>
-            {t('delivery.dashboard.client')}: EcoSolutions Inc.
-          </AutoText>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons
-              name="map-marker"
-              size={14}
-              color={theme.primary}
-            />
-            <AutoText style={styles.detailText} numberOfLines={2}>
-              123 Green St, Cityville, 12345
-            </AutoText>
-          </View>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons
-              name="calendar"
-              size={14}
-              color={theme.primary}
-            />
-            <AutoText style={styles.detailText} numberOfLines={1}>
-              {t('delivery.dashboard.today')}, 10:00 AM - 12:00 PM
-            </AutoText>
-          </View>
-          <View style={styles.priceRow}>
-            <AutoText style={styles.price} numberOfLines={1}>
-              $25.00
-            </AutoText>
-            <TouchableOpacity
-              style={styles.acceptButton}
-              onPress={() => {
-                // Haptic feedback
-                if (Platform.OS === 'ios') {
-                  Vibration.vibrate(10);
-                } else {
-                  Vibration.vibrate(50);
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <AutoText style={styles.acceptButtonText} numberOfLines={1}>
-                {t('delivery.dashboard.acceptOrder')}
-              </AutoText>
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={14}
-                color={theme.textPrimary}
-              />
-            </TouchableOpacity>
-          </View>
-        </SectionCard>
-
-        {/* Active Pickup */}
-        <SectionCard>
-          <View style={styles.activeHeader}>
-            <AutoText style={styles.sectionTitle} numberOfLines={2}>
-              {t('delivery.dashboard.activePickup')}
-            </AutoText>
-            <View style={styles.statusTag}>
-              <AutoText style={styles.statusText} numberOfLines={1}>
-                {t('common.scheduled')}
+        {/* General Waste Collection - Available Pickup Requests */}
+        {loadingAvailableRequests ? (
+          <SectionCard>
+            <View style={styles.acceptOrderLoading}>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <AutoText style={styles.acceptOrderLoadingText}>
+                {t('common.loading') || 'Loading available requests...'}
               </AutoText>
             </View>
-          </View>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons
-              name="package-variant"
-              size={14}
-              color={theme.primary}
-            />
-            <AutoText style={styles.detailText} numberOfLines={2}>
-              Mixed Recyclables (Approx. 20kg)
+          </SectionCard>
+        ) : firstAvailableRequest ? (
+          <SectionCard>
+            <AutoText style={styles.sectionTitle} numberOfLines={2}>
+              {t('delivery.dashboard.generalWaste')}
             </AutoText>
-          </View>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons
-              name="clock-outline"
-              size={14}
-              color={theme.primary}
+            {firstAvailableRequest.latitude && firstAvailableRequest.longitude && (
+              <TouchableOpacity
+                style={styles.addressRow}
+                onPress={() => navigation.navigate('FullscreenMap', {
+                  destination: {
+                    latitude: firstAvailableRequest.latitude!,
+                    longitude: firstAvailableRequest.longitude!
+                  },
+                  orderId: firstAvailableRequest.order_number?.toString()
+                })}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="map-marker"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={2}>
+                  {firstAvailableRequest.address}
+                </AutoText>
+                <MaterialCommunityIcons
+                  name="map"
+                  size={16}
+                  color={theme.primary}
+                  style={styles.mapIcon}
+                />
+              </TouchableOpacity>
+            )}
+            {!firstAvailableRequest.latitude && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="map-marker"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={2}>
+                  {firstAvailableRequest.address}
+                </AutoText>
+              </View>
+            )}
+            <View style={styles.detailRow}>
+              <MaterialCommunityIcons
+                name="package-variant"
+                size={14}
+                color={theme.primary}
+              />
+              <AutoText style={styles.detailText} numberOfLines={1}>
+                {firstAvailableRequest.scrap_description}
+                {firstAvailableRequest.estimated_weight_kg > 0 && ` (Approx. ${firstAvailableRequest.estimated_weight_kg}kg)`}
+              </AutoText>
+            </View>
+            {firstAvailableRequest.preferred_pickup_time && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="calendar"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={1}>
+                  {t('delivery.dashboard.today')}, {firstAvailableRequest.preferred_pickup_time}
+                </AutoText>
+              </View>
+            )}
+            <View style={styles.priceRow}>
+              <AutoText style={styles.price} numberOfLines={1}>
+                ${firstAvailableRequest.estimated_price?.toLocaleString('en-US') || '0'}
+              </AutoText>
+              <TouchableOpacity
+                style={[styles.acceptButton, acceptPickupMutation.isPending && styles.acceptButtonDisabled]}
+                onPress={() => {
+                  // Haptic feedback
+                  if (Platform.OS === 'ios') {
+                    Vibration.vibrate(10);
+                  } else {
+                    Vibration.vibrate(50);
+                  }
+                  handleAcceptOrder();
+                }}
+                disabled={acceptPickupMutation.isPending}
+                activeOpacity={0.7}
+              >
+                <AutoText style={styles.acceptButtonText} numberOfLines={1}>
+                  {acceptPickupMutation.isPending 
+                    ? (t('common.loading') || 'Loading...') 
+                    : t('delivery.dashboard.acceptOrder')}
+                </AutoText>
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={14}
+                  color={theme.textPrimary}
+                />
+              </TouchableOpacity>
+            </View>
+          </SectionCard>
+        ) : null}
+
+        {/* Active Pickup */}
+        {loadingActivePickup ? (
+          <SectionCard>
+            <View style={styles.activePickupLoading}>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <AutoText style={styles.activePickupLoadingText}>
+                {t('common.loading') || 'Loading active pickup...'}
+              </AutoText>
+            </View>
+          </SectionCard>
+        ) : activePickup ? (
+          <SectionCard>
+            <View style={styles.activeHeader}>
+              <AutoText style={styles.sectionTitle} numberOfLines={2}>
+                {t('delivery.dashboard.activePickup')}
+              </AutoText>
+              <View style={styles.statusTag}>
+                <AutoText style={styles.statusText} numberOfLines={1}>
+                  {t('common.scheduled')}
+                </AutoText>
+              </View>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialCommunityIcons
+                name="package-variant"
+                size={14}
+                color={theme.primary}
+              />
+              <AutoText style={styles.detailText} numberOfLines={2}>
+                {activePickup.scrap_description} (Approx. {activePickup.estimated_weight_kg}kg)
+              </AutoText>
+            </View>
+            {activePickup.address && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="map-marker"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={2}>
+                  {activePickup.address}
+                </AutoText>
+              </View>
+            )}
+            <View style={styles.detailRow}>
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={14}
+                color={theme.primary}
+              />
+              <AutoText style={styles.detailText} numberOfLines={1}>
+                {activePickup.pickup_time_display || t('delivery.dashboard.today') || 'Today'}
+              </AutoText>
+            </View>
+            {activePickup.latitude && activePickup.longitude && (
+              <TouchableOpacity
+                style={styles.mapButton}
+                onPress={() => navigation.navigate('FullscreenMap', {
+                  destination: {
+                    latitude: activePickup.latitude!,
+                    longitude: activePickup.longitude!
+                  },
+                  orderId: activePickup.order_number?.toString()
+                })}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="map"
+                  size={16}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.mapButtonText}>
+                  {t('delivery.dashboard.viewOnMap') || 'View on Map'}
+                </AutoText>
+              </TouchableOpacity>
+            )}
+            <OutlineGreenButton
+              title={t('dashboard.viewDetails')}
+              onPress={() =>
+                navigation.navigate('DeliveryTracking', { orderId: activePickup.order_number })
+              }
+              style={styles.viewButton}
             />
-            <AutoText style={styles.detailText} numberOfLines={1}>
-              {t('delivery.dashboard.today')}, 3:00 PM - 5:00 PM
-            </AutoText>
-          </View>
-          <OutlineGreenButton
-            title={t('dashboard.viewDetails')}
-            onPress={() =>
-              navigation.navigate('DeliveryTracking', { orderId: 'DEL12345' })
-            }
-            style={styles.viewButton}
-          />
-        </SectionCard>
+          </SectionCard>
+        ) : null}
 
         {/* Your Impact */}
         <View style={styles.impactSection}>
@@ -410,13 +601,16 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
                 style={styles.impactIcon}
               />
               <AutoText style={styles.impactValue} numberOfLines={1}>
-                120 kg
+                {loadingRecyclingStats 
+                  ? '...' 
+                  : `${recyclingStats?.total_recycled_weight_kg?.toFixed(1) || 0} kg`
+                }
               </AutoText>
               <AutoText style={styles.impactLabel} numberOfLines={2}>
                 {t('delivery.dashboard.totalRecycled')}
               </AutoText>
               <AutoText style={styles.impactSubLabel} numberOfLines={1}>
-                {t('delivery.dashboard.thisMonth')}
+                {recyclingStats?.total_orders_completed || 0} {t('delivery.dashboard.ordersCompleted') || 'orders'}
               </AutoText>
             </View>
             <View style={styles.impactCard}>
@@ -427,13 +621,19 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
                 style={styles.impactIcon}
               />
               <AutoText style={styles.impactValue} numberOfLines={1}>
-                500 kg
+                {loadingRecyclingStats 
+                  ? '...' 
+                  : `${recyclingStats?.total_carbon_offset_kg?.toFixed(1) || 0} kg`
+                }
               </AutoText>
               <AutoText style={styles.impactLabel} numberOfLines={2}>
                 {t('delivery.dashboard.carbonOffset')}
               </AutoText>
               <AutoText style={styles.impactSubLabel} numberOfLines={1}>
-                {t('delivery.dashboard.equivalentCO2')}
+                {recyclingStats?.trees_equivalent 
+                  ? `≈${recyclingStats.trees_equivalent.toFixed(0)} ${t('delivery.dashboard.trees') || 'trees'}`
+                  : t('delivery.dashboard.equivalentCO2')
+                }
               </AutoText>
             </View>
           </View>
@@ -447,44 +647,66 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
           <AutoText style={styles.subtitle} numberOfLines={1}>
             {t('delivery.dashboard.monthlyBreakdown')}
           </AutoText>
-          <View style={styles.earningsChart}>
-            <View style={styles.chartContainer}>
-              <View style={styles.yAxis}>
-                {yAxisValues.map(value => (
-                  <Text key={value} style={styles.yAxisLabel} numberOfLines={1}>
-                    {formatYAxisLabel(value)}
-                  </Text>
-                ))}
-              </View>
-              <View style={styles.chartBars}>
-                {monthlyEarnings.map((earning, index) => (
-                  <View key={index} style={styles.barContainer}>
-                    <View
-                      style={[
-                        styles.bar,
-                        { height: `${(earning / yAxisValues[0]) * 100}%` },
-                      ]}
-                    />
-                  </View>
-                ))}
-              </View>
+          {loadingMonthlyBreakdown ? (
+            <View style={styles.chartLoadingContainer}>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <AutoText style={styles.chartLoadingText}>
+                {t('common.loading') || 'Loading earnings...'}
+              </AutoText>
             </View>
-            <View style={styles.chartLabelsContainer}>
-              <View style={styles.yAxisSpacer} />
-              <View style={styles.chartLabels}>
-                {monthLabels.map((month, index) => (
-                  <View key={`${month}-${index}`} style={styles.monthLabelContainer}>
-                    <Text style={styles.monthLabel} numberOfLines={1}>
-                      {month}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+          ) : monthlyEarnings.length === 0 ? (
+            <View style={styles.chartEmptyContainer}>
+              <MaterialCommunityIcons
+                name="chart-line"
+                size={32}
+                color={theme.textSecondary}
+              />
+              <AutoText style={styles.chartEmptyText}>
+                {t('delivery.dashboard.noEarningsData') || 'No earnings data available'}
+              </AutoText>
             </View>
-          </View>
-          <Text style={styles.totalEarnings}>
-            Total earnings last 6 months: ${totalEarnings.toLocaleString('en-US')}
-          </Text>
+          ) : (
+            <>
+              <View style={styles.earningsChart}>
+                <View style={styles.chartContainer}>
+                  <View style={styles.yAxis}>
+                    {yAxisValues.map(value => (
+                      <Text key={value} style={styles.yAxisLabel} numberOfLines={1}>
+                        {formatYAxisLabel(value)}
+                      </Text>
+                    ))}
+                  </View>
+                  <View style={styles.chartBars}>
+                    {monthlyEarnings.map((earning, index) => (
+                      <View key={index} style={styles.barContainer}>
+                        <View
+                          style={[
+                            styles.bar,
+                            { height: `${yAxisValues[0] > 0 ? (earning / yAxisValues[0]) * 100 : 0}%` },
+                          ]}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.chartLabelsContainer}>
+                  <View style={styles.yAxisSpacer} />
+                  <View style={styles.chartLabels}>
+                    {monthLabels.map((month, index) => (
+                      <View key={`${month}-${index}`} style={styles.monthLabelContainer}>
+                        <Text style={styles.monthLabel} numberOfLines={1}>
+                          {month}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+              <Text style={styles.totalEarnings}>
+                Total earnings last 6 months: {currency === 'USD' ? '$' : '₹'}{totalEarnings.toLocaleString(currency === 'USD' ? 'en-US' : 'en-IN')}
+              </Text>
+            </>
+          )}
         </SectionCard>
 
         {/* Categories Operating */}
@@ -587,10 +809,16 @@ const getStyles = (theme: any, themeName: string) =>
       fontFamily: 'Poppins-SemiBold',
       fontSize: '14@s',
       color: theme.textPrimary,
-      marginBottom: '10@vs',
+      marginBottom: '4@vs',
       flex: 1,
       flexShrink: 1,
       minWidth: 0,
+    },
+    sectionSubtitle: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginBottom: '4@vs',
     },
     detailRow: {
       flexDirection: 'row',
@@ -813,19 +1041,20 @@ const getStyles = (theme: any, themeName: string) =>
     modeButtons: {
       flexDirection: 'row',
       gap: '8@s',
-      marginTop: '12@vs',
+      marginTop: '4@vs',
     },
     modeButton: {
       flex: 1,
       minWidth: 0,
       paddingVertical: '12@vs',
-      paddingHorizontal: '8@s',
+      paddingHorizontal: '6@s',
       borderRadius: '8@ms',
       backgroundColor: theme.card,
       borderWidth: 1,
       borderColor: theme.border,
       alignItems: 'center',
       justifyContent: 'center',
+      overflow: 'hidden',
     },
     modeButtonActive: {
       backgroundColor: theme.primary,
@@ -833,17 +1062,93 @@ const getStyles = (theme: any, themeName: string) =>
     },
     modeButtonText: {
       fontFamily: 'Poppins-Medium',
-      fontSize: '11@s',
+      fontSize: '13@s',
       color: theme.textSecondary,
       textAlign: 'center',
       flexShrink: 1,
+      width: '100%',
     },
     modeButtonTextSmall: {
-      fontSize: '9@s',
-      lineHeight: '11@s',
+      fontSize: '11@s',
+      lineHeight: '14@s',
     },
     modeButtonTextActive: {
       color: theme.card,
+    },
+    chartLoadingContainer: {
+      paddingVertical: '40@vs',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chartLoadingText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginTop: '8@vs',
+    },
+    chartEmptyContainer: {
+      paddingVertical: '40@vs',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chartEmptyText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginTop: '12@vs',
+      textAlign: 'center',
+    },
+    activePickupLoading: {
+      paddingVertical: '30@vs',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    activePickupLoadingText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginTop: '8@vs',
+    },
+    mapButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '6@s',
+      marginTop: '8@vs',
+      paddingVertical: '8@vs',
+      paddingHorizontal: '12@s',
+      backgroundColor: theme.card,
+      borderRadius: '8@ms',
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    mapButtonText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '12@s',
+      color: theme.primary,
+    },
+    acceptOrderLoading: {
+      paddingVertical: '30@vs',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    acceptOrderLoadingText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginTop: '8@vs',
+    },
+    addressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '6@s',
+      marginBottom: '6@vs',
+    },
+    mapIcon: {
+      marginLeft: 'auto',
+    },
+    acceptButtonDisabled: {
+      opacity: 0.6,
     },
   });
 

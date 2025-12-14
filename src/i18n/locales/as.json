@@ -12,7 +12,8 @@
     "completed": "সম্পূৰ্ণ",
     "pending": "বিচাৰাধীন",
     "cancelled": "বাতিল",
-    "scheduled": "নিৰ্ধাৰিত"
+    "scheduled": "নিৰ্ধাৰিত",
+    "deleting": "মচি থকা হৈছে..."
   },
   "selectLanguage": {
     "title": "ভাষা নিৰ্বাচন কৰক",
@@ -34,7 +35,12 @@
     "categoriesOperating": "কাৰ্যকৰী শ্ৰেণী",
     "add": "যোগ কৰক",
     "acceptOrder": "অৰ্ডাৰ গ্ৰহণ কৰক",
-    "viewDetails": "বিৱৰণ চাওক"
+    "viewDetails": "বিৱৰণ চাওক",
+    "ordersCompleted": "অৰ্ডাৰ",
+    "trees": "গছ",
+    "noEarningsData": "উপাৰ্জনৰ তথ্য উপলব্ধ নহয়",
+    "pickupLocation": "পিকআপৰ স্থান",
+    "viewOnMap": "মানচিত্ৰত চাওক"
   },
   "deliveryTracking": {
     "title": "অৰ্ডাৰ ট্ৰেকিং",
@@ -62,6 +68,7 @@
     "title": "প্ৰ'ফাইল ছেটিংছ",
     "freePlan": "মুক্ত প্লেন",
     "saved": "সংৰক্ষিত",
+    "upgradeToPremium": "প্ৰিমিয়ামলৈ আপগ্ৰেড কৰক",
     "yourProfile": "আপোনাৰ প্ৰ'ফাইল",
     "completed": "32% সম্পূৰ্ণ",
     "myOrders": "মোৰ অৰ্ডাৰ",
@@ -81,7 +88,10 @@
     "pending": "বিচাৰাধীন",
     "rejected": "প্ৰত্যাখ্যান কৰা হৈছে",
     "logoutMessage": "আপুনি নিশ্চিতনে যে আপুনি লগ আউট কৰিব বিচাৰে?",
-    "logoutTitle": "লগ আউট নিশ্চিত কৰক"
+    "logoutTitle": "লগ আউট নিশ্চিত কৰক",
+    "deleteAccount": "একাউণ্ট মচাওক",
+    "deleteAccountMessage": "আপুনি নিশ্চিত নেক যে আপুনি আপোনাৰ একাউণ্ট মচাব বিচাৰে? এই কাৰ্য্য পূৰ্ববত কৰিব নোৱাৰি আৰু আপোনাৰ সকলো তথ্য স্থায়ীভাৱে মচা যাব।",
+    "deleteAccountTitle": "একাউণ্ট মচাওক"
   },
   "addCategory": {
     "title": "শ্ৰেণী যোগ কৰক",
@@ -147,8 +157,13 @@
       "months": "মাহ",
       "categoriesOperating": "চালু বিভাগ",
       "online": "অনলাইন",
-      "offline": "অফলাইন"
-    },
+      "offline": "অফলাইন",
+    "ordersCompleted": "অৰ্ডাৰ",
+    "trees": "গছ",
+    "noEarningsData": "উপাৰ্জনৰ তথ্য উপলব্ধ নহয়",
+    "pickupLocation": "পিকআপৰ স্থান",
+    "viewOnMap": "মানচিত্ৰত চাওক"
+  },
     "earnings": {
       "activeGigs": "সক্ৰিয় গিগছ",
       "avgEarningsPerGig": "গড় উপাৰ্জন/গিগ",

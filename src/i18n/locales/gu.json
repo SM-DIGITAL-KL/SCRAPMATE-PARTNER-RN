@@ -12,7 +12,8 @@
     "completed": "પૂર્ણ થયું",
     "pending": "લંબાયેલું",
     "cancelled": "રદ કર્યું",
-    "scheduled": "શેડ્યૂલ કર્યું"
+    "scheduled": "શેડ્યૂલ કર્યું",
+    "deleting": "કાઢી રહ્યા છીએ..."
   },
   "selectLanguage": {
     "title": "ભાષા પસંદ કરો",
@@ -34,7 +35,12 @@
     "categoriesOperating": "સંચાલિત કેટેગરીઓ",
     "add": "ઉમેરો",
     "acceptOrder": "ઓર્ડર સ્વીકારો",
-    "viewDetails": "વિગતો જુઓ"
+    "viewDetails": "વિગતો જુઓ",
+    "ordersCompleted": "ઓર્ડર",
+    "trees": "વૃક્ષો",
+    "noEarningsData": "કમાણી ડેટા ઉપલબ્ધ નથી",
+    "pickupLocation": "પિકઅપ સ્થાન",
+    "viewOnMap": "નકશા પર જુઓ"
   },
   "deliveryTracking": {
     "title": "ઓર્ડર ટ્રેકિંગ",
@@ -62,6 +68,7 @@
     "title": "પ્રોફાઇલ સેટિંગ્સ",
     "freePlan": "મફત પ્લાન",
     "saved": "સાચવ્યું",
+    "upgradeToPremium": "પ્રીમિયમમાં અપગ્રેડ કરો",
     "yourProfile": "તમારી પ્રોફાઇલ",
     "completed": "32% પૂર્ણ થયું",
     "myOrders": "મારા ઓર્ડર",
@@ -81,7 +88,10 @@
     "rejected": "નકારવામાં આવ્યું",
     "whitePurple": "Lavender Dream",
     "logoutMessage": "શું તમે ખરેખર લોગ આઉટ કરવા માંગો છો?",
-    "logoutTitle": "લોગ આઉટની પુષ્ટિ કરો"
+    "logoutTitle": "લોગ આઉટની પુષ્ટિ કરો",
+    "deleteAccount": "એકાઉન્ટ કાઢી નાખો",
+    "deleteAccountMessage": "શું તમે ખરેખર તમારું એકાઉન્ટ કાઢી નાખવા માંગો છો? આ ક્રિયા પૂર્વવત્ કરી શકાશે નહીં અને તમારો બધો ડેટા કાયમી રીતે કાઢી નાખવામાં આવશે।",
+    "deleteAccountTitle": "એકાઉન્ટ કાઢી નાખો"
   },
   "addCategory": {
     "title": "કેટેગરી ઉમેરો",
@@ -147,8 +157,13 @@
       "months": "મહિના",
       "categoriesOperating": "સંચાલિત કેટેગરીઓ",
       "online": "ઓનલાઇન",
-      "offline": "ઓફલાઇન"
-    },
+      "offline": "ઓફલાઇન",
+    "ordersCompleted": "ઓર્ડર",
+    "trees": "વૃક્ષો",
+    "noEarningsData": "કમાણી ડેટા ઉપલબ્ધ નથી",
+    "pickupLocation": "પિકઅપ સ્થાન",
+    "viewOnMap": "નકશા પર જુઓ"
+  },
     "earnings": {
       "activeGigs": "સક્રિય ગીગ્સ",
       "avgEarningsPerGig": "સરેરાશ કમાણી/ગીગ",

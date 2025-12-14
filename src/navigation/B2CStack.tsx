@@ -4,6 +4,7 @@ import { CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DashboardScreen from '../screens/B2C/DashboardScreen';
 import DeliveryTrackingScreen from '../screens/B2C/DeliveryTrackingScreen';
+import FullscreenMapScreen from '../screens/B2C/FullscreenMapScreen';
 import AssignPartnerScreen from '../screens/B2C/AssignPartnerScreen';
 import UserProfileScreen from '../screens/B2C/UserProfileScreen';
 import EditProfileScreen from '../screens/B2C/EditProfileScreen';
@@ -23,6 +24,7 @@ import { getUserData } from '../services/auth/authService';
 export type B2CStackParamList = {
   Dashboard: undefined;
   DeliveryTracking: { orderId: string };
+  FullscreenMap: { destination: { latitude: number; longitude: number }; orderId?: string };
   AssignPartner: { orderId: string };
   UserProfile: undefined;
   EditProfile: undefined;
@@ -75,19 +77,15 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
         let route: keyof B2CStackParamList = 'Dashboard';
         
         // IMPORTANT: Check user_type first - if user_type is not 'N', signup is complete, go to dashboard
-        // Only route to signup if user_type is 'N' (new_user) AND @selected_join_type is 'b2c'
+        // Only route to signup if user_type is 'N' (new_user) AND current mode is 'b2c'
         if (userType === 'N') {
-          // Check if user selected B2C in JoinAs screen
-          const selectedJoinType = await AsyncStorage.getItem('@selected_join_type');
-          if (selectedJoinType === 'b2c') {
-            console.log('✅ B2CStack: User type is N and selected B2C - routing to B2CSignup');
-            route = 'B2CSignup';
-            // Don't set AsyncStorage flags until signup is complete
-          } else {
-            // User type is N but didn't select B2C - route to dashboard (they'll be routed to correct stack)
-            console.log('✅ B2CStack: User type is N but selected type is:', selectedJoinType, '- routing to Dashboard');
-            route = 'Dashboard';
-          }
+          // For user_type 'N', check current mode from UserModeContext (not AsyncStorage)
+          // User can change join type anytime by going back to JoinAs screen
+          // Since we can't use hooks here, we'll route to signup if user_type is 'N'
+          // The mode is set by AuthStack/LoginScreen based on joinType selection
+          console.log('✅ B2CStack: User type is N - routing to B2CSignup (user can change join type anytime)');
+          route = 'B2CSignup';
+          // Don't set AsyncStorage flags until signup is complete
         } else {
           // User type is not 'N' - signup is complete, check approval status
           // Check for B2C approval status in AsyncStorage (will be synced from profile in dashboard)
@@ -146,6 +144,7 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
     >
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="DeliveryTracking" component={DeliveryTrackingScreen} />
+      <Stack.Screen name="FullscreenMap" component={FullscreenMapScreen} />
       <Stack.Screen name="AssignPartner" component={AssignPartnerScreen} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />

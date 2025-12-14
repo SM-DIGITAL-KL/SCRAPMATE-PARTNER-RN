@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -10,6 +10,7 @@ import { AutoText } from '../../components/AutoText';
 import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import { ScaledSheet } from 'react-native-size-matters';
+import { NativeMapView, getAddressFromCoordinates } from '../../components/NativeMapView';
 
 const DeliveryTrackingScreen = ({ route, navigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
@@ -17,6 +18,20 @@ const DeliveryTrackingScreen = ({ route, navigation }: any) => {
   const { t } = useTranslation();
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
   const { orderId } = route.params || { orderId: 'DEL12345' };
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  
+  // Track address lookup to prevent repeated calls
+  const addressFetchedRef = useRef(false);
+  const addressFailedRef = useRef(false);
+  
+  // Destination coordinates: 9.1530° N, 76.7356° E
+  const destination = { latitude: 9.1530, longitude: 76.7356 };
+  
+  // Log destination to verify it's passed correctly
+  useEffect(() => {
+    console.log('🎯 DeliveryTrackingScreen - Destination:', destination);
+    console.log('🎯 DeliveryTrackingScreen - Destination coordinates:', destination.latitude, destination.longitude);
+  }, [destination]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -43,16 +58,59 @@ const DeliveryTrackingScreen = ({ route, navigation }: any) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.mapContainer}>
-          <View style={styles.mapPlaceholder}>
-            <View style={styles.mapPinContainer}>
-              <MaterialCommunityIcons
-                name="map-marker"
-                size={48}
-                color={theme.primary}
-              />
-            </View>
-          </View>
+          <NativeMapView
+            style={styles.map}
+            destination={destination}
+            routeProfile="driving"
+            onLocationUpdate={async (location) => {
+              setCurrentLocation({
+                latitude: location.latitude,
+                longitude: location.longitude
+              });
+              console.log('📍 Current location:', location);
+              
+              // Get and log address for debugging - only once (success or failure)
+              if (!addressFetchedRef.current && !addressFailedRef.current) {
+                try {
+                  const address = await getAddressFromCoordinates(location.latitude, location.longitude);
+                  addressFetchedRef.current = true;
+                  console.log('📍 Address:', address.address || address.formattedAddress);
+                  console.log('📍 Address Details:', {
+                    houseNumber: address.houseNumber,
+                    road: address.road,
+                    neighborhood: address.neighborhood,
+                    suburb: address.suburb,
+                    city: address.city,
+                    state: address.state,
+                    postcode: address.postcode,
+                    country: address.country,
+                    formattedAddress: address.formattedAddress
+                  });
+                } catch (error) {
+                  addressFailedRef.current = true;
+                  console.warn('⚠️ Failed to get address:', error);
+                }
+              }
+              
+              // Log destination and route info
+              console.log('🎯 Destination:', destination);
+              console.log('🗺️ Route will be drawn from current location to destination');
+            }}
+            onMapReady={() => {
+              console.log('🗺️ Map is ready');
+            }}
+          />
           <View style={styles.mapFloatingButtons}>
+            <TouchableOpacity 
+              style={styles.floatingButton}
+              onPress={() => navigation.navigate('FullscreenMap', { destination, orderId })}
+            >
+              <MaterialCommunityIcons
+                name="fullscreen"
+                size={18}
+                color={theme.textPrimary}
+              />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.floatingButton}>
               <MaterialCommunityIcons
                 name="phone"
@@ -164,6 +222,13 @@ const getStyles = (theme: any, themeName?: string) =>
       position: 'relative',
       backgroundColor: theme.background,
       marginTop: 0,
+      borderRadius: '12@s',
+      overflow: 'hidden',
+    },
+    map: {
+      flex: 1,
+      width: '100%',
+      height: '100%',
     },
     mapPlaceholder: {
       flex: 1,

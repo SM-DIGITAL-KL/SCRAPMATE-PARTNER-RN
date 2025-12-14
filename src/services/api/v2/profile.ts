@@ -359,3 +359,206 @@ export const completeDeliverySignup = async (
   return result.data;
 };
 
+/**
+ * Delete user account
+ */
+export const deleteAccount = async (
+  userId: string | number
+): Promise<{ status: string; msg: string; data: any }> => {
+  const url = buildApiUrl(API_ROUTES.v2.profile.deleteAccount(userId));
+  const headers = getApiHeaders();
+
+  const response = await fetchWithLogging(url, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to delete account: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || 'Failed to delete account');
+  }
+
+  return result;
+};
+
+/**
+ * Update user's operating categories
+ */
+export const updateUserCategories = async (
+  userId: string | number,
+  categoryIds: number[]
+): Promise<{ status: string; msg: string; data: any }> => {
+  const url = buildApiUrl(`/v2/profile/${userId}/categories`);
+  const headers = getApiHeaders();
+
+  const response = await fetchWithLogging(url, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ categoryIds }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to update categories: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || 'Failed to update categories');
+  }
+
+  return result;
+};
+
+/**
+ * Get user's operating categories
+ */
+export const getUserCategories = async (
+  userId: string | number
+): Promise<{ status: string; msg: string; data: { user_id: string | number; category_ids: number[]; categories: any[]; categories_count: number } }> => {
+  const url = buildApiUrl(`/v2/profile/${userId}/categories`);
+  const headers = getApiHeaders();
+
+  const response = await fetchWithLogging(url, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to get categories: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || 'Failed to get categories');
+  }
+
+  return result;
+};
+
+/**
+ * Remove a category and all its subcategories from user's operating categories/subcategories
+ */
+export const removeUserCategory = async (
+  userId: string | number,
+  categoryId: string | number
+): Promise<{ status: string; msg: string; data: any }> => {
+  const url = buildApiUrl(`/v2/profile/${userId}/categories/${categoryId}`);
+  const headers = getApiHeaders();
+
+  const response = await fetchWithLogging(url, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to remove category: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || 'Failed to remove category');
+  }
+
+  return result;
+};
+
+/**
+ * Update user's operating subcategories with custom prices
+ */
+export const updateUserSubcategories = async (
+  userId: string | number,
+  subcategories: Array<{ subcategoryId: number; customPrice: string; priceUnit: string }>
+): Promise<{ status: string; msg: string; data: any }> => {
+  const url = buildApiUrl(`/v2/profile/${userId}/subcategories`);
+  const headers = getApiHeaders();
+
+  const response = await fetchWithLogging(url, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ subcategories }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to update subcategories: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || 'Failed to update subcategories');
+  }
+
+  return result;
+};
+
+/**
+ * Remove specific subcategories from user's operating subcategories
+ */
+export const removeUserSubcategories = async (
+  userId: string | number,
+  subcategoryIds: number[]
+): Promise<{ status: string; msg: string; data: any }> => {
+  const url = buildApiUrl(`/v2/profile/${userId}/subcategories`);
+  const headers = getApiHeaders();
+
+  const response = await fetchWithLogging(url, {
+    method: 'DELETE',
+    headers,
+    body: JSON.stringify({ subcategoryIds }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to remove subcategories: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || 'Failed to remove subcategories');
+  }
+
+  return result;
+};
+
+/**
+ * Get user's operating subcategories with custom prices
+ */
+export const getUserSubcategories = async (
+  userId: string | number
+): Promise<{ status: string; msg: string; data: { user_id: string | number; subcategories: any[]; subcategories_count: number } }> => {
+  const url = buildApiUrl(`/v2/profile/${userId}/subcategories`);
+  const headers = getApiHeaders();
+
+  const response = await fetchWithLogging(url, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to get subcategories: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || 'Failed to get subcategories');
+  }
+
+  return result;
+};
+

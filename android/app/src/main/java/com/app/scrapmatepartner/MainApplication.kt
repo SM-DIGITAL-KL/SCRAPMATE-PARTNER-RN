@@ -8,6 +8,8 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.app.scrapmatepartner.NavigationBarPackage
 import com.app.scrapmatepartner.UPIPaymentPackage
+import com.app.scrapmatepartner.NativeMapViewPackage
+import com.app.scrapmatepartner.KeyboardControllerPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -20,6 +22,8 @@ class MainApplication : Application(), ReactApplication {
           // add(MyReactNativePackage())
           add(NavigationBarPackage())
           add(UPIPaymentPackage())
+          add(NativeMapViewPackage())  // Small screen map
+          add(KeyboardControllerPackage())
         },
     )
   }

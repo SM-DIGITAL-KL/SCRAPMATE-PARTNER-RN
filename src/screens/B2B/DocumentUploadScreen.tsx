@@ -125,6 +125,20 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
     };
   }, [showUI]);
 
+  // Handle back button - clear @selected_join_type for new users
+  const handleGoBack = useCallback(async () => {
+    try {
+      // Check if user is new (type 'N') - always clear @selected_join_type for new users
+      if (userData?.user_type === 'N') {
+        await AsyncStorage.removeItem('@selected_join_type');
+        console.log('✅ DocumentUploadScreen: User type is N - cleared @selected_join_type');
+      }
+    } catch (error) {
+      console.log('DocumentUploadScreen: Error clearing @selected_join_type:', error);
+    }
+    navigation.goBack();
+  }, [navigation, userData?.user_type]);
+
   // Restore tab bar visibility when screen loses focus
   useFocusEffect(
     React.useCallback(() => {
@@ -278,7 +292,7 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={theme.textPrimary} />
         </TouchableOpacity>
         <AutoText style={styles.headerTitle}>{t('documentUpload.title')}</AutoText>

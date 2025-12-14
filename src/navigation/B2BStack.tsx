@@ -12,6 +12,7 @@ import UserProfileScreen from '../screens/B2B/UserProfileScreen';
 import SubscriptionPlansScreen from '../screens/B2B/SubscriptionPlansScreen';
 import EditProfileScreen from '../screens/B2C/EditProfileScreen';
 import SelectLanguageScreen from '../screens/B2C/SelectLanguageScreen';
+import AddCategoryScreen from '../screens/B2C/AddCategoryScreen';
 import PrivacyPolicyScreen from '../screens/Common/PrivacyPolicyScreen';
 import TermsScreen from '../screens/Common/TermsScreen';
 import { useTheme } from '../components/ThemeProvider';
@@ -28,6 +29,7 @@ export type B2BStackParamList = {
   SubscriptionPlans: undefined;
   EditProfile: undefined;
   SelectLanguage: undefined;
+  AddCategory: undefined;
   PrivacyPolicy: undefined;
   Terms: undefined;
 };
@@ -52,10 +54,12 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
         
         // Also check user_type as fallback - if user_type is 'N', route to signup
         let userType: string | null = null;
+        let userData: any = null;
         try {
-          const userData = await getUserData();
+          userData = await getUserData();
           userType = userData?.user_type || null;
           console.log(`🔍 B2BStack: User type from userData:`, userType);
+          console.log(`🔍 B2BStack: Full userData:`, JSON.stringify(userData, null, 2));
         } catch (error) {
           console.error('❌ B2BStack: Error getting user data:', error);
         }
@@ -68,20 +72,18 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
         
         let route: keyof B2BStackParamList = 'DealerDashboard';
         
-        // IMPORTANT: Check user_type first - if user_type is not 'N', signup is complete
-        // Only route to signup if user_type is 'N' (new_user) AND @selected_join_type is 'b2b'
-        if (userType === 'N') {
-          // Check if user selected B2B in JoinAs screen
-          const selectedJoinType = await AsyncStorage.getItem('@selected_join_type');
-          if (selectedJoinType === 'b2b') {
-            console.log('✅ B2BStack: User type is N and selected B2B - routing to DealerSignup');
-            route = 'DealerSignup';
-            // Don't set AsyncStorage flags until signup is complete
-          } else {
-            // User type is N but didn't select B2B - route to dashboard (they'll be routed to correct stack)
-            console.log('✅ B2BStack: User type is N but selected type is:', selectedJoinType, '- routing to DealerDashboard');
-            route = 'DealerDashboard';
+        // CRITICAL: Check user_type FIRST - if user_type is 'N' (new user), ALWAYS route to signup
+        // This applies even if shop data exists (for re-registering users with del_status = 2)
+        // New users (type 'N') must complete signup before accessing dashboard
+        if (userType === 'N' || userType === null || userType === undefined) {
+          // If userType is null/undefined, treat as new user for safety
+          if (!userType) {
+            console.log('⚠️ B2BStack: User type is null/undefined - treating as new user (N) for safety');
           }
+          console.log('✅ B2BStack: User type is N (or null) - routing to DealerSignup (user must complete signup)');
+          console.log('   Note: This applies even if shop data exists (for re-registering users with del_status = 2)');
+          route = 'DealerSignup';
+          // Don't set AsyncStorage flags until signup is complete
         } else {
           // User type is not 'N' - signup is complete, check approval status
           if (b2bStatus === 'rejected') {
@@ -152,6 +154,7 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="SelectLanguage" component={SelectLanguageScreen} />
+      <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="Placeholder" component={B2BPlaceholderScreen} />

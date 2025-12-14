@@ -40,9 +40,13 @@ export function useApiMutation<TData = unknown, TVariables = void, TError = ApiE
     },
     onSuccess: async (data, variables, context) => {
       // Invalidate specified queries after successful mutation
+      // Use refetchType: 'active' to only refetch queries that are currently being used
       if (invalidateQueries) {
         invalidateQueries.forEach((queryKey) => {
-          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ 
+            queryKey,
+            refetchType: 'active' // Only refetch active queries for better performance
+          });
         });
       }
 

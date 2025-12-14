@@ -12,7 +12,8 @@
     "completed": "ಪೂರ್ಣಗೊಂಡಿದೆ",
     "pending": "ಬಾಕಿಯಿದೆ",
     "cancelled": "ರದ್ದುಮಾಡಲಾಗಿದೆ",
-    "scheduled": "ನಿಗದಿಪಡಿಸಲಾಗಿದೆ"
+    "scheduled": "ನಿಗದಿಪಡಿಸಲಾಗಿದೆ",
+    "deleting": "ಅಳಿಸಲಾಗುತ್ತಿದೆ..."
   },
   "selectLanguage": {
     "title": "ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
@@ -34,7 +35,12 @@
     "categoriesOperating": "ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತಿರುವ ವರ್ಗಗಳು",
     "add": "ಸೇರಿಸಿ",
     "acceptOrder": "ಆರ್ಡರ್ ಸ್ವೀಕರಿಸಿ",
-    "viewDetails": "ವಿವರಗಳನ್ನು ವೀಕ್ಷಿಸಿ"
+    "viewDetails": "ವಿವರಗಳನ್ನು ವೀಕ್ಷಿಸಿ",
+    "ordersCompleted": "ಆದೇಶಗಳು",
+    "trees": "ಮರಗಳು",
+    "noEarningsData": "ವರಮಾನ ಡೇಟಾ ಲಭ್ಯವಿಲ್ಲ",
+    "pickupLocation": "ಪಿಕ್-ಅಪ್ ಸ್ಥಾನ",
+    "viewOnMap": "ನಕ್ಷೆಯಲ್ಲಿ ವೀಕ್ಷಿಸಿ"
   },
   "deliveryTracking": {
     "title": "ಆರ್ಡರ್ ಟ್ರ್ಯಾಕಿಂಗ್",
@@ -62,6 +68,7 @@
     "title": "ಪ್ರೊಫೈಲ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
     "freePlan": "ಉಚಿತ ಯೋಜನೆ",
     "saved": "ಉಳಿಸಲಾಗಿದೆ",
+    "upgradeToPremium": "ಪ್ರೀಮಿಯಂಗೆ ಅಪ್‌ಗ್ರೇಡ್ ಮಾಡಿ",
     "yourProfile": "ನಿಮ್ಮ ಪ್ರೊಫೈಲ್",
     "completed": "32% ಪೂರ್ಣಗೊಂಡಿದೆ",
     "myOrders": "ನನ್ನ ಆರ್ಡರ್‌ಗಳು",
@@ -81,7 +88,10 @@
     "pending": "ಬಾಕಿ ಇದೆ",
     "rejected": "ತಿರಸ್ಕರಿಸಲಾಗಿದೆ",
     "logoutMessage": "ನೀವು ಖಚಿತವಾಗಿ ಲಾಗ್ ಔಟ್ ಮಾಡಲು ಬಯಸುವಿರಾ?",
-    "logoutTitle": "ಲಾಗ್ ಔಟ್ ದೃಢೀಕರಿಸಿ"
+    "logoutTitle": "ಲಾಗ್ ಔಟ್ ದೃಢೀಕರಿಸಿ",
+    "deleteAccount": "ಖಾತೆಯನ್ನು ಅಳಿಸಿ",
+    "deleteAccountMessage": "ನೀವು ನಿಜವಾಗಿಯೂ ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಅಳಿಸಲು ಬಯಸುತ್ತೀರಾ? ಈ ಕ್ರಿಯೆಯನ್ನು ಹಿಂತಿರುಗಿಸಲಾಗುವುದಿಲ್ಲ ಮತ್ತು ನಿಮ್ಮ ಎಲ್ಲಾ ಡೇಟಾವನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸಲಾಗುತ್ತದೆ।",
+    "deleteAccountTitle": "ಖಾತೆಯನ್ನು ಅಳಿಸಿ"
   },
   "addCategory": {
     "title": "ವರ್ಗವನ್ನು ಸೇರಿಸಿ",
@@ -147,7 +157,12 @@
       "months": "ತಿಂಗಳುಗಳು",
       "categoriesOperating": "ಕಾರ್ಯನಿರ್ವಹಿಸುವ ವರ್ಗಗಳು",
       "online": "ಆನ್‌ಲೈನ್",
-      "offline": "ಆಫ್‌ಲೈನ್"
+      "offline": "ಆಫ್‌ಲೈನ್",
+      "ordersCompleted": "ಆದೇಶಗಳು",
+      "trees": "ಮರಗಳು",
+      "noEarningsData": "ವರಮಾನ ಡೇಟಾ ಲಭ್ಯವಿಲ್ಲ",
+      "pickupLocation": "ಪಿಕ್-ಅಪ್ ಸ್ಥಾನ",
+      "viewOnMap": "ನಕ್ಷೆಯಲ್ಲಿ ವೀಕ್ಷಿಸಿ"
     },
     "earnings": {
       "activeGigs": "ಸಕ್ರಿಯ ಗಿಗ್ಸ್",

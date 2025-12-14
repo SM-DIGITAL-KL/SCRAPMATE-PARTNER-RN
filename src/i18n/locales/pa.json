@@ -12,7 +12,8 @@
     "completed": "ਪੂਰਾ ਹੋਇਆ",
     "pending": "ਲੰਬਿਤ",
     "cancelled": "ਰੱਦ ਕੀਤਾ",
-    "scheduled": "ਸ਼ੈਡਿਊਲ ਕੀਤਾ"
+    "scheduled": "ਸ਼ੈਡਿਊਲ ਕੀਤਾ",
+    "deleting": "ਹਟਾਇਆ ਜਾ ਰਿਹਾ ਹੈ..."
   },
   "selectLanguage": {
     "title": "ਭਾਸ਼ਾ ਚੁਣੋ",
@@ -34,7 +35,12 @@
     "categoriesOperating": "ਕੰਮ ਕਰ ਰਹੀਆਂ ਸ਼੍ਰੇਣੀਆਂ",
     "add": "ਜੋੜੋ",
     "acceptOrder": "ਆਰਡਰ ਸਵੀਕਾਰ ਕਰੋ",
-    "viewDetails": "ਵਿਵਰਣ ਵੇਖੋ"
+    "viewDetails": "ਵਿਵਰਣ ਵੇਖੋ",
+    "ordersCompleted": "ਆਰਡਰ",
+    "trees": "ਰੁੱਖ",
+    "noEarningsData": "ਕਮਾਈ ਡੇਟਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
+    "pickupLocation": "ਪਿਕਅਪ ਸਥਾਨ",
+    "viewOnMap": "ਨਕਸ਼ੇ 'ਤੇ ਵੇਖੋ"
   },
   "deliveryTracking": {
     "title": "ਆਰਡਰ ਟ੍ਰੈਕਿੰਗ",
@@ -62,6 +68,7 @@
     "title": "ਪ੍ਰੋਫਾਈਲ ਸੈਟਿੰਗਾਂ",
     "freePlan": "ਮੁਫਤ ਯੋਜਨਾ",
     "saved": "ਸੁਰੱਖਿਅਤ ਕੀਤਾ",
+    "upgradeToPremium": "ਪ੍ਰੀਮੀਅਮ ਵਿੱਚ ਅਪਗ੍ਰੇਡ ਕਰੋ",
     "yourProfile": "ਤੁਹਾਡੀ ਪ੍ਰੋਫਾਈਲ",
     "completed": "32% ਪੂਰਾ ਹੋਇਆ",
     "myOrders": "ਮੇਰੇ ਆਰਡਰ",
@@ -81,7 +88,10 @@
     "pending": "ਬਕਾਇਆ",
     "rejected": "ਰੱਦ ਕੀਤਾ",
     "logoutMessage": "ਕੀ ਤੁਸੀਂ ਸੱਚਮੁੱਚ ਲੌਗ ਆਉਟ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ?",
-    "logoutTitle": "ਲੌਗ ਆਉਟ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ"
+    "logoutTitle": "ਲੌਗ ਆਉਟ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ",
+    "deleteAccount": "ਖਾਤਾ ਮਿਟਾਓ",
+    "deleteAccountMessage": "ਕੀ ਤੁਸੀਂ ਸੱਚਮੁੱਚ ਆਪਣਾ ਖਾਤਾ ਮਿਟਾਉਣਾ ਚਾਹੁੰਦੇ ਹੋ? ਇਸ ਕਾਰਵਾਈ ਨੂੰ ਵਾਪਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ ਅਤੇ ਤੁਹਾਡਾ ਸਾਰਾ ਡੇਟਾ ਸਥਾਈ ਤੌਰ 'ਤੇ ਮਿਟਾ ਦਿੱਤਾ ਜਾਵੇਗਾ।",
+    "deleteAccountTitle": "ਖਾਤਾ ਮਿਟਾਓ"
   },
   "addCategory": {
     "title": "ਸ਼੍ਰੇਣੀ ਜੋੜੋ",
@@ -147,8 +157,13 @@
       "months": "ਮਹੀਨੇ",
       "categoriesOperating": "ਕੰਮ ਕਰ ਰਹੀਆਂ ਸ਼੍ਰੇਣੀਆਂ",
       "online": "ਔਨਲਾਈਨ",
-      "offline": "ਔਫਲਾਈਨ"
-    },
+      "offline": "ਔਫਲਾਈਨ",
+    "ordersCompleted": "ਆਰਡਰ",
+    "trees": "ਰੁੱਖ",
+    "noEarningsData": "ਕਮਾਈ ਡੇਟਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ",
+    "pickupLocation": "ਪਿਕਅਪ ਸਥਾਨ",
+    "viewOnMap": "ਨਕਸ਼ੇ 'ਤੇ ਵੇਖੋ"
+  },
     "earnings": {
       "activeGigs": "ਸਰਗਰਮ ਗਿਗਸ",
       "avgEarningsPerGig": "ਔਸਤ ਕਮਾਈ/ਗਿਗ",

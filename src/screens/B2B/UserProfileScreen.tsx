@@ -13,15 +13,28 @@ import { useUserMode } from '../../context/UserModeContext';
 import { getUserData, logout } from '../../services/auth/authService';
 import { useProfile } from '../../hooks/useProfile';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deleteAccount } from '../../services/api/v2/profile';
 
 const UserProfileScreen = ({ navigation, route }: any) => {
   const { theme, isDark, themeName, setTheme } = useTheme();
+  
+  // Get button text color based on theme
+  const getButtonTextColor = () => {
+    if (themeName === 'darkGreen') {
+      return '#FF6B6B'; // Lighter red for better contrast on black
+    }
+    return '#FF4C4C'; // Standard red for other themes
+  };
+  
+  const buttonTextColor = getButtonTextColor();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const currentLanguage = i18n.language;
   const isEnglish = currentLanguage === 'en';
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const { mode } = useUserMode();
   const styles = useMemo(() => getStyles(theme, isEnglish, isDark, themeName), [theme, isEnglish, isDark, themeName]);
@@ -104,6 +117,30 @@ const UserProfileScreen = ({ navigation, route }: any) => {
       console.error('Error logging out:', error);
       setShowLogoutModal(false);
       Alert.alert('Error', error.message || 'Failed to logout');
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    setShowDeleteAccountModal(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!userData?.id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount(userData.id);
+      // Clear all data and logout
+      await logout();
+      setShowDeleteAccountModal(false);
+      DeviceEventEmitter.emit('FORCE_LOGOUT');
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      setIsDeletingAccount(false);
+      Alert.alert('Error', error.message || 'Failed to delete account');
     }
   };
 
@@ -204,28 +241,22 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                   <AutoText style={styles.name} numberOfLines={1}>
                     {userName}
                   </AutoText>
-                  <View style={[styles.planRow, isEnglish && styles.planRowEnglish]}>
-                    <View style={styles.planChip}>
-                      <AutoText
-                        style={[
-                          styles.planText,
-                          isEnglish && styles.planTextEnglish,
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {t('userProfile.freePlan')}
-                      </AutoText>
-                    </View>
-                    <Text
-                      style={[
-                        styles.savedText,
-                        isEnglish && styles.savedTextEnglish,
-                      ]}
-                      numberOfLines={2}
+                  <TouchableOpacity 
+                    activeOpacity={0.8}
+                    onPress={() => navigation.navigate('SubscriptionPlans')}
+                    style={styles.upgradeButton}
+                  >
+                    <LinearGradient
+                      colors={[theme.primary, theme.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.upgradeGradient}
                     >
-                      {t('userProfile.saved')} ₹756
-                    </Text>
-                  </View>
+                      <AutoText style={styles.upgradeText} numberOfLines={2}>
+                        {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
+                      </AutoText>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
                 <MaterialCommunityIcons
                   name="chevron-right"
@@ -255,28 +286,22 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                   <AutoText style={styles.name} numberOfLines={1}>
                     {userName}
                   </AutoText>
-                  <View style={[styles.planRow, isEnglish && styles.planRowEnglish]}>
-                    <View style={styles.planChip}>
-                      <AutoText
-                        style={[
-                          styles.planText,
-                          isEnglish && styles.planTextEnglish,
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {t('userProfile.freePlan')}
-                      </AutoText>
-                    </View>
-                    <Text
-                      style={[
-                        styles.savedText,
-                        isEnglish && styles.savedTextEnglish,
-                      ]}
-                      numberOfLines={2}
+                  <TouchableOpacity 
+                    activeOpacity={0.8}
+                    onPress={() => navigation.navigate('SubscriptionPlans')}
+                    style={styles.upgradeButton}
+                  >
+                    <LinearGradient
+                      colors={[theme.primary, theme.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.upgradeGradient}
                     >
-                      {t('userProfile.saved')} ₹756
-                    </Text>
-                  </View>
+                      <AutoText style={styles.upgradeText} numberOfLines={2}>
+                        {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
+                      </AutoText>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
                 <MaterialCommunityIcons
                   name="chevron-right"
@@ -342,16 +367,40 @@ const UserProfileScreen = ({ navigation, route }: any) => {
           </TouchableOpacity>
         ))}
 
+        <TouchableOpacity style={styles.menuRow} activeOpacity={0.7} onPress={handleDeleteAccount}>
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color={buttonTextColor}
+          />
+          <View style={styles.menuItemContent}>
+            <AutoText style={[styles.menuLabel, { color: buttonTextColor }]} numberOfLines={2}>
+              {t('userProfile.deleteAccount') !== 'userProfile.deleteAccount' ? t('userProfile.deleteAccount') : 'Delete Account'}
+            </AutoText>
+          </View>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={20}
+            color={theme.textSecondary}
+          />
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.logoutRow} activeOpacity={0.7} onPress={handleLogout}>
           <MaterialCommunityIcons
             name="logout"
             size={20}
-            color="#FF4C4C"
+            color={buttonTextColor}
           />
-          <AutoText style={[styles.logoutText, { color: '#FF4C4C', opacity: 1 }]} numberOfLines={1}>
+          <AutoText style={[styles.logoutText, { color: buttonTextColor, opacity: 1 }]} numberOfLines={1}>
             {t('common.logout')}
           </AutoText>
         </TouchableOpacity>
+
+        <View style={styles.appInfoContainer}>
+          <AutoText style={styles.appInfoText}>
+            ScrapMate Partner v1.0.1
+          </AutoText>
+        </View>
       </ScrollView>
 
       <Modal
@@ -576,6 +625,56 @@ const UserProfileScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </Modal>
+
+      {/* Delete Account Modal */}
+      <Modal
+        visible={showDeleteAccountModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => !isDeletingAccount && setShowDeleteAccountModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <AutoText style={styles.modalTitle} numberOfLines={1}>
+                {t('userProfile.deleteAccountTitle') !== 'userProfile.deleteAccountTitle' ? t('userProfile.deleteAccountTitle') : 'Delete Account'}
+              </AutoText>
+              <TouchableOpacity
+                onPress={() => !isDeletingAccount && setShowDeleteAccountModal(false)}
+                style={styles.closeButton}
+                disabled={isDeletingAccount}
+              >
+                <MaterialCommunityIcons name="close" size={24} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <AutoText style={styles.logoutModalMessage} numberOfLines={4}>
+              {t('userProfile.deleteAccountMessage') !== 'userProfile.deleteAccountMessage' ? t('userProfile.deleteAccountMessage') : 'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.'}
+            </AutoText>
+            <View style={styles.logoutModalButtons}>
+              <TouchableOpacity
+                style={[styles.logoutModalButton, styles.logoutModalButtonCancel]}
+                onPress={() => setShowDeleteAccountModal(false)}
+                disabled={isDeletingAccount}
+                activeOpacity={0.7}
+              >
+                <AutoText style={styles.logoutModalButtonTextCancel} numberOfLines={1}>
+                  {t('common.cancel') || 'Cancel'}
+                </AutoText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.logoutModalButton, styles.logoutModalButtonConfirm]}
+                onPress={confirmDeleteAccount}
+                disabled={isDeletingAccount}
+                activeOpacity={0.7}
+              >
+                <AutoText style={styles.logoutModalButtonTextConfirm} numberOfLines={1}>
+                  {isDeletingAccount ? (t('common.deleting') || 'Deleting...') : (t('userProfile.deleteAccount') !== 'userProfile.deleteAccount' ? t('userProfile.deleteAccount') : 'Delete Account')}
+                </AutoText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -677,41 +776,26 @@ const getStyles = (theme: any, isEnglish: boolean, isDark: boolean, themeName?: 
       color: theme.textPrimary,
       marginBottom: '8@vs',
     },
-    planRow: {
+    upgradeButton: {
+      marginTop: '8@vs',
+      borderRadius: '8@ms',
+      overflow: 'hidden',
+    },
+    upgradeGradient: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: '12@s',
-      flexWrap: 'nowrap',
-    },
-    planChip: {
-      backgroundColor: theme.accent,
-      paddingHorizontal: '10@s',
-      paddingVertical: '4@vs',
-      borderRadius: '12@ms',
-      flexShrink: 0,
-    },
-    planText: {
-      fontFamily: 'Poppins-Medium',
-      fontSize: '10@s',
-      color: theme.primary,
-    },
-    planTextEnglish: {
-      fontSize: '12@s',
-    },
-    savedText: {
-      fontFamily: 'Poppins-Regular',
-      fontSize: '7@s',
-      color: theme.textPrimary,
-      flex: 1,
-      flexShrink: 1,
-      minWidth: 0,
-    },
-    savedTextEnglish: {
-      fontSize: '12@s',
-      textAlign: 'center',
-    },
-    planRowEnglish: {
       alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: '8@vs',
+      paddingHorizontal: '16@s',
+      borderRadius: '8@ms',
+      flexWrap: 'wrap',
+    },
+    upgradeText: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '12@s',
+      color: themeName === 'darkGreen' ? '#000000' : '#FFFFFF',
+      flexShrink: 1,
+      textAlign: 'center',
     },
     menuRow: {
       flexDirection: 'row',
@@ -848,7 +932,7 @@ const getStyles = (theme: any, isEnglish: boolean, isDark: boolean, themeName?: 
       borderColor: theme.border,
     },
     logoutModalButtonConfirm: {
-      backgroundColor: '#FF4C4C',
+      backgroundColor: themeName === 'darkGreen' ? '#FF6B6B' : '#FF4C4C',
     },
     logoutModalButtonTextCancel: {
       fontFamily: 'Poppins-SemiBold',
@@ -859,6 +943,18 @@ const getStyles = (theme: any, isEnglish: boolean, isDark: boolean, themeName?: 
       fontFamily: 'Poppins-SemiBold',
       fontSize: '13@s',
       color: '#FFFFFF',
+    },
+    appInfoContainer: {
+      alignItems: 'center',
+      paddingVertical: '24@vs',
+      paddingBottom: '32@vs',
+    },
+    appInfoText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '11@s',
+      color: theme.textSecondary,
+      opacity: 0.6,
+      fontWeight: '300',
     },
   });
 

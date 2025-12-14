@@ -12,7 +12,8 @@
     "completed": "সম্পন্ন",
     "pending": "বিচারাধীন",
     "cancelled": "বাতিল",
-    "scheduled": "নির্ধারিত"
+    "scheduled": "নির্ধারিত",
+    "deleting": "মুছে ফেলা হচ্ছে..."
   },
   "selectLanguage": {
     "title": "ভাষা নির্বাচন করুন",
@@ -34,7 +35,14 @@
     "categoriesOperating": "কার্যকরী বিভাগ",
     "add": "যোগ করুন",
     "acceptOrder": "অর্ডার গ্রহণ করুন",
-    "viewDetails": "বিস্তারিত দেখুন"
+    "viewDetails": "বিস্তারিত দেখুন",
+    "ordersCompleted": "অর্ডার",
+    "trees": "গাছ",
+    "noEarningsData": "আয় ডেটা উপলব্ধ নয়",
+      "pickupLocation": "پک اپ مقام",
+      "viewOnMap": "نقشے پر دیکھیں",
+    "pickupLocation": "পিকআপ অবস্থান",
+    "viewOnMap": "মানচিত্রে দেখুন"
   },
   "deliveryTracking": {
     "title": "অর্ডার ট্র্যাকিং",
@@ -62,6 +70,7 @@
     "title": "প্রোফাইল সেটিংস",
     "freePlan": "ফ্রি প্ল্যান",
     "saved": "সংরক্ষিত",
+    "upgradeToPremium": "প্রিমিয়ামে আপগ্রেড করুন",
     "yourProfile": "আপনার প্রোফাইল",
     "completed": "32% সম্পন্ন",
     "myOrders": "আমার অর্ডার",
@@ -81,7 +90,10 @@
     "rejected": "প্রত্যাখ্যাত",
     "whitePurple": "Lavender Dream",
     "logoutMessage": "আপনি কি নিশ্চিত যে আপনি লগ আউট করতে চান?",
-    "logoutTitle": "লগ আউট নিশ্চিত করুন"
+    "logoutTitle": "লগ আউট নিশ্চিত করুন",
+    "deleteAccount": "অ্যাকাউন্ট মুছুন",
+    "deleteAccountMessage": "আপনি কি নিশ্চিত যে আপনি আপনার অ্যাকাউন্ট মুছতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না এবং আপনার সমস্ত ডেটা স্থায়ীভাবে মুছে যাবে।",
+    "deleteAccountTitle": "অ্যাকাউন্ট মুছুন"
   },
   "addCategory": {
     "title": "বিভাগ যোগ করুন",
@@ -147,7 +159,14 @@
       "months": "মাস",
       "categoriesOperating": "চালু বিভাগ",
       "online": "অনলাইন",
-      "offline": "অফলাইন"
+      "offline": "অফলাইন",
+      "ordersCompleted": "অর্ডার",
+      "trees": "গাছ",
+      "noEarningsData": "আয় ডেটা উপলব্ধ নয়",
+      "pickupLocation": "پک اپ مقام",
+      "viewOnMap": "نقشے پر دیکھیں",
+      "pickupLocation": "পিকআপ অবস্থান",
+      "viewOnMap": "মানচিত্রে দেখুন"
     },
     "earnings": {
       "activeGigs": "সক্রিয় গিগস",

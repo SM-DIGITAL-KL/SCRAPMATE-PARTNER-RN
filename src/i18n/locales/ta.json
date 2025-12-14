@@ -12,7 +12,8 @@
     "completed": "முடிந்தது",
     "pending": "நிலுவையில்",
     "cancelled": "ரத்து செய்யப்பட்டது",
-    "scheduled": "திட்டமிடப்பட்டது"
+    "scheduled": "திட்டமிடப்பட்டது",
+    "deleting": "நீக்கப்படுகிறது..."
   },
   "selectLanguage": {
     "title": "மொழியைத் தேர்ந்தெடுக்கவும்",
@@ -34,7 +35,12 @@
     "categoriesOperating": "இயங்கும் வகைகள்",
     "add": "சேர்",
     "acceptOrder": "ஆர்டரை ஏற்கவும்",
-    "viewDetails": "விவரங்களைக் காண்க"
+    "viewDetails": "விவரங்களைக் காண்க",
+    "ordersCompleted": "ஆர்டர்கள்",
+    "trees": "மரங்கள்",
+    "noEarningsData": "வருமானத் தரவு கிடைக்கவில்லை",
+    "pickupLocation": "பிக்அப் இடம்",
+    "viewOnMap": "வரைபடத்தில் காண்க"
   },
   "deliveryTracking": {
     "title": "ஆர்டர் கண்காணிப்பு",
@@ -62,6 +68,7 @@
     "title": "சுயவிவர அமைப்புகள்",
     "freePlan": "இலவச திட்டம்",
     "saved": "சேமிக்கப்பட்டது",
+    "upgradeToPremium": "பிரீமியமுக்கு மேம்படுத்தவும்",
     "yourProfile": "உங்கள் சுயவிவரம்",
     "completed": "32% முடிந்தது",
     "myOrders": "எனது ஆர்டர்கள்",
@@ -81,7 +88,10 @@
     "rejected": "நிராகரிக்கப்பட்டது",
     "whitePurple": "Lavender Dream",
     "logoutMessage": "நீங்கள் நிச்சயமாக வெளியேற விரும்புகிறீர்களா?",
-    "logoutTitle": "வெளியேறுவதை உறுதிப்படுத்தவும்"
+    "logoutTitle": "வெளியேறுவதை உறுதிப்படுத்தவும்",
+    "deleteAccount": "கணக்கை நீக்கு",
+    "deleteAccountMessage": "நீங்கள் உண்மையிலேயே உங்கள் கணக்கை நீக்க விரும்புகிறீர்களா? இந்த செயலை மீளமைக்க முடியாது மற்றும் உங்கள் அனைத்து தரவும் நிரந்தரமாக நீக்கப்படும்।",
+    "deleteAccountTitle": "கணக்கை நீக்கு"
   },
   "addCategory": {
     "title": "வகையைச் சேர்க்கவும்",
@@ -147,7 +157,12 @@
       "months": "மாதங்கள்",
       "categoriesOperating": "இயங்கும் வகைகள்",
       "online": "ஆன்லைன்",
-      "offline": "ஆஃப்லைன்"
+      "offline": "ஆஃப்லைன்",
+      "ordersCompleted": "ஆர்டர்கள்",
+      "trees": "மரங்கள்",
+      "noEarningsData": "வருமானத் தரவு கிடைக்கவில்லை",
+      "pickupLocation": "பிக்அப் இடம்",
+      "viewOnMap": "வரைபடத்தில் காண்க"
     },
     "earnings": {
       "activeGigs": "செயலில் உள்ள கிக்ஸ்",

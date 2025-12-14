@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { StatusBar, Platform, NativeModules, View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../components/ThemeProvider';
@@ -9,6 +10,7 @@ import { UserModeProvider } from '../context/UserModeContext';
 import { AppNavigator } from '../navigation/AppNavigator';
 import { getStoredLanguage } from '../i18n/config';
 import { queryClient } from '../services/api/queryClient';
+import { KeyboardProvider } from '../components/KeyboardProvider';
 import '../i18n/config';
 
 // Optional: Use PersistQueryClientProvider if persistence is needed
@@ -24,15 +26,6 @@ try {
 } catch (e) {
   // Persistence not available, will use regular QueryClientProvider
   console.warn('React Query persistence not available. Using standard QueryClientProvider.');
-}
-
-// Safe import for KeyboardProvider
-let KeyboardProvider: React.ComponentType<{ children: React.ReactNode }> | null = null;
-try {
-  const keyboardController = require('react-native-keyboard-controller');
-  KeyboardProvider = keyboardController?.KeyboardProvider || null;
-} catch (e) {
-  console.warn('react-native-keyboard-controller not available:', e);
 }
 
 const { NavigationBarModule } = NativeModules;
@@ -108,7 +101,8 @@ const App = () => {
     });
   }, []);
 
-  const AppWrapper = KeyboardProvider || React.Fragment;
+  // KeyboardProvider is always available from our custom module
+  const AppWrapper = KeyboardProvider;
 
   // Use PersistQueryClientProvider if available, otherwise fallback to QueryClientProvider
   const QueryProvider = PersistQueryClientProvider && asyncStoragePersister
@@ -118,33 +112,35 @@ const App = () => {
   const [isCacheHydrated, setIsCacheHydrated] = React.useState(!PersistQueryClientProvider || !asyncStoragePersister);
 
   return (
-    <QueryProvider
-      client={queryClient}
-      {...(PersistQueryClientProvider && asyncStoragePersister
-        ? {
-            persistOptions: {
-              persister: asyncStoragePersister,
-              maxAge: 1000 * 60 * 60 * 24,
-              buster: '',
-            },
-            onSuccess: () => {
-              setIsCacheHydrated(true);
-            },
-          }
-        : {})}
-    >
-      {isCacheHydrated ? (
-        <AppWrapper>
-          <ThemeProvider>
-            <UserModeProvider>
-              <TabBarProvider>
-                <AppContent />
-              </TabBarProvider>
-            </UserModeProvider>
-          </ThemeProvider>
-        </AppWrapper>
-      ) : null}
-    </QueryProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryProvider
+        client={queryClient}
+        {...(PersistQueryClientProvider && asyncStoragePersister
+          ? {
+              persistOptions: {
+                persister: asyncStoragePersister,
+                maxAge: 1000 * 60 * 60 * 24,
+                buster: '',
+              },
+              onSuccess: () => {
+                setIsCacheHydrated(true);
+              },
+            }
+          : {})}
+      >
+        {isCacheHydrated ? (
+          <AppWrapper>
+            <ThemeProvider>
+              <UserModeProvider>
+                <TabBarProvider>
+                  <AppContent />
+                </TabBarProvider>
+              </UserModeProvider>
+            </ThemeProvider>
+          </AppWrapper>
+        ) : null}
+      </QueryProvider>
+    </GestureHandlerRootView>
   );
 };
 

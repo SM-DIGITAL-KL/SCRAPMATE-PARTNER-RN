@@ -83,12 +83,37 @@ export const setUserData = async (userData: UserData): Promise<void> => {
 };
 
 /**
- * Logout - Clear all auth data
+ * Logout - Clear all auth data and user-specific AsyncStorage fields
  */
 export const logout = async (): Promise<void> => {
   try {
+    // Clear auth tokens and user data
     await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
     await AsyncStorage.removeItem(USER_DATA_KEY);
+    
+    // Clear all user-specific AsyncStorage fields
+    const keysToRemove = [
+      '@allowed_dashboards',
+      '@b2b_status',
+      '@selected_join_type',
+      '@join_as_shown',
+      '@b2c_signup_needed',
+      '@delivery_vehicle_info_needed',
+      '@b2c_approval_status',
+      '@delivery_approval_status',
+      'current_dashboard',
+      'user_dashboard_info',
+    ];
+    
+    // Remove all keys in parallel
+    await Promise.all(
+      keysToRemove.map(key => AsyncStorage.removeItem(key).catch(err => {
+        console.warn(`Failed to remove ${key} during logout:`, err);
+        // Continue even if one key fails
+      }))
+    );
+    
+    console.log('✅ Logout: All AsyncStorage fields cleared');
   } catch (error) {
     console.error('Error during logout:', error);
     throw error;

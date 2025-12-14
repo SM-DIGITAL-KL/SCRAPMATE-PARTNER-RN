@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, DeviceEventEmitter } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Image, DeviceEventEmitter, ActivityIndicator, Modal, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigationState } from '@react-navigation/native';
+import { useFocusEffect, useNavigationState, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../components/ThemeProvider';
 import { GreenButton } from '../../components/GreenButton';
@@ -15,15 +15,153 @@ import LinearGradient from 'react-native-linear-gradient';
 import { getUserData } from '../../services/auth/authService';
 import { useProfile } from '../../hooks/useProfile';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Category } from '../../services/api/v2/categories';
+import { useCategories, useUserCategories, useUserSubcategories } from '../../hooks/useCategories';
+import { CategoryBadge } from '../../components/CategoryBadge';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../services/api/queryKeys';
 
-const DealerDashboardScreen = ({ navigation }: any) => {
+const DealerDashboardScreen = () => {
   const { theme, isDark, themeName } = useTheme();
   const { mode, setMode } = useUserMode();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const [isSwitchingMode, setIsSwitchingMode] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
+
+  // React Query hooks for categories
+  const { data: userCategoriesData, isLoading: loadingCategories, refetch: refetchUserCategories } = useUserCategories(
+    userData?.id,
+    !!userData?.id
+  );
+  const { data: userSubcategoriesData, isLoading: loadingSubcategories, refetch: refetchUserSubcategories } = useUserSubcategories(
+    userData?.id,
+    !!userData?.id
+  );
+  
+  // Get all categories to match with user's category IDs
+  const { data: allCategoriesData, refetch: refetchAllCategories } = useCategories('b2b', true);
+
+  // Refetch all category data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userData?.id) {
+        // Small delay to ensure navigation is complete
+        const timer = setTimeout(() => {
+          console.log('🔄 Dashboard focused - refetching category data...');
+          // Just refetch, no need to invalidate on focus
+          refetchUserCategories();
+          refetchUserSubcategories();
+          refetchAllCategories();
+        }, 200);
+        return () => clearTimeout(timer);
+      }
+    }, [userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, queryClient])
+  );
+
+  // Listen for navigation events to refetch when returning from AddCategoryScreen
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (userData?.id) {
+        console.log('🔄 Navigation focus - refetching category data...');
+        // Refetch all category-related data
+        refetchUserCategories();
+        refetchUserSubcategories();
+        refetchAllCategories();
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, queryClient]);
+
+  // Process user categories
+  const userCategories = React.useMemo(() => {
+    if (!userCategoriesData?.data?.category_ids || !allCategoriesData?.data) {
+      return [];
+    }
+    const userCategoryIds = userCategoriesData.data.category_ids.map(id => Number(id));
+    return allCategoriesData.data.filter(cat => {
+      const catId = Number(cat.id);
+      const matches = userCategoryIds.includes(catId);
+      
+      // Debug logging
+      if (!matches && userCategoryIds.length > 0) {
+        console.log(`🔍 Category "${cat.name}" (ID: ${catId}) not in user categories:`, {
+          userCategoryIds,
+          catIdType: typeof cat.id,
+          userCategoryIdsTypes: userCategoryIds.map(id => typeof id)
+        });
+      }
+      
+      return matches;
+    });
+  }, [userCategoriesData, allCategoriesData]);
+
+  // Process category subcategories - only show user's selected subcategories for the selected category
+  const categorySubcategories = React.useMemo(() => {
+    if (!selectedCategory?.id || !userSubcategoriesData?.data?.subcategories) {
+      return [];
+    }
+    
+    // Convert category ID to number for comparison
+    const categoryId = Number(selectedCategory.id);
+    
+    // Filter user's subcategories by the selected category
+    // Use Number() conversion to handle type mismatches (string vs number)
+    console.log(`🔍 Filtering subcategories for category "${selectedCategory.name}" (ID: ${categoryId})`);
+    console.log(`📊 Total user subcategories: ${userSubcategoriesData.data.subcategories.length}`);
+    
+    const userSubcatsForCategory = userSubcategoriesData.data.subcategories.filter(
+      (us: any) => {
+        const subcatCategoryId = Number(us.main_category_id);
+        const matches = subcatCategoryId === categoryId;
+        
+        return matches;
+      }
+    );
+    
+    console.log(`✅ Found ${userSubcatsForCategory.length} subcategories for category "${selectedCategory.name}"`);
+    
+    if (userSubcatsForCategory.length === 0) {
+      // Debug logging when no subcategories found
+      console.log(`⚠️ No subcategories found for category "${selectedCategory.name}" (ID: ${categoryId})`);
+      console.log(`📋 All user subcategories:`, userSubcategoriesData.data.subcategories.map((us: any) => ({
+        name: us.name,
+        subcategory_id: us.subcategory_id,
+        main_category_id: us.main_category_id,
+        main_category_id_type: typeof us.main_category_id,
+        main_category_id_number: Number(us.main_category_id)
+      })));
+      return [];
+    }
+    
+    // Return user's subcategories with their custom prices
+    return userSubcatsForCategory.map((userSubcat: any) => ({
+      id: userSubcat.subcategory_id,
+      name: userSubcat.name,
+      main_category_id: userSubcat.main_category_id,
+      default_price: userSubcat.default_price || '',
+      price_unit: userSubcat.price_unit || 'kg',
+      custom_price: userSubcat.custom_price || '',
+      display_price: userSubcat.display_price || userSubcat.custom_price || userSubcat.default_price || '0',
+      display_price_unit: userSubcat.display_price_unit || userSubcat.price_unit || 'kg',
+      image: userSubcat.image || ''
+    }));
+  }, [selectedCategory?.id, selectedCategory?.name, userSubcategoriesData]);
+
+  // Refetch when modal opens to ensure we have latest subcategories
+  React.useEffect(() => {
+    if (modalVisible && userData?.id && selectedCategory?.id) {
+      // Force refetch to get latest data
+      refetchUserSubcategories();
+      refetchUserCategories();
+    }
+  }, [modalVisible, userData?.id, selectedCategory?.id, refetchUserSubcategories, refetchUserCategories]);
 
   // Load user data and fetch profile
   useFocusEffect(
@@ -51,6 +189,34 @@ const DealerDashboardScreen = ({ navigation }: any) => {
       }
     }, [userData?.id, refetchProfile])
   );
+
+  // Handle category press - open modal only if subcategories exist
+  const handleCategoryPress = (category: Category) => {
+    // Check if there are subcategories for this category
+    if (!userSubcategoriesData?.data?.subcategories) {
+      Alert.alert(
+        t('common.warning') || 'Warning',
+        t('dashboard.noSubcategories') || 'No subcategories available for this category'
+      );
+      return;
+    }
+    
+    const categoryId = Number(category.id);
+    const subcatsForCategory = userSubcategoriesData.data.subcategories.filter(
+      (us: any) => Number(us.main_category_id) === categoryId
+    );
+    
+    if (subcatsForCategory.length === 0) {
+      Alert.alert(
+        t('common.warning') || 'Warning',
+        t('dashboard.noSubcategories') || 'No subcategories available for this category'
+      );
+      return;
+    }
+    
+    setSelectedCategory(category);
+    setModalVisible(true);
+  };
 
   // Sync AsyncStorage with latest approval status when profile is fetched
   React.useEffect(() => {
@@ -150,6 +316,20 @@ const DealerDashboardScreen = ({ navigation }: any) => {
       default:
         return status;
     }
+  };
+
+  // Get icon name for category (fallback if no image)
+  const getCategoryIcon = (categoryName: string): string => {
+    const name = categoryName.toLowerCase();
+    if (name.includes('metal') || name.includes('aluminum')) return 'aluminum';
+    if (name.includes('plastic')) return 'bottle-soda';
+    if (name.includes('paper')) return 'file-document';
+    if (name.includes('electronic') || name.includes('e-waste')) return 'lightbulb';
+    if (name.includes('glass')) return 'glass-wine';
+    if (name.includes('wood')) return 'tree';
+    if (name.includes('rubber')) return 'circle';
+    if (name.includes('organic')) return 'sprout';
+    return 'package-variant';
   };
 
   return (
@@ -323,7 +503,153 @@ const DealerDashboardScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </SectionCard>
         ))}
+
+        {/* Categories Operating Section */}
+        <View style={styles.categoriesSection}>
+          <View style={styles.categoriesHeader}>
+            <AutoText style={styles.categoriesTitle} numberOfLines={3}>
+              {t('dashboard.categoriesOperating') || 'Categories Operating'}
+            </AutoText>
+            <TouchableOpacity 
+              style={styles.addButton} 
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('AddCategory')}
+            >
+              <AutoText style={styles.addButtonText} numberOfLines={1}>
+                {t('dashboard.add') || 'Add'} +
+              </AutoText>
+            </TouchableOpacity>
+          </View>
+          {loadingCategories ? (
+            <View style={styles.categoriesLoading}>
+              <ActivityIndicator size="small" color={theme.primary} />
+            </View>
+          ) : userCategories.length === 0 ? (
+            <View style={styles.noCategoriesContainer}>
+              <MaterialCommunityIcons
+                name="package-variant-closed"
+                size={32}
+                color={theme.textSecondary}
+              />
+              <AutoText style={styles.noCategoriesText}>
+                {t('dashboard.noCategoriesOperating') || 'No categories operating'}
+              </AutoText>
+              <AutoText style={styles.noCategoriesSubtext}>
+                {t('dashboard.tapAddToSelect') || 'Tap the + button to add categories'}
+              </AutoText>
+            </View>
+          ) : (
+            <View style={styles.categoriesGrid}>
+              {userCategories.map(category => (
+                <CategoryBadge
+                  key={category.id}
+                  label={category.name}
+                  icon={getCategoryIcon(category.name)}
+                  image={category.image}
+                  onPress={() => handleCategoryPress(category)}
+                />
+              ))}
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      {/* Subcategories Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <AutoText style={styles.modalTitle} numberOfLines={1}>
+                {selectedCategory?.name || t('dashboard.subcategories') || 'Subcategories'}
+              </AutoText>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={theme.textPrimary}
+                />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              {loadingSubcategories ? (
+                <View style={styles.modalLoadingContainer}>
+                  <ActivityIndicator size="large" color={theme.primary} />
+                  <AutoText style={styles.modalLoadingText}>
+                    {t('common.loading') || 'Loading subcategories...'}
+                  </AutoText>
+                </View>
+              ) : categorySubcategories.length === 0 ? (
+                <View style={styles.modalEmptyContainer}>
+                  <MaterialCommunityIcons
+                    name="package-variant-closed"
+                    size={48}
+                    color={theme.textSecondary}
+                  />
+                  <AutoText style={styles.modalEmptyText}>
+                    {t('dashboard.noSubcategories') || 'No subcategories available'}
+                  </AutoText>
+                </View>
+              ) : (
+                <ScrollView
+                  style={styles.modalScrollView}
+                  contentContainerStyle={styles.modalScrollContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {categorySubcategories.map((subcat: any) => (
+                    <View key={subcat.id} style={styles.modalSubcategoryItem}>
+                      <View style={styles.modalSubcategoryRow}>
+                        {/* Subcategory Image */}
+                        {subcat.image ? (
+                          <Image
+                            source={{ uri: subcat.image }}
+                            style={styles.modalSubcategoryImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={styles.modalSubcategoryNoImage}>
+                            <MaterialCommunityIcons
+                              name="image-off"
+                              size={24}
+                              color={theme.textSecondary}
+                            />
+                            <AutoText style={styles.modalSubcategoryNoImageText}>
+                              {t('dashboard.noImage') || 'No Image'}
+                            </AutoText>
+                          </View>
+                        )}
+                        
+                        {/* Subcategory Info */}
+                        <View style={styles.modalSubcategoryInfo}>
+                          <AutoText style={styles.modalSubcategoryName}>
+                            {subcat.name}
+                          </AutoText>
+                          <AutoText style={styles.modalSubcategoryPrice}>
+                            {t('dashboard.price') || 'Price'}: ₹{subcat.display_price || '0'}/{subcat.display_price_unit || 'kg'}
+                          </AutoText>
+                          {subcat.custom_price && (
+                            <AutoText style={styles.modalSubcategoryDefaultPrice}>
+                              {t('dashboard.defaultPrice') || 'Default'}: ₹{subcat.default_price || '0'}/{subcat.price_unit || 'kg'}
+                            </AutoText>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -504,6 +830,211 @@ const getStyles = (theme: any, themeName?: string) =>
       fontFamily: 'Poppins-Medium',
       fontSize: '11@s',
       color: theme.primary,
+    },
+    categoriesSection: {
+      marginTop: '18@vs',
+      marginBottom: '10@vs',
+    },
+    categoriesHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '10@vs',
+      gap: '10@s',
+    },
+    categoriesTitle: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '15@s',
+      color: theme.textPrimary,
+      flex: 1,
+      flexShrink: 1,
+      minWidth: 0,
+      marginRight: '10@s',
+    },
+    addButton: {
+      backgroundColor: theme.accent,
+      paddingHorizontal: '16@s',
+      paddingVertical: '8@vs',
+      borderRadius: '12@ms',
+    },
+    addButtonText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '13@s',
+      color: theme.textPrimary,
+    },
+    categoriesGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    categoriesLoading: {
+      paddingVertical: '20@vs',
+      alignItems: 'center',
+    },
+    noCategoriesContainer: {
+      paddingVertical: '30@vs',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    noCategoriesText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '14@s',
+      color: theme.textSecondary,
+      marginTop: '12@vs',
+      textAlign: 'center',
+    },
+    noCategoriesSubtext: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginTop: '4@vs',
+      textAlign: 'center',
+      opacity: 0.7,
+    },
+    subcategoriesContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: '8@s',
+    },
+    subcategoryBadge: {
+      width: '48%',
+      backgroundColor: theme.card,
+      borderRadius: '12@ms',
+      padding: '12@s',
+      borderWidth: 1,
+      borderColor: theme.border,
+      marginBottom: '10@vs',
+    },
+    subcategoryName: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '13@s',
+      color: theme.textPrimary,
+      marginBottom: '6@vs',
+    },
+    subcategoryPrice: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '12@s',
+      color: theme.primary,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.card,
+      borderTopLeftRadius: '20@ms',
+      borderTopRightRadius: '20@ms',
+      maxHeight: '80%',
+      height: '80%',
+    },
+    modalBody: {
+      flex: 1,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: '18@s',
+      paddingVertical: '16@vs',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    modalTitle: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '18@s',
+      color: theme.textPrimary,
+      flex: 1,
+    },
+    modalCloseButton: {
+      padding: '4@s',
+    },
+    modalLoadingContainer: {
+      paddingVertical: '40@vs',
+      alignItems: 'center',
+    },
+    modalLoadingText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textSecondary,
+      marginTop: '12@vs',
+    },
+    modalEmptyContainer: {
+      paddingVertical: '40@vs',
+      alignItems: 'center',
+    },
+    modalEmptyText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textSecondary,
+      marginTop: '12@vs',
+      textAlign: 'center',
+    },
+    modalScrollView: {
+      flex: 1,
+    },
+    modalScrollContent: {
+      paddingHorizontal: '18@s',
+      paddingTop: '12@vs',
+      paddingBottom: '20@vs',
+    },
+    modalSubcategoryItem: {
+      backgroundColor: theme.background,
+      borderRadius: '12@ms',
+      padding: '16@s',
+      marginBottom: '12@vs',
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    modalSubcategoryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '12@s',
+    },
+    modalSubcategoryImage: {
+      width: '60@s',
+      height: '60@s',
+      borderRadius: '8@ms',
+      backgroundColor: theme.card,
+    },
+    modalSubcategoryNoImage: {
+      width: '60@s',
+      height: '60@s',
+      borderRadius: '8@ms',
+      backgroundColor: theme.card,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderStyle: 'dashed',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '4@vs',
+    },
+    modalSubcategoryNoImageText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '9@s',
+      color: theme.textSecondary,
+      textAlign: 'center',
+    },
+    modalSubcategoryInfo: {
+      flex: 1,
+    },
+    modalSubcategoryName: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '15@s',
+      color: theme.textPrimary,
+      marginBottom: '8@vs',
+    },
+    modalSubcategoryPrice: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '14@s',
+      color: theme.primary,
+      marginBottom: '4@vs',
+    },
+    modalSubcategoryDefaultPrice: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
     },
   });
 

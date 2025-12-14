@@ -9,8 +9,13 @@
  * API Base URL Configuration
  * Update this value to change the API base URL
  * For production, use environment variables or build-time configuration
+ * Note: Base URL should include /api at the end since routes are mounted at /api/v2
  */
-export const API_BASE_URL = 'https://5abcbf1fd5df.ngrok-free.app/api';
+
+// For ngrok tunnel (uncomment to use)
+  //  export const API_BASE_URL = 'https://5be164ada1bb.ngrok-free.app/api';
+// For AWS Lambda (uncomment to use)
+  export const API_BASE_URL = 'https://tvwi76fg9d.execute-api.ap-south-1.amazonaws.com/api';
 
 /**
  * API Key for authentication
@@ -77,6 +82,7 @@ export const API_ROUTES = {
       uploadAadhar: (userId: string | number) => `/v2/profile/${userId}/aadhar`,
       uploadDrivingLicense: (userId: string | number) => `/v2/profile/${userId}/driving-license`,
       completeDeliverySignup: (userId: string | number) => `/v2/profile/${userId}/complete-delivery-signup`,
+      deleteAccount: (userId: string | number) => `/v2/profile/${userId}`,
     },
     // B2B Signup Routes
     b2bSignup: {
@@ -85,6 +91,12 @@ export const API_ROUTES = {
     },
     // Subscription Packages Routes
     subscriptionPackages: '/v2/subscription-packages',
+    // Category Routes
+    categories: {
+      list: '/v2/categories',
+      subcategories: '/v2/subcategories',
+      withSubcategories: '/v2/categories/with-subcategories',
+    },
   },
   // Legacy API Routes (if needed)
   legacy: {
@@ -108,7 +120,7 @@ export const buildApiUrl = (route: string): string => {
 
   // Remove leading slash if present
   const cleanRoute = route.startsWith('/') ? route : `/${route}`;
-  
+
   // Build full URL
   const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
   return `${baseUrl}${cleanRoute}`;
@@ -139,29 +151,29 @@ export const logApiCall = (
   if (!__DEV__) return; // Only log in development
 
   const timestamp = new Date().toISOString();
-  
+
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`📡 API Call - ${timestamp}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`🌐 URL: ${url}`);
   console.log(`📤 Method: ${method}`);
-  
+
   if (requestBody) {
     console.log(`📦 Request Body:`, JSON.stringify(requestBody, null, 2));
   }
-  
+
   if (status) {
     console.log(`📊 Status: ${status} ${status >= 200 && status < 300 ? '✅' : '❌'}`);
   }
-  
+
   if (response) {
     console.log(`📥 Response:`, JSON.stringify(response, null, 2));
   }
-  
+
   if (error) {
     console.log(`❌ Error:`, error);
   }
-  
+
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 };
 
@@ -174,25 +186,25 @@ export const fetchWithLogging = async (
 ): Promise<Response> => {
   const method = options.method || 'GET';
   let requestBody: any = undefined;
-  
+
   // Parse request body if present
   if (options.body) {
     try {
-      requestBody = typeof options.body === 'string' 
-        ? JSON.parse(options.body) 
+      requestBody = typeof options.body === 'string'
+        ? JSON.parse(options.body)
         : options.body;
     } catch (e) {
       requestBody = options.body;
     }
   }
-  
+
   // Log request
   logApiCall(url, method, requestBody);
-  
+
   try {
     const response = await fetch(url, options);
     const responseClone = response.clone(); // Clone to read body without consuming it
-    
+
     // Try to parse response as JSON
     let responseData: any = null;
     try {
@@ -206,10 +218,10 @@ export const fetchWithLogging = async (
         responseData = 'Unable to parse response';
       }
     }
-    
+
     // Log response
     logApiCall(url, method, requestBody, responseData, response.status);
-    
+
     // Return the original response (body not consumed)
     return response;
   } catch (error: any) {

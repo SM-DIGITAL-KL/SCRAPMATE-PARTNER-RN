@@ -124,8 +124,33 @@ const VehicleInformationScreen = ({ navigation }: any) => {
   };
 
   // Navigate to JoinAs screen using DeviceEventEmitter
-  const navigateToJoinAs = React.useCallback(() => {
+  const navigateToJoinAs = React.useCallback(async () => {
     try {
+      // Check if user is new (type 'N') - always clear @selected_join_type for new users
+      let isNewUser = false;
+      try {
+        const currentUserData = await getUserData();
+        if (currentUserData?.user_type === 'N') {
+          isNewUser = true;
+          console.log('✅ VehicleInformationScreen: User type is N - clearing @selected_join_type');
+        }
+      } catch (error) {
+        console.log('VehicleInformationScreen: Error checking user data:', error);
+      }
+      
+      // Clear signup flags
+      await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
+      
+      // Always clear @selected_join_type for new users
+      if (isNewUser) {
+        await AsyncStorage.removeItem('@selected_join_type');
+        console.log('✅ VehicleInformationScreen: Cleared @selected_join_type for new user');
+      } else {
+        // For existing users, also clear it to allow type switching
+        await AsyncStorage.removeItem('@selected_join_type');
+        console.log('✅ VehicleInformationScreen: Cleared @selected_join_type to allow type switching');
+      }
+      
       // Emit event to trigger navigation to JoinAs screen
       // AppNavigator listens for this event and shows AuthFlow with JoinAs
       DeviceEventEmitter.emit('NAVIGATE_TO_JOIN_AS');
