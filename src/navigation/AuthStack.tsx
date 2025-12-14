@@ -44,16 +44,53 @@ export const AuthStack: React.FC<AuthStackProps> = ({
       dashboardType: 'b2b' | 'b2c' | 'delivery',
       allowedDashboards?: ('b2b' | 'b2c' | 'delivery')[]
     ) => {
-      // Store allowed dashboards in AsyncStorage for immediate access
-      if (allowedDashboards && allowedDashboards.length > 0) {
-        await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(allowedDashboards));
-      }
-      
       // IMPORTANT: Check user_type first to determine correct dashboard
       const { getUserData } = await import('../services/auth/authService');
       const userData = await getUserData();
       const userType = userData?.user_type;
       const appType = userData?.app_type || userData?.app_version;
+      
+      // IMPORTANT: If user_type is 'N', DO NOT store @selected_join_type permanently
+      // User can change join type anytime by going back to JoinAs screen
+      // Only store allowedDashboards so they can access all dashboards
+      if (userType === 'N') {
+        console.log('✅ AuthStack: User type is N (new_user) - NOT storing @selected_join_type permanently');
+        console.log('🔍 AuthStack: Using dashboardType for routing only:', dashboardType);
+        console.log('🔍 AuthStack: Allowed dashboards from API:', allowedDashboards);
+        
+        // Clear old AsyncStorage flags for new users
+        await AsyncStorage.removeItem('@b2b_status');
+        await AsyncStorage.removeItem('@b2c_signup_needed');
+        await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
+        await AsyncStorage.removeItem('@selected_join_type'); // Clear it - don't store permanently
+        
+        // Store allowed dashboards (should be all three for new users)
+        if (allowedDashboards && allowedDashboards.length > 0) {
+          await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(allowedDashboards));
+          console.log('✅ AuthStack: Stored allowed dashboards for new user:', allowedDashboards);
+        } else {
+          // Fallback: if API didn't return allowedDashboards, set all three for new users
+          const allDashboards = ['b2b', 'b2c', 'delivery'];
+          await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(allDashboards));
+          console.log('⚠️ AuthStack: API didn\'t return allowedDashboards, using fallback:', allDashboards);
+        }
+        
+        // DO NOT store @selected_join_type - it will be set temporarily by setMode for routing
+        // but UserModeContext.setMode already handles not storing it for new users
+        console.log('✅ AuthStack: NOT storing @selected_join_type for new user - they can change join type anytime');
+        
+        // Use dashboardType directly for routing (from joinType selection or API)
+        // setMode will set it in memory only, not in AsyncStorage for new users
+        await setMode(dashboardType as UserMode);
+        onAuthComplete();
+        return;
+      }
+      
+      // For registered users (not 'N'), store data normally
+      // Store allowed dashboards in AsyncStorage for immediate access
+      if (allowedDashboards && allowedDashboards.length > 0) {
+        await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(allowedDashboards));
+      }
       
       let finalDashboardType = dashboardType;
       
@@ -126,29 +163,25 @@ export const AuthStack: React.FC<AuthStackProps> = ({
       
       // For non-V2 or other user types, use fallback logic
       if (!isV2 || (userType !== 'D' && userType !== 'R' && userType !== 'S' && userType !== 'SR')) {
-        // For user types that don't have explicit routing (like 'N'), use flags as fallback
+        // For user_type 'N' (new user), use dashboardType from API/joinType selection
+        // DO NOT store @selected_join_type permanently - user can change join type anytime
         if (userType === 'N' || !userType) {
-          const b2bStatus = await AsyncStorage.getItem('@b2b_status');
-          const b2cSignupNeeded = await AsyncStorage.getItem('@b2c_signup_needed');
-          
-          if (b2bStatus === 'new_user' && finalDashboardType !== 'b2b') {
-            console.log(`⚠️  AuthStack: b2b_status is 'new_user' but finalDashboardType is ${finalDashboardType}`);
-            console.log(`   Overriding to 'b2b' to ensure correct routing`);
-            finalDashboardType = 'b2b';
-          } else if (b2cSignupNeeded === 'true' && finalDashboardType !== 'b2c') {
-            console.log(`⚠️  AuthStack: b2c_signup_needed is 'true' but finalDashboardType is ${finalDashboardType}`);
-            console.log(`   Overriding to 'b2c' to ensure correct routing`);
-            finalDashboardType = 'b2c';
-          }
+          // For new users, use the dashboardType passed from LoginScreen (which comes from joinType)
+          // Don't check @selected_join_type since we're not storing it for new users
+          console.log(`🔍 AuthStack: User type is N, using dashboardType from API/joinType:`, dashboardType);
+          finalDashboardType = dashboardType;
+          console.log(`✅ AuthStack: User type is N, using dashboardType: ${finalDashboardType} to route to signup screen`);
+          // DO NOT store @selected_join_type - it's only used temporarily for routing
         }
         
         // Validate dashboard access from login API response (only for non-explicit user types)
         // If user doesn't have access to the requested dashboard, use the first allowed dashboard
-        if (allowedDashboards && allowedDashboards.length > 0 && (userType === 'N' || !userType)) {
-          // Check if requested dashboard is in allowed list
+        // BUT: For user_type 'N', don't override based on allowedDashboards - let them go to signup
+        if (allowedDashboards && allowedDashboards.length > 0 && userType !== 'N') {
+        // Check if requested dashboard is in allowed list
           if (!allowedDashboards.includes(finalDashboardType)) {
-            // Use first allowed dashboard instead
-            finalDashboardType = allowedDashboards[0];
+          // Use first allowed dashboard instead
+          finalDashboardType = allowedDashboards[0];
             console.log(`⚠️ Dashboard ${finalDashboardType} not allowed. Using ${allowedDashboards[0]} instead.`);
           }
         }

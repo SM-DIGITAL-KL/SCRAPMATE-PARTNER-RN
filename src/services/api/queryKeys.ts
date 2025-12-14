@@ -35,6 +35,16 @@ export const queryKeys = {
     detail: (id: string | number) => [...queryKeys.orders.details(), id] as const,
     byUser: (userId: string | number) => [...queryKeys.orders.all, 'user', userId] as const,
     byShop: (shopId: string | number) => [...queryKeys.orders.all, 'shop', shopId] as const,
+    activePickup: (userId: string | number | undefined, userType: 'R' | 'S' | 'SR' | 'D') =>
+      [...queryKeys.orders.all, 'activePickup', userId, userType] as const,
+    availablePickupRequests: (
+      userId: string | number | undefined,
+      userType: 'R' | 'S' | 'SR' | 'D',
+      latitude?: number,
+      longitude?: number,
+      radius?: number
+    ) =>
+      [...queryKeys.orders.all, 'availablePickupRequests', userId, userType, latitude, longitude, radius] as const,
   },
 
   // Product queries
@@ -57,6 +67,31 @@ export const queryKeys = {
       filters ? [...queryKeys.categories.lists(), filters] : queryKeys.categories.lists(),
     details: () => [...queryKeys.categories.all, 'detail'] as const,
     detail: (id: string | number) => [...queryKeys.categories.details(), id] as const,
+    byUserType: (userType?: 'b2b' | 'b2c' | 'all') => 
+      [...queryKeys.categories.all, 'userType', userType || 'all'] as const,
+  },
+  
+  // Subcategory queries
+  subcategories: {
+    all: ['subcategories'] as const,
+    lists: () => [...queryKeys.subcategories.all, 'list'] as const,
+    list: (filters?: Record<string, any>) => 
+      filters ? [...queryKeys.subcategories.lists(), filters] : queryKeys.subcategories.lists(),
+    byCategory: (categoryId: string | number, userType?: 'b2b' | 'b2c' | 'all') => 
+      [...queryKeys.subcategories.all, 'category', categoryId, 'userType', userType || 'all'] as const,
+  },
+  
+  // User categories and subcategories
+  userCategories: {
+    all: ['userCategories'] as const,
+    byUser: (userId: string | number) => 
+      [...queryKeys.userCategories.all, 'user', userId] as const,
+  },
+  
+  userSubcategories: {
+    all: ['userSubcategories'] as const,
+    byUser: (userId: string | number) => 
+      [...queryKeys.userSubcategories.all, 'user', userId] as const,
   },
 
   // Dashboard queries
@@ -64,8 +99,26 @@ export const queryKeys = {
     all: ['dashboard'] as const,
     stats: () => [...queryKeys.dashboard.all, 'stats'] as const,
     counts: () => [...queryKeys.dashboard.all, 'counts'] as const,
-    byUser: (userId: string | number) => 
+    byUser: (userId: string | number) =>
       [...queryKeys.dashboard.all, 'user', userId] as const,
+  },
+
+  // Recycling statistics queries
+  recycling: {
+    all: ['recycling'] as const,
+    stats: (userId: string | number | undefined, type: 'customer' | 'shop' | 'delivery' = 'customer') =>
+      [...queryKeys.recycling.all, 'stats', userId, type] as const,
+  },
+
+  // Earnings queries
+  earnings: {
+    all: ['earnings'] as const,
+    monthlyBreakdown: (
+      userId: string | number | undefined,
+      type: 'customer' | 'shop' | 'delivery' = 'customer',
+      months: number = 6
+    ) =>
+      [...queryKeys.earnings.all, 'monthlyBreakdown', userId, type, months] as const,
   },
 
   // Notification queries

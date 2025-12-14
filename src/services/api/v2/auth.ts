@@ -40,16 +40,48 @@ export const sendOtp = async (phoneNumber: string): Promise<LoginResponse> => {
       body: JSON.stringify({ phoneNumber }),
     });
 
-    const data = await response.json();
-
+    // Check if response is OK before parsing
     if (!response.ok) {
+      // Try to parse error response as JSON
+      let errorMessage = `Failed to send OTP (Status: ${response.status})`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (e) {
+        // If not JSON, try to get text
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        } catch (e2) {
+          // If that also fails, use default message
+        }
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Parse successful response
+    let data: LoginResponse;
+    try {
+      data = await response.json();
+    } catch (e) {
+      throw new Error('Invalid response format from server');
+    }
+
+    // Check for error status in response (even if HTTP status is 200)
+    if (data.status === 'error') {
       throw new Error(data.message || 'Failed to send OTP');
     }
 
     return data;
   } catch (error: any) {
     console.error('Send OTP error:', error);
-    throw new Error(error.message || 'Network error occurred');
+    // Preserve the original error message if it exists
+    if (error.message) {
+      throw error;
+    }
+    throw new Error('Network error occurred. Please check your connection and try again.');
   }
 };
 

@@ -12,7 +12,8 @@
     "completed": "ସମାପ୍ତ",
     "pending": "ବିଚାରାଧୀନ",
     "cancelled": "ବାତିଲ୍",
-    "scheduled": "ନିର୍ଦ୍ଧାରିତ"
+    "scheduled": "ନିର୍ଦ୍ଧାରିତ",
+    "deleting": "ମିଟାଇବାରେ..."
   },
   "selectLanguage": {
     "title": "ଭାଷା ବାଛନ୍ତୁ",
@@ -34,7 +35,12 @@
     "categoriesOperating": "କାର୍ଯ୍ୟକାରୀ ବର୍ଗ",
     "add": "ଯୋଡ଼ନ୍ତୁ",
     "acceptOrder": "ଅର୍ଡର୍ ଗ୍ରହଣ କରନ୍ତୁ",
-    "viewDetails": "ବିବରଣୀ ଦେଖନ୍ତୁ"
+    "viewDetails": "ବିବରଣୀ ଦେଖନ୍ତୁ",
+    "ordersCompleted": "ଅର୍ଡର୍",
+    "trees": "ଗଛ",
+    "noEarningsData": "ଆୟ ଡାଟା ଉପଲବ୍ଧ ନାହିଁ",
+    "pickupLocation": "ପିକଅପ୍ ସ୍ଥାନ",
+    "viewOnMap": "ମ୍ୟାପ୍‌ରେ ଦେଖନ୍ତୁ"
   },
   "deliveryTracking": {
     "title": "ଅର୍ଡର୍ ଟ୍ରାକିଂ",
@@ -62,6 +68,7 @@
     "title": "ପ୍ରୋଫାଇଲ୍ ସେଟିଂସ୍",
     "freePlan": "ମାଗଣା ଯୋଜନା",
     "saved": "ସଂରକ୍ଷିତ",
+    "upgradeToPremium": "ପ୍ରିମିୟମକୁ ଅପଗ୍ରେଡ୍ କରନ୍ତୁ",
     "yourProfile": "ଆପଣଙ୍କର ପ୍ରୋଫାଇଲ୍",
     "completed": "32% ସମାପ୍ତ",
     "myOrders": "ମୋର ଅର୍ଡର୍",
@@ -81,7 +88,10 @@
     "pending": "ବକେୟା",
     "rejected": "ପ୍ରତ୍ୟାଖ୍ୟାନ କରାଯାଇଛି",
     "logoutMessage": "ଆପଣ ନିଶ୍ଚିତ କି ଆପଣ ଲଗ୍ ଆଉଟ୍ କରିବାକୁ ଚାହୁଁଛନ୍ତି?",
-    "logoutTitle": "ଲଗ୍ ଆଉଟ୍ ନିଶ୍ଚିତ କରନ୍ତୁ"
+    "logoutTitle": "ଲଗ୍ ଆଉଟ୍ ନିଶ୍ଚିତ କରନ୍ତୁ",
+    "deleteAccount": "ଆକାଉଣ୍ଟ୍ ଡିଲିଟ୍ କରନ୍ତୁ",
+    "deleteAccountMessage": "ଆପଣ ନିଶ୍ଚିତ ଯେ ଆପଣ ଆପଣଙ୍କର ଆକାଉଣ୍ଟ୍ ଡିଲିଟ୍ କରିବାକୁ ଚାହୁଁଛନ୍ତି? ଏହି କାର୍ଯ୍ୟକୁ ପୂର୍ବବତ୍ କରାଯାଇପାରିବ ନାହିଁ ଏବଂ ଆପଣଙ୍କର ସମସ୍ତ ଡାଟା ସ୍ଥାୟୀ ଭାବରେ ଡିଲିଟ୍ ହୋଇଯିବ।",
+    "deleteAccountTitle": "ଆକାଉଣ୍ଟ୍ ଡିଲିଟ୍ କରନ୍ତୁ"
   },
   "addCategory": {
     "title": "ବର୍ଗ ଯୋଡ଼ନ୍ତୁ",
@@ -147,8 +157,13 @@
       "months": "ମାସ",
       "categoriesOperating": "କାର୍ଯ୍ୟରତ ବର୍ଗ",
       "online": "ଅନଲାଇନ୍",
-      "offline": "ଅଫଲାଇନ୍"
-    },
+      "offline": "ଅଫଲାଇନ୍",
+    "ordersCompleted": "ଅର୍ଡର୍",
+    "trees": "ଗଛ",
+    "noEarningsData": "ଆୟ ଡାଟା ଉପଲବ୍ଧ ନାହିଁ",
+    "pickupLocation": "ପିକଅପ୍ ସ୍ଥାନ",
+    "viewOnMap": "ମ୍ୟାପ୍‌ରେ ଦେଖନ୍ତୁ"
+  },
     "earnings": {
       "activeGigs": "ସକ୍ରିୟ ଗିଗ୍ସ",
       "avgEarningsPerGig": "ହାରାହାରି ରୋଜଗାର/ଗିଗ୍",

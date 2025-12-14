@@ -12,7 +12,14 @@
     "completed": "Completed",
     "pending": "Pending",
     "cancelled": "Cancelled",
-    "scheduled": "Scheduled"
+    "scheduled": "Scheduled",
+    "deleting": "Deleting...",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "ok": "OK",
+    "error": "Error",
+    "warning": "Warning",
+    "success": "Success"
   },
   "joinAs": {
     "continue": "Continue",
@@ -51,7 +58,19 @@
     "categoriesOperating": "Categories operating",
     "add": "Add",
     "acceptOrder": "Accept Order",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "subcategories": "Subcategories",
+    "noSubcategories": "No subcategories available",
+    "price": "Price",
+    "defaultPrice": "Default",
+    "noImage": "No Image",
+    "noCategoriesOperating": "No categories operating",
+    "tapAddToSelect": "Tap the + button to add categories",
+    "ordersCompleted": "orders",
+    "trees": "trees",
+    "noEarningsData": "No earnings data available",
+    "pickupLocation": "Pickup Location",
+    "viewOnMap": "View on Map"
   },
   "deliveryTracking": {
     "title": "Order Tracking",
@@ -79,6 +98,7 @@
     "title": "Profile Settings",
     "freePlan": "Free Plan",
     "saved": "saved",
+    "upgradeToPremium": "Upgrade to Premium",
     "yourProfile": "Your profile",
     "completed": "32% completed",
     "myOrders": "My Orders",
@@ -98,14 +118,39 @@
     "pending": "Pending",
     "rejected": "Rejected",
     "logoutTitle": "Confirm Logout",
-    "logoutMessage": "Are you sure you want to logout?"
+    "logoutMessage": "Are you sure you want to logout?",
+    "deleteAccount": "Delete Account",
+    "deleteAccountTitle": "Delete Account",
+    "deleteAccountMessage": "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted."
   },
   "addCategory": {
     "title": "Add Category",
     "selectCategories": "Select Scrap Categories",
     "selected": "selected",
     "next": "Next",
-    "nextButton": "Next ({{count}} selected)"
+    "nextButton": "Next ({{count}} selected)",
+    "selectSubcategories": "Select Subcategories",
+    "userNotFound": "User not found",
+    "selectAtLeastOneSubcategory": "Please select at least one subcategory",
+    "saveSuccess": "Subcategories saved successfully",
+    "saveError": "Failed to save subcategories. Please try again.",
+    "noCategories": "No categories available",
+    "noSubcategories": "No subcategories available",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "defaultPrice": "Default",
+    "setPrice": "Set Price",
+    "saveSubcategories": "Save {{count}} Subcategor{{count, plural, one {y} other {ies}}}",
+    "saveSubcategoriesOne": "Save 1 Subcategory",
+    "saveSubcategoriesMany": "Save {{count}} Subcategories",
+    "editPrice": "Edit Price",
+    "price": "Price (₹)",
+    "unit": "Unit",
+    "removeCategory": "Remove Category",
+    "removeCategoryConfirm": "Are you sure you want to remove this category? All subcategories will be removed.",
+    "remove": "Remove",
+    "removeSuccess": "Category removed successfully",
+    "removeError": "Failed to remove category. Please try again."
   },
   "myOrders": {
     "title": "My Orders",
@@ -164,7 +209,12 @@
       "months": "months",
       "categoriesOperating": "Categories Operating",
       "online": "Online",
-      "offline": "Offline"
+      "offline": "Offline",
+      "ordersCompleted": "orders",
+      "trees": "trees",
+      "noEarningsData": "No earnings data available",
+      "pickupLocation": "Pickup Location",
+      "viewOnMap": "View on Map"
     },
     "vehicle": {
       "title": "Vehicle Information",
