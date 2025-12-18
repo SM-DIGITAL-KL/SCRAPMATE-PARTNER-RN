@@ -31,13 +31,16 @@ export interface VerifyOtpResponse {
 /**
  * Send OTP to phone number
  */
-export const sendOtp = async (phoneNumber: string): Promise<LoginResponse> => {
+export const sendOtp = async (phoneNumber: string, appType?: 'customer_app' | 'vendor_app'): Promise<LoginResponse> => {
   try {
     const url = buildApiUrl(API_ROUTES.v2.auth.login);
     const response = await fetchWithLogging(url, {
       method: 'POST',
       headers: getApiHeaders(),
-      body: JSON.stringify({ phoneNumber }),
+      body: JSON.stringify({ 
+        phoneNumber,
+        appType: appType || 'vendor_app' // Default to vendor_app for scrapmatevendor app
+      }),
     });
 
     // Check if response is OK before parsing
@@ -91,7 +94,8 @@ export const sendOtp = async (phoneNumber: string): Promise<LoginResponse> => {
 export const verifyOtp = async (
   phoneNumber: string,
   otp: string,
-  joinType?: 'b2b' | 'b2c' | 'delivery'
+  joinType?: 'b2b' | 'b2c' | 'delivery',
+  appType?: 'customer_app' | 'vendor_app'
 ): Promise<VerifyOtpResponse> => {
   try {
     const url = buildApiUrl(API_ROUTES.v2.auth.verifyOtp);
@@ -102,6 +106,7 @@ export const verifyOtp = async (
         phoneNumber,
         otp,
         joinType,
+        appType: appType || 'vendor_app', // Default to vendor_app for scrapmatevendor app
       }),
     });
 
@@ -127,6 +132,11 @@ export const verifyOtp = async (
 
     return data;
   } catch (error: any) {
+    throw new Error(error.message || 'Network error occurred');
+  }
+};
+
+
     throw new Error(error.message || 'Network error occurred');
   }
 };
