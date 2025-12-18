@@ -137,3 +137,5 @@ class NativeGestureHandlerViewManager(reactApplicationContext: ReactApplicationC
 
 
 
+
+

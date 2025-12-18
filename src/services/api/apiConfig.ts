@@ -15,8 +15,8 @@
 // For ngrok tunnel (uncomment to use)
   //  export const API_BASE_URL = 'https://5be164ada1bb.ngrok-free.app/api';
 // For AWS Lambda (uncomment to use)
-  export const API_BASE_URL = 'https://tvwi76fg9d.execute-api.ap-south-1.amazonaws.com/api';
-
+  // export const API_BASE_URL = 'https://tvwi76fg9d.execute-api.ap-south-1.amazonaws.com/api';
+  export const API_BASE_URL = 'https://uodttljjzj3nh3e4cjqardxip40btqef.lambda-url.ap-south-1.on.aws/api'
 /**
  * API Key for authentication
  * Update this value or set via environment variable
