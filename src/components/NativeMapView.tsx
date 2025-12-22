@@ -242,25 +242,32 @@ export const NativeMapView: React.FC<{
           setCurrentLocation(location);
           onLocationUpdate?.(location);
           
+          // Update map location immediately when fetched
           if (Platform.OS === 'android' && mapRef.current && isMountedRef.current) {
             try {
               const nodeHandle = findNodeHandle(mapRef.current);
               if (nodeHandle) {
                 try {
                   const commandId = 1; // updateLocation command
+                  console.log('📍 Dispatching updateLocation command:', location.latitude, location.longitude);
                   UIManager.dispatchViewManagerCommand(
                     nodeHandle,
                     commandId,
                     [location.latitude, location.longitude]
                   );
+                  console.log('✅ updateLocation command dispatched successfully');
                 } catch (error) {
-                  console.log('Error updating map location:', error);
+                  console.error('❌ Error updating map location:', error);
                 }
+              } else {
+                console.warn('⚠️ Could not find node handle for map');
               }
             } catch (error) {
-              console.log('Error finding map node handle:', error);
+              console.error('❌ Error finding map node handle:', error);
             }
           }
+        } else {
+          console.warn('⚠️ No location received from native module');
         }
       } catch (error) {
         console.log('Error fetching location:', error);
@@ -309,27 +316,31 @@ export const NativeMapView: React.FC<{
       lastLocationRef.current = { latitude: location.latitude, longitude: location.longitude };
       
       // Update map for Android - double check mapRef is still valid
-      if (Platform.OS === 'android' && mapRef.current) {
+      if (Platform.OS === 'android' && mapRef.current && isMountedRef.current) {
         try {
           const nodeHandle = findNodeHandle(mapRef.current);
-          if (nodeHandle && isMountedRef.current) {
+          if (nodeHandle) {
             try {
+              console.log('📍 handleLocationUpdate: Dispatching updateLocation command:', location.latitude, location.longitude);
               UIManager.dispatchViewManagerCommand(
                 nodeHandle,
                 1, // updateLocation command
                 [location.latitude, location.longitude]
               );
+              console.log('✅ handleLocationUpdate: Command dispatched successfully');
             } catch (error: any) {
               // Map might be unmounting or WebView crashed, ignore error silently
               if (error?.message && !error.message.includes('ViewManager')) {
-                console.warn('Error updating map location:', error.message);
+                console.error('❌ Error updating map location:', error.message);
               }
             }
+          } else {
+            console.warn('⚠️ handleLocationUpdate: Could not find node handle');
           }
         } catch (error: any) {
           // Map ref is invalid, component likely unmounted
           if (error?.message && !error.message.includes('ViewManager')) {
-            console.warn('Map ref invalid:', error.message);
+            console.error('❌ Map ref invalid:', error.message);
           }
         }
       }
@@ -341,10 +352,12 @@ export const NativeMapView: React.FC<{
       return;
     }
     
+    console.log('🗺️ Map ready - handleMapReady called');
     onMapReady?.();
     
     // Fetch location once when map is ready
     if (hasPermission && Platform.OS === 'android' && isMountedRef.current && mapRef.current) {
+      console.log('📍 Map ready with permission - fetching location...');
       const timeoutId = setTimeout(() => {
         if (isMountedRef.current && mapRef.current) {
           fetchLocationOnce();
@@ -355,12 +368,21 @@ export const NativeMapView: React.FC<{
       }
     } else if (currentLocation && isMountedRef.current && mapRef.current) {
       // If we already have location, center on it
+      console.log('📍 Map ready with existing location - centering...');
       centerOnCurrentLocation();
+    } else {
+      console.log('⚠️ Map ready but no permission or location yet');
     }
   };
 
   const centerOnCurrentLocation = () => {
     if (!isMountedRef.current || !mapRef.current) {
+      console.warn('⚠️ centerOnCurrentLocation: Component not mounted or map ref invalid');
+      return;
+    }
+    
+    if (!currentLocation) {
+      console.warn('⚠️ centerOnCurrentLocation: No current location available');
       return;
     }
     
@@ -372,20 +394,24 @@ export const NativeMapView: React.FC<{
         } else if (Platform.OS === 'android' && currentLocation && isMountedRef.current) {
           // For Android, use command to update location
           try {
+            console.log('📍 centerOnCurrentLocation: Dispatching updateLocation command:', currentLocation.latitude, currentLocation.longitude);
             UIManager.dispatchViewManagerCommand(
               nodeHandle,
               1, // updateLocation command
               [currentLocation.latitude, currentLocation.longitude]
             );
+            console.log('✅ centerOnCurrentLocation: Command dispatched successfully');
           } catch (error) {
             // Component may be unmounting, ignore error
-            console.log('Error centering map (may be unmounting):', error);
+            console.error('❌ Error centering map:', error);
           }
         }
+      } else {
+        console.warn('⚠️ centerOnCurrentLocation: Could not find node handle');
       }
     } catch (error) {
       // Component unmounted, ignore error
-      console.log('Error finding node handle (may be unmounting):', error);
+      console.error('❌ Error finding node handle:', error);
     }
   };
 

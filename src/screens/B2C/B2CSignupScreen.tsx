@@ -32,6 +32,7 @@ import { useUpdateProfile, useUploadAadharCard, useUploadDrivingLicense, useProf
 import { useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
+import { useLocationService, getAddressFromCoordinates } from '../../components/LocationView';
 
 const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
@@ -59,6 +60,18 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingAadhar, setUploadingAadhar] = useState(false);
   const [uploadingDrivingLicense, setUploadingDrivingLicense] = useState(false);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [pincode, setPincode] = useState<string>('');
+  const [placeId, setPlaceId] = useState<string>('');
+  const [state, setState] = useState<string>('');
+  const [language, setLanguage] = useState<string>('');
+  const [place, setPlace] = useState<string>('');
+  const [location, setLocation] = useState<string>('');
+
+  // Location service hook
+  const { getCurrentLocationWithAddress } = useLocationService();
 
   // Load user data
   useEffect(() => {
@@ -88,6 +101,20 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           if (profileData.shop.contact && !contactNumber) {
             setContactNumber(profileData.shop.contact);
           }
+          // Populate location fields from shop data
+          if (profileData.shop.lat_log) {
+            const [lat, lng] = profileData.shop.lat_log.split(',').map(Number);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              setLatitude(lat);
+              setLongitude(lng);
+            }
+          }
+          if (profileData.shop.pincode) setPincode(profileData.shop.pincode);
+          if (profileData.shop.place_id) setPlaceId(profileData.shop.place_id);
+          if (profileData.shop.state) setState(profileData.shop.state);
+          if (profileData.shop.language) setLanguage(profileData.shop.language);
+          if (profileData.shop.place) setPlace(profileData.shop.place);
+          if (profileData.shop.location) setLocation(profileData.shop.location);
         }
         
         // Auto-fill from user data
@@ -338,6 +365,68 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
     }
   };
 
+  // Function to get current location and fill address
+  const handleGetCurrentLocation = async () => {
+    try {
+      setLoadingLocation(true);
+      const locationData = await getCurrentLocationWithAddress();
+      
+      if (locationData) {
+        // Set latitude and longitude
+        if (locationData.latitude && locationData.longitude) {
+          setLatitude(locationData.latitude);
+          setLongitude(locationData.longitude);
+        }
+        
+        // Set address and location fields if available
+        if (locationData.address) {
+        const addressText = locationData.address.address || locationData.address.formattedAddress || '';
+        if (addressText) {
+          setAddress(addressText);
+            
+            // Set location fields from address data
+            if (locationData.address.postcode) {
+              setPincode(locationData.address.postcode);
+            }
+            if (locationData.address.state) {
+              setState(locationData.address.state);
+            }
+            if (locationData.address.city) {
+              setPlace(locationData.address.city);
+            }
+            // Build location string from available components
+            const locationParts = [];
+            if (locationData.address.city) locationParts.push(locationData.address.city);
+            if (locationData.address.state) locationParts.push(locationData.address.state);
+            if (locationData.address.country) locationParts.push(locationData.address.country);
+            if (locationParts.length > 0) {
+              setLocation(locationParts.join(', '));
+            }
+            // Set language based on state (2 for Kerala/Malayalam, 1 for others)
+            if (locationData.address.state === 'Kerala') {
+              setLanguage('2');
+            } else {
+              setLanguage('1');
+            }
+            
+          Alert.alert('Success', 'Address filled from your current location');
+        } else {
+          Alert.alert('Info', 'Could not determine address from location');
+          }
+        } else {
+          Alert.alert('Error', 'Could not get your location. Please enter address manually.');
+        }
+      } else {
+        Alert.alert('Error', 'Could not get your location. Please enter address manually.');
+      }
+    } catch (error: any) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', error.message || 'Failed to get location. Please enter address manually.');
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async () => {
     // Validate required fields
@@ -409,6 +498,19 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
         },
       };
       
+      // Include location fields if available
+      if (latitude !== null && longitude !== null) {
+        updateData.shop.latitude = latitude;
+        updateData.shop.longitude = longitude;
+        updateData.shop.lat_log = `${latitude},${longitude}`;
+      }
+      if (pincode) updateData.shop.pincode = pincode.trim();
+      if (placeId) updateData.shop.place_id = placeId.trim();
+      if (state) updateData.shop.state = state.trim();
+      if (language) updateData.shop.language = language.trim();
+      if (place) updateData.shop.place = place.trim();
+      if (location) updateData.shop.location = location.trim();
+      
       // Include vehicle details and driving license if vehicle pickup is selected
       if (vehiclePickup) {
         if (drivingLicense) {
@@ -418,10 +520,22 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
         updateData.shop.vehicle_model = vehicleModel.trim();
         updateData.shop.vehicle_registration_number = registrationNumber.trim();
       }
+      
+      console.log('📤 B2C Signup - Shop updateData:', JSON.stringify(updateData.shop, null, 2));
 
       updateProfileMutation.mutate(updateData, {
         onSuccess: async (updatedProfile) => {
           console.log('✅ Profile updated successfully');
+
+          // Save FCM token after successful B2C registration
+          try {
+            const { fcmService } = await import('../../services/fcm/fcmService');
+            await fcmService.getFCMToken();
+            console.log('✅ FCM token saved after B2C registration');
+          } catch (fcmError) {
+            console.error('⚠️ Failed to save FCM token after B2C registration:', fcmError);
+            // Don't block the flow if FCM token saving fails
+          }
 
           // Invalidate profile cache to get updated user_type
           await queryClient.invalidateQueries({ queryKey: profileQueryKeys.all });
@@ -525,16 +639,30 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
               autoCorrect={false}
               onFocus={hideUI}
             />
-            <TextInput
-              style={[styles.input, styles.textArea, { color: theme.textPrimary }]}
-              placeholder="Enter your address"
-              placeholderTextColor={theme.textSecondary}
-              value={address}
-              onChangeText={setAddress}
-              multiline
-              numberOfLines={3}
-              onFocus={hideUI}
-            />
+            <View style={styles.addressInputContainer}>
+              <TextInput
+                style={[styles.input, styles.textArea, { color: theme.textPrimary, flex: 1 }]}
+                placeholder="Enter your address"
+                placeholderTextColor={theme.textSecondary}
+                value={address}
+                onChangeText={setAddress}
+                multiline
+                numberOfLines={3}
+                onFocus={hideUI}
+              />
+              <TouchableOpacity
+                style={[styles.locationButton, { backgroundColor: theme.primary }]}
+                onPress={handleGetCurrentLocation}
+                disabled={loadingLocation}
+                activeOpacity={0.7}
+              >
+                {loadingLocation ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={[styles.input, { color: theme.textPrimary }]}
               placeholder="Enter your contact number"
@@ -772,6 +900,20 @@ const getStyles = (theme: any, themeName?: string, isDark?: boolean) =>
       borderWidth: 1,
       borderColor: theme.border,
       marginBottom: '14@vs', // Keep margin for personal info section
+    },
+    addressInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: '10@s',
+      marginBottom: '14@vs',
+    },
+    locationButton: {
+      width: '44@s',
+      height: '44@s',
+      borderRadius: '10@ms',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: '2@vs',
     },
     // Input style for vehicle details (matches VehicleInformationScreen)
     inputVehicleDetails: {

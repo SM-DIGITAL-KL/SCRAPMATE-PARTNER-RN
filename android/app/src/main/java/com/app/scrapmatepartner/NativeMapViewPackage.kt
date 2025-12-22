@@ -7,7 +7,10 @@ import com.facebook.react.uimanager.ViewManager
 
 class NativeMapViewPackage : ReactPackage {
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return listOf(NativeMapViewModule(reactContext))
+        return listOf(
+            NativeMapViewModule(reactContext),
+            LocationModule(reactContext)
+        )
     }
     
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {

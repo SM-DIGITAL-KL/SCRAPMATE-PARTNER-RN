@@ -7,10 +7,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../components/ThemeProvider';
 import { TabBarProvider } from '../context/TabBarContext';
 import { UserModeProvider } from '../context/UserModeContext';
+import { LocationProvider } from '../context/LocationContext';
 import { AppNavigator } from '../navigation/AppNavigator';
 import { getStoredLanguage } from '../i18n/config';
 import { queryClient } from '../services/api/queryClient';
 import { KeyboardProvider } from '../components/KeyboardProvider';
+import { fcmService } from '../services/fcm/fcmService';
 import '../i18n/config';
 
 // Optional: Use PersistQueryClientProvider if persistence is needed
@@ -95,10 +97,25 @@ const AppContent = () => {
 
 const App = () => {
   useEffect(() => {
-    // Initialize language from storage
-    getStoredLanguage().then(language => {
-      // Language is already set in i18n config
-    });
+    const initializeOfflineServices = async () => {
+      try {
+        // Initialize language from storage
+        await getStoredLanguage();
+        
+        // Initialize FCM service
+        await fcmService.initialize();
+      } catch (error) {
+        console.error('Error initializing offline services:', error);
+        // Continue even if initialization fails
+      }
+    };
+
+    initializeOfflineServices();
+
+    // Cleanup FCM service on unmount
+    return () => {
+      fcmService.cleanup();
+    };
   }, []);
 
   // KeyboardProvider is always available from our custom module
@@ -133,7 +150,9 @@ const App = () => {
             <ThemeProvider>
               <UserModeProvider>
                 <TabBarProvider>
-                  <AppContent />
+                  <LocationProvider>
+                    <AppContent />
+                  </LocationProvider>
                 </TabBarProvider>
               </UserModeProvider>
             </ThemeProvider>

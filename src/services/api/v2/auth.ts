@@ -136,8 +136,3 @@ export const verifyOtp = async (
   }
 };
 
-
-    throw new Error(error.message || 'Network error occurred');
-  }
-};
-

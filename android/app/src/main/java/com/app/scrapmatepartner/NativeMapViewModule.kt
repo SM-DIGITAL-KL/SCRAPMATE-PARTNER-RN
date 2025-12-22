@@ -660,20 +660,41 @@ class NativeMapViewManager(private val reactApplicationContext: ReactApplication
                     }
                     
                     window.updateLocation = function(lat, lng) {
-                        if (!map || !window.map) return;
+                        if (!map || !window.map) {
+                            console.error('Map not initialized');
+                            return;
+                        }
                         try {
-                            // Only update marker position, don't change zoom or center
+                            // Create or update marker first
                             if (currentMarker) {
+                                // Marker exists, just update position
                                 currentMarker.setLatLng([lat, lng]);
                             } else {
-                                // Try truck icon, fallback to blue marker if it fails
+                                // Create new marker - try truck icon first, fallback to default blue marker
                                 try {
-                                    currentMarker = L.marker([lat, lng], { icon: truckIcon }).addTo(map).bindPopup('Current Location');
-                                } catch (e) {
-                                    currentMarker = L.marker([lat, lng], { icon: truckIconFallback }).addTo(map).bindPopup('Current Location');
+                                    currentMarker = L.marker([lat, lng], { icon: truckIcon }).addTo(map);
+                                    currentMarker.bindPopup('Current Location');
+                                    console.log('Marker created with truck icon');
+                                } catch (e1) {
+                                    try {
+                                        currentMarker = L.marker([lat, lng], { icon: truckIconFallback }).addTo(map);
+                                        currentMarker.bindPopup('Current Location');
+                                        console.log('Marker created with fallback icon');
+                                    } catch (e2) {
+                                        // Last resort: use default Leaflet marker
+                                        currentMarker = L.marker([lat, lng]).addTo(map);
+                                        currentMarker.bindPopup('Current Location');
+                                        console.log('Marker created with default icon');
+                                    }
                                 }
                             }
+                            
+                            // Center and zoom the map to show the location with a good zoom level
+                            // Do this after marker is created to ensure marker is visible
+                            map.setView([lat, lng], 15, { animate: true, duration: 0.5 });
                             map.invalidateSize(true);
+                            
+                            console.log('Location updated: ' + lat + ', ' + lng);
                         } catch (e) {
                             console.error('Error updating location:', e);
                         }

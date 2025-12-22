@@ -71,6 +71,9 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
   const categories = categoriesData?.data || [];
   const subcategories = subcategoriesData?.data || [];
   
+  // Check if user is a delivery person (no permission to edit prices)
+  const isDeliveryUser = userData?.user_type === 'D';
+  
   // Get user's category IDs to mark already added categories
   const userCategoryIds = useMemo(() => {
     if (!userCategoriesData?.data?.category_ids) return new Set<number>();
@@ -95,9 +98,10 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
         if (subcat.main_category_id === selectedCategoryId) {
           const subcatId = subcat.subcategory_id;
           existingIds.add(subcatId);
+          // For delivery users, always use empty string for customPrice (no custom prices allowed)
           existingMap.set(subcatId, {
             subcategoryId: subcatId,
-            customPrice: subcat.custom_price || subcat.display_price || '',
+            customPrice: isDeliveryUser ? '' : (subcat.custom_price || subcat.display_price || ''),
             priceUnit: subcat.display_price_unit || subcat.price_unit || 'kg',
             defaultPrice: subcat.default_price,
             name: subcat.name
@@ -108,7 +112,7 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
       setPreviousSelectedSubcategoryIds(existingIds);
       setHadExistingSubcategories(existingMap.size > 0);
     }
-  }, [selectedCategoryId, step, userSubcategoriesData]);
+  }, [selectedCategoryId, step, userSubcategoriesData, isDeliveryUser]);
 
   const handleCategorySelect = (categoryId: number) => {
     if (Platform.OS === 'ios') {
@@ -133,9 +137,10 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
         newMap.delete(subcategoryId);
       } else {
         const subcat = subcategories.find(s => s.id === subcategoryId);
+        // For delivery users, always use default price (no custom price allowed)
         newMap.set(subcategoryId, {
           subcategoryId,
-          customPrice: subcat?.default_price || '',
+          customPrice: isDeliveryUser ? '' : (subcat?.default_price || ''),
           priceUnit: subcat?.price_unit || 'kg',
           defaultPrice: subcat?.default_price,
           name: subcat?.name
@@ -154,9 +159,10 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
 
     const newMap = new Map<number, UserSubcategory>();
     subcategories.forEach(subcat => {
+      // For delivery users, always use default price (no custom price allowed)
       newMap.set(subcat.id, {
         subcategoryId: subcat.id,
-        customPrice: subcat.default_price || '',
+        customPrice: isDeliveryUser ? '' : (subcat.default_price || ''),
         priceUnit: subcat.price_unit || 'kg',
         defaultPrice: subcat.default_price,
         name: subcat.name
@@ -252,16 +258,26 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
             priceUnit: subcat.display_price_unit || subcat.price_unit || 'kg'
           }));
         
+        // For delivery users, ensure no custom prices are saved (use empty string for customPrice)
+        const subcategoriesToSave = isDeliveryUser
+          ? selectedSubcategoriesArray.map(subcat => ({
+              subcategoryId: subcat.subcategoryId,
+              customPrice: '', // Delivery users cannot set custom prices
+              priceUnit: subcat.priceUnit
+            }))
+          : selectedSubcategoriesArray;
+        
         // Merge: subcategories from other categories + selected subcategories for current category
         const allSubcategoriesToSave = [
           ...subcategoriesFromOtherCategories,
-          ...selectedSubcategoriesArray
+          ...subcategoriesToSave
         ];
         
         console.log('💾 [Save Subcategories] Saving selected subcategories:', {
           fromOtherCategories: subcategoriesFromOtherCategories.length,
-          selectedForCurrentCategory: selectedSubcategoriesArray.length,
-          totalToSave: allSubcategoriesToSave.length
+          selectedForCurrentCategory: subcategoriesToSave.length,
+          totalToSave: allSubcategoriesToSave.length,
+          isDeliveryUser
         });
         
         await updateSubcategoriesMutation.mutateAsync(allSubcategoriesToSave);
@@ -639,7 +655,7 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
                           </AutoText>
                         </View>
                       </TouchableOpacity>
-                      {isSelected && (
+                      {isSelected && !isDeliveryUser && (
                         <TouchableOpacity
                           style={styles.priceEditButton}
                           onPress={() => openPriceEditor(subcategory.id)}
@@ -654,6 +670,13 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
                             {displayPrice ? `₹${displayPrice}/${displayUnit}` : t('addCategory.setPrice') || 'Set Price'}
                           </AutoText>
                         </TouchableOpacity>
+                      )}
+                      {isSelected && isDeliveryUser && (
+                        <View style={styles.priceDisplayContainer}>
+                          <AutoText style={styles.priceDisplayText}>
+                            ₹{subcategory.default_price || '0'}/{subcategory.price_unit || 'kg'}
+                          </AutoText>
+                        </View>
                       )}
                     </View>
                   );
@@ -943,6 +966,20 @@ const getStyles = (theme: any, isDark: boolean, themeName?: string) =>
       fontFamily: 'Poppins-Medium',
       fontSize: '13@s',
       color: theme.primary,
+    },
+    priceDisplayContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: '16@s',
+      paddingVertical: '12@vs',
+      borderTopWidth: 1,
+      borderTopColor: theme.border,
+      backgroundColor: theme.card,
+    },
+    priceDisplayText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '13@s',
+      color: theme.textSecondary,
     },
     bottomButtonContainer: {
       position: 'absolute',

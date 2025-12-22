@@ -381,6 +381,16 @@ const VehicleInformationScreen = ({ navigation }: any) => {
         onSuccess: async (updatedProfile) => {
           console.log('✅ Profile updated successfully');
 
+          // Save FCM token after successful Delivery registration
+          try {
+            const { fcmService } = await import('../../services/fcm/fcmService');
+            await fcmService.getFCMToken();
+            console.log('✅ FCM token saved after Delivery registration');
+          } catch (fcmError) {
+            console.error('⚠️ Failed to save FCM token after Delivery registration:', fcmError);
+            // Don't block the flow if FCM token saving fails
+          }
+
           // Invalidate profile cache to get updated data
           await queryClient.invalidateQueries({ queryKey: profileQueryKeys.all });
           await queryClient.invalidateQueries({ queryKey: profileQueryKeys.detail(userData.id) });

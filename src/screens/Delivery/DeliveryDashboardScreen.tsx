@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, StatusBar, Text, Vibration, Platform, Image, ActivityIndicator } from 'react-native';
+import { View, ScrollView, TouchableOpacity, StatusBar, Text, Vibration, Platform, Image, ActivityIndicator, Modal, Alert, DeviceEventEmitter } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../components/ThemeProvider';
 import { SectionCard } from '../../components/SectionCard';
@@ -18,16 +18,36 @@ import { useRecyclingStats } from '../../hooks/useRecycling';
 import { useMonthlyBreakdown } from '../../hooks/useEarnings';
 import { useActivePickup, useAvailablePickupRequests, useAcceptPickupRequest } from '../../hooks/useOrders';
 import { Switch } from 'react-native';
+import { Category } from '../../services/api/v2/categories';
+import { useCategories, useUserCategories, useUserSubcategories } from '../../hooks/useCategories';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../services/api/queryKeys';
 
 const DeliveryDashboardScreen = ({ navigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { setMode } = useUserMode();
+  const queryClient = useQueryClient();
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
   
   const [allowedDashboards, setAllowedDashboards] = useState<('b2b' | 'b2c' | 'delivery')[]>([]);
   const [userData, setUserData] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  
+  // React Query hooks for categories
+  const { data: userCategoriesData, isLoading: loadingCategories, refetch: refetchUserCategories } = useUserCategories(
+    userData?.id,
+    !!userData?.id
+  );
+  const { data: userSubcategoriesData, isLoading: loadingSubcategories, refetch: refetchUserSubcategories } = useUserSubcategories(
+    userData?.id,
+    !!userData?.id
+  );
+  
+  // Get all categories to match with user's category IDs
+  const { data: allCategoriesData, refetch: refetchAllCategories } = useCategories('delivery', true);
   
   // Load user data and fetch profile
   useFocusEffect(
@@ -39,6 +59,122 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
       loadUserData();
     }, [])
   );
+
+  // Refetch all category data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userData?.id) {
+        // Small delay to ensure navigation is complete
+        const timer = setTimeout(() => {
+          console.log('🔄 Delivery Dashboard focused - refetching category data...');
+          refetchUserCategories();
+          refetchUserSubcategories();
+          refetchAllCategories();
+        }, 200);
+        return () => clearTimeout(timer);
+      }
+    }, [userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories])
+  );
+
+  // Listen for navigation events to refetch when returning from AddCategoryScreen
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (userData?.id) {
+        console.log('🔄 Navigation focus - refetching category data...');
+        refetchUserCategories();
+        refetchUserSubcategories();
+        refetchAllCategories();
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories]);
+
+  // Process user categories
+  const userCategories = React.useMemo(() => {
+    if (!userCategoriesData?.data?.category_ids || !allCategoriesData?.data) {
+      return [];
+    }
+    const userCategoryIds = userCategoriesData.data.category_ids.map(id => Number(id));
+    return allCategoriesData.data.filter(cat => {
+      const catId = Number(cat.id);
+      return userCategoryIds.includes(catId);
+    });
+  }, [userCategoriesData, allCategoriesData]);
+
+  // Process category subcategories - only show user's selected subcategories for the selected category
+  const categorySubcategories = React.useMemo(() => {
+    if (!selectedCategory?.id || !userSubcategoriesData?.data?.subcategories) {
+      return [];
+    }
+    
+    const categoryId = Number(selectedCategory.id);
+    
+    const userSubcatsForCategory = userSubcategoriesData.data.subcategories.filter(
+      (us: any) => Number(us.main_category_id) === categoryId
+    );
+    
+    return userSubcatsForCategory.map((userSubcat: any) => ({
+      id: userSubcat.subcategory_id,
+      name: userSubcat.name,
+      main_category_id: userSubcat.main_category_id,
+      default_price: userSubcat.default_price || '',
+      price_unit: userSubcat.price_unit || 'kg',
+      custom_price: userSubcat.custom_price || '',
+      display_price: userSubcat.display_price || userSubcat.custom_price || userSubcat.default_price || '0',
+      display_price_unit: userSubcat.display_price_unit || userSubcat.price_unit || 'kg',
+      image: userSubcat.image || ''
+    }));
+  }, [selectedCategory?.id, selectedCategory?.name, userSubcategoriesData]);
+
+  // Refetch when modal opens to ensure we have latest subcategories
+  React.useEffect(() => {
+    if (modalVisible && userData?.id && selectedCategory?.id) {
+      refetchUserSubcategories();
+      refetchUserCategories();
+    }
+  }, [modalVisible, userData?.id, selectedCategory?.id, refetchUserSubcategories, refetchUserCategories]);
+
+  // Handle category press - open modal only if subcategories exist
+  const handleCategoryPress = (category: Category) => {
+    if (!userSubcategoriesData?.data?.subcategories) {
+      Alert.alert(
+        t('common.warning') || 'Warning',
+        t('dashboard.noSubcategories') || 'No subcategories available for this category'
+      );
+      return;
+    }
+    
+    const categoryId = Number(category.id);
+    const subcatsForCategory = userSubcategoriesData.data.subcategories.filter(
+      (us: any) => Number(us.main_category_id) === categoryId
+    );
+    
+    if (subcatsForCategory.length === 0) {
+      Alert.alert(
+        t('common.warning') || 'Warning',
+        t('dashboard.noSubcategories') || 'No subcategories available for this category'
+      );
+      return;
+    }
+    
+    setSelectedCategory(category);
+    setModalVisible(true);
+  };
+
+  // Get icon name for category (fallback if no image)
+  const getCategoryIcon = (categoryName: string): string => {
+    const name = categoryName.toLowerCase();
+    if (name.includes('metal') || name.includes('aluminum')) return 'aluminum';
+    if (name.includes('plastic')) return 'bottle-soda';
+    if (name.includes('paper')) return 'file-document';
+    if (name.includes('electronic') || name.includes('e-waste')) return 'lightbulb';
+    if (name.includes('glass')) return 'glass-wine';
+    if (name.includes('wood')) return 'tree';
+    if (name.includes('rubber')) return 'circle';
+    if (name.includes('organic')) return 'sprout';
+    return 'package-variant';
+  };
 
   // Fetch profile data
   const { data: profileData } = useProfile(userData?.id, !!userData?.id);
@@ -117,6 +253,32 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
       setIsOnline(profileData.delivery.is_online);
     }
   }, [profileData]);
+
+  // Listen for new order notifications and refresh orders list
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('NEW_ORDER_RECEIVED', (data) => {
+      console.log('📦 Delivery Dashboard: New order notification received:', data);
+      
+      if (userData?.id) {
+        // Invalidate and refetch orders queries
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.orders.availablePickupRequests(userData.id, 'D') 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.orders.activePickup(userData.id, 'D') 
+        });
+        
+        // Also manually refetch for immediate update
+        refetchAvailableRequests();
+        
+        console.log('✅ Delivery Dashboard: Orders list refreshed after new order notification');
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [userData?.id, queryClient, refetchAvailableRequests]);
 
   // Check approval status and redirect to VehicleInformation if rejected
   useEffect(() => {
@@ -281,14 +443,6 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
     return `${symbol}${value}`;
   };
   
-  const categories = [
-    { label: t('categories.plastic'), icon: 'bottle-soda' },
-    { label: t('categories.metal'), icon: 'aluminum' },
-    { label: t('categories.paper'), icon: 'file-document' },
-    { label: t('categories.wood'), icon: 'tree' },
-    { label: t('categories.mixed'), icon: 'package-variant' },
-    { label: t('categories.organic'), icon: 'sprout' },
-  ];
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -709,11 +863,11 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
           )}
         </SectionCard>
 
-        {/* Categories Operating */}
+        {/* Categories Operating Section */}
         <View style={styles.categoriesSection}>
           <View style={styles.categoriesHeader}>
             <AutoText style={styles.categoriesTitle} numberOfLines={3}>
-              {t('delivery.dashboard.categoriesOperating')}
+              {t('delivery.dashboard.categoriesOperating') || 'Categories Operating'}
             </AutoText>
             <TouchableOpacity 
               style={styles.addButton} 
@@ -721,21 +875,140 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
               onPress={() => navigation.navigate('AddCategory')}
             >
               <AutoText style={styles.addButtonText} numberOfLines={1}>
-                {t('dashboard.add')} +
+                {t('dashboard.add') || 'Add'} +
               </AutoText>
             </TouchableOpacity>
           </View>
+          {loadingCategories ? (
+            <View style={styles.categoriesLoading}>
+              <ActivityIndicator size="small" color={theme.primary} />
+            </View>
+          ) : userCategories.length === 0 ? (
+            <View style={styles.noCategoriesContainer}>
+              <MaterialCommunityIcons
+                name="package-variant-closed"
+                size={32}
+                color={theme.textSecondary}
+              />
+              <AutoText style={styles.noCategoriesText}>
+                {t('dashboard.noCategoriesOperating') || 'No categories operating'}
+              </AutoText>
+              <AutoText style={styles.noCategoriesSubtext}>
+                {t('dashboard.tapAddToSelect') || 'Tap the + button to add categories'}
+              </AutoText>
+            </View>
+          ) : (
           <View style={styles.categoriesGrid}>
-            {categories.map(category => (
+              {userCategories.map(category => (
               <CategoryBadge
-                key={category.label}
-                label={category.label}
-                icon={category.icon}
+                  key={category.id}
+                  label={category.name}
+                  icon={getCategoryIcon(category.name)}
+                  image={category.image}
+                  onPress={() => handleCategoryPress(category)}
               />
             ))}
           </View>
+          )}
         </View>
       </ScrollView>
+
+      {/* Subcategories Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <AutoText style={styles.modalTitle} numberOfLines={1}>
+                {selectedCategory?.name || t('dashboard.subcategories') || 'Subcategories'}
+              </AutoText>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={theme.textPrimary}
+                />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              {loadingSubcategories ? (
+                <View style={styles.modalLoadingContainer}>
+                  <ActivityIndicator size="large" color={theme.primary} />
+                  <AutoText style={styles.modalLoadingText}>
+                    {t('common.loading') || 'Loading subcategories...'}
+                  </AutoText>
+                </View>
+              ) : categorySubcategories.length === 0 ? (
+                <View style={styles.modalEmptyContainer}>
+                  <MaterialCommunityIcons
+                    name="package-variant-closed"
+                    size={48}
+                    color={theme.textSecondary}
+                  />
+                  <AutoText style={styles.modalEmptyText}>
+                    {t('dashboard.noSubcategories') || 'No subcategories available'}
+                  </AutoText>
+                </View>
+              ) : (
+                <ScrollView
+                  style={styles.modalScrollView}
+                  contentContainerStyle={styles.modalScrollContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {categorySubcategories.map((subcat: any) => (
+                    <View key={subcat.id} style={styles.modalSubcategoryItem}>
+                      <View style={styles.modalSubcategoryRow}>
+                        {/* Subcategory Image */}
+                        {subcat.image ? (
+                          <Image
+                            source={{ uri: subcat.image }}
+                            style={styles.modalSubcategoryImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={styles.modalSubcategoryNoImage}>
+                            <MaterialCommunityIcons
+                              name="image-off"
+                              size={24}
+                              color={theme.textSecondary}
+                            />
+                            <AutoText style={styles.modalSubcategoryNoImageText}>
+                              {t('dashboard.noImage') || 'No Image'}
+                            </AutoText>
+                          </View>
+                        )}
+                        
+                        {/* Subcategory Info */}
+                        <View style={styles.modalSubcategoryInfo}>
+                          <AutoText style={styles.modalSubcategoryName}>
+                            {subcat.name}
+                          </AutoText>
+                          <AutoText style={styles.modalSubcategoryPrice}>
+                            {t('dashboard.price') || 'Price'}: ₹{subcat.display_price || '0'}/{subcat.display_price_unit || 'kg'}
+                          </AutoText>
+                          {subcat.custom_price && (
+                            <AutoText style={styles.modalSubcategoryDefaultPrice}>
+                              {t('dashboard.defaultPrice') || 'Default'}: ₹{subcat.default_price || '0'}/{subcat.price_unit || 'kg'}
+                            </AutoText>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -1037,6 +1310,146 @@ const getStyles = (theme: any, themeName: string) =>
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
+    },
+    categoriesLoading: {
+      paddingVertical: '20@vs',
+      alignItems: 'center',
+    },
+    noCategoriesContainer: {
+      paddingVertical: '30@vs',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    noCategoriesText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '14@s',
+      color: theme.textSecondary,
+      marginTop: '12@vs',
+      textAlign: 'center',
+    },
+    noCategoriesSubtext: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginTop: '4@vs',
+      textAlign: 'center',
+      opacity: 0.7,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.card,
+      borderTopLeftRadius: '20@ms',
+      borderTopRightRadius: '20@ms',
+      maxHeight: '80%',
+      height: '80%',
+    },
+    modalBody: {
+      flex: 1,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: '18@s',
+      paddingVertical: '16@vs',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+    },
+    modalTitle: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '18@s',
+      color: theme.textPrimary,
+      flex: 1,
+    },
+    modalCloseButton: {
+      padding: '4@s',
+    },
+    modalLoadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: '40@vs',
+    },
+    modalLoadingText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textSecondary,
+      marginTop: '12@vs',
+    },
+    modalEmptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: '40@vs',
+    },
+    modalEmptyText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '14@s',
+      color: theme.textSecondary,
+      marginTop: '12@vs',
+      textAlign: 'center',
+    },
+    modalScrollView: {
+      flex: 1,
+    },
+    modalScrollContent: {
+      padding: '16@s',
+    },
+    modalSubcategoryItem: {
+      backgroundColor: theme.background,
+      borderRadius: '12@ms',
+      padding: '12@s',
+      marginBottom: '12@vs',
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    modalSubcategoryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '12@s',
+    },
+    modalSubcategoryImage: {
+      width: '60@s',
+      height: '60@s',
+      borderRadius: '8@ms',
+    },
+    modalSubcategoryNoImage: {
+      width: '60@s',
+      height: '60@s',
+      borderRadius: '8@ms',
+      backgroundColor: theme.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalSubcategoryNoImageText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '10@s',
+      color: theme.textSecondary,
+      marginTop: '4@vs',
+    },
+    modalSubcategoryInfo: {
+      flex: 1,
+    },
+    modalSubcategoryName: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '14@s',
+      color: theme.textPrimary,
+      marginBottom: '6@vs',
+    },
+    modalSubcategoryPrice: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '12@s',
+      color: theme.primary,
+      marginBottom: '2@vs',
+    },
+    modalSubcategoryDefaultPrice: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '11@s',
+      color: theme.textSecondary,
     },
     modeButtons: {
       flexDirection: 'row',

@@ -24,6 +24,11 @@ import { useTranslation } from 'react-i18next';
 import { getUserData } from '../../services/auth/authService';
 import { ProfileData, UpdateProfileData } from '../../services/api/v2/profile';
 import { useProfile, useUpdateProfile, useUploadProfileImage, useUploadAadharCard, useUploadDrivingLicense } from '../../hooks/useProfile';
+import { useLocationService } from '../../components/LocationView';
+import { AddAddressModal } from '../../components/AddAddressModal';
+import { getCustomerAddresses, Address, deleteAddress } from '../../services/api/v2/address';
+import { useFocusEffect } from '@react-navigation/native';
+import { DeviceEventEmitter } from 'react-native';
 
 const EditProfileScreen = ({ navigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
@@ -59,12 +64,93 @@ const EditProfileScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [pincode, setPincode] = useState<string>('');
+  const [placeId, setPlaceId] = useState<string>('');
+  const [state, setState] = useState<string>('');
+  const [language, setLanguage] = useState<string>('');
+  const [place, setPlace] = useState<string>('');
+  const [location, setLocation] = useState<string>('');
+  const [loadingLocation, setLoadingLocation] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [aadharCard, setAadharCard] = useState<string | null>(null);
   const [drivingLicense, setDrivingLicense] = useState<string | null>(null);
   const [uploadingAadhar, setUploadingAadhar] = useState(false);
   const [uploadingDrivingLicense, setUploadingDrivingLicense] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+
+  // Location service hook
+  const { getCurrentLocationWithAddress } = useLocationService();
+
+  // Function to load addresses
+  const loadAddresses = React.useCallback(async () => {
+    if (!userData?.id) return;
+    
+    setLoadingAddresses(true);
+    try {
+      const addresses = await getCustomerAddresses(userData.id);
+      setSavedAddresses(addresses);
+    } catch (error: any) {
+      console.error('Error loading addresses:', error);
+      // Don't show error alert - just log it, addresses might not exist yet
+    } finally {
+      setLoadingAddresses(false);
+    }
+  }, [userData?.id]);
+
+  // Fetch saved addresses on screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadAddresses();
+    }, [loadAddresses])
+  );
+
+  // Listen for address updates from other screens
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('addressesUpdated', () => {
+      console.log('📍 Addresses updated event received, refreshing addresses list');
+      loadAddresses();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [loadAddresses]);
+
+  const handleDeleteAddress = async (addressId: number) => {
+    Alert.alert(
+      'Delete Address',
+      'Are you sure you want to delete this address?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAddress(addressId);
+              // Refresh addresses list from server to ensure consistency
+              if (userData?.id) {
+                const addresses = await getCustomerAddresses(userData.id);
+                setSavedAddresses(addresses);
+              } else {
+                // Fallback: filter locally if userData is not available
+                setSavedAddresses(prev => prev.filter(addr => addr.id !== addressId));
+              }
+              Alert.alert('Success', 'Address deleted successfully');
+            } catch (error: any) {
+              console.error('Error deleting address:', error);
+              Alert.alert('Error', error.message || 'Failed to delete address');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   // Update form fields when profile data changes
   useEffect(() => {
@@ -79,10 +165,48 @@ const EditProfileScreen = ({ navigation }: any) => {
       // Set address from shop or delivery or user data
       if (profile.shop?.address) {
         setAddress(profile.shop.address);
+        // Set latitude and longitude if available
+        if (profile.shop.lat_log) {
+          const [lat, lng] = profile.shop.lat_log.split(',').map(Number);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            setLatitude(lat);
+            setLongitude(lng);
+          }
+        }
+        // Set other location fields
+        setPincode(profile.shop.pincode || '');
+        setPlaceId(profile.shop.place_id || '');
+        setState(profile.shop.state || '');
+        setLanguage(profile.shop.language || '');
+        setPlace(profile.shop.place || '');
+        setLocation(profile.shop.location || '');
       } else if (profile.delivery?.address) {
         setAddress(profile.delivery.address);
+        // Set latitude and longitude if available
+        if (profile.delivery.lat_log) {
+          const [lat, lng] = profile.delivery.lat_log.split(',').map(Number);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            setLatitude(lat);
+            setLongitude(lng);
+          }
+        }
+        // Set other location fields
+        setPincode(profile.delivery.pincode || '');
+        setPlaceId(profile.delivery.place_id || '');
+        setState(profile.delivery.state || '');
+        setLanguage(profile.delivery.language || '');
+        setPlace(profile.delivery.place || '');
+        setLocation(profile.delivery.location || '');
       } else {
         setAddress('');
+        setLatitude(null);
+        setLongitude(null);
+        setPincode('');
+        setPlaceId('');
+        setState('');
+        setLanguage('');
+        setPlace('');
+        setLocation('');
       }
     }
   }, [profile]);
@@ -133,6 +257,62 @@ const EditProfileScreen = ({ navigation }: any) => {
         },
       });
     });
+  };
+
+  // Function to get current location and fill address
+  const handleGetCurrentLocation = async () => {
+    try {
+      setLoadingLocation(true);
+      const locationData = await getCurrentLocationWithAddress();
+      
+      if (locationData) {
+        // Set latitude and longitude
+        if (locationData.latitude && locationData.longitude) {
+          setLatitude(locationData.latitude);
+          setLongitude(locationData.longitude);
+        }
+        
+        // Set address and location fields if available
+        if (locationData.address) {
+          const addressText = locationData.address.address || locationData.address.formattedAddress || '';
+          if (addressText) {
+            setAddress(addressText);
+            
+            // Set location fields from address data
+            if (locationData.address.postcode) {
+              setPincode(locationData.address.postcode);
+            }
+            if (locationData.address.state) {
+              setState(locationData.address.state);
+            }
+            if (locationData.address.city) {
+              setPlace(locationData.address.city);
+            }
+            // Build location string from available components
+            const locationParts = [];
+            if (locationData.address.city) locationParts.push(locationData.address.city);
+            if (locationData.address.state) locationParts.push(locationData.address.state);
+            if (locationData.address.country) locationParts.push(locationData.address.country);
+            if (locationParts.length > 0) {
+              setLocation(locationParts.join(', '));
+            }
+            
+            Alert.alert('Success', 'Address filled from your current location');
+          } else {
+            Alert.alert('Info', 'Could not determine address from location');
+          }
+        } else {
+          Alert.alert('Error', 'Could not get your location. Please enter address manually.');
+        }
+      } else {
+        Alert.alert('Error', 'Could not get your location. Please enter address manually.');
+      }
+    } catch (error: any) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', error.message || 'Failed to get location. Please enter address manually.');
+    } finally {
+      setLoadingLocation(false);
+    }
   };
 
   const handleDocumentUpload = async (type: 'aadhar' | 'drivingLicense') => {
@@ -232,6 +412,20 @@ const EditProfileScreen = ({ navigation }: any) => {
       updateData.shop = {
         address: trimmedAddress,
       };
+      // Include latitude and longitude if available
+      if (latitude !== null && longitude !== null) {
+        updateData.shop.latitude = latitude;
+        updateData.shop.longitude = longitude;
+        updateData.shop.lat_log = `${latitude},${longitude}`;
+      }
+      // Include all location-related fields
+      if (pincode) updateData.shop.pincode = pincode.trim();
+      if (placeId) updateData.shop.place_id = placeId.trim();
+      if (state) updateData.shop.state = state.trim();
+      if (language) updateData.shop.language = language.trim();
+      if (place) updateData.shop.place = place.trim();
+      if (location) updateData.shop.location = location.trim();
+      
       console.log('📤 Updating shop address:', trimmedAddress);
       console.log('📤 Shop updateData:', JSON.stringify(updateData.shop, null, 2));
     }
@@ -243,6 +437,20 @@ const EditProfileScreen = ({ navigation }: any) => {
       updateData.delivery = {
         address: trimmedAddress,
       };
+      // Include latitude and longitude if available
+      if (latitude !== null && longitude !== null) {
+        updateData.delivery.latitude = latitude;
+        updateData.delivery.longitude = longitude;
+        updateData.delivery.lat_log = `${latitude},${longitude}`;
+      }
+      // Include all location-related fields
+      if (pincode) updateData.delivery.pincode = pincode.trim();
+      if (placeId) updateData.delivery.place_id = placeId.trim();
+      if (state) updateData.delivery.state = state.trim();
+      if (language) updateData.delivery.language = language.trim();
+      if (place) updateData.delivery.place = place.trim();
+      if (location) updateData.delivery.location = location.trim();
+      
       console.log('📤 Updating delivery address:', trimmedAddress);
       console.log('📤 Delivery updateData:', JSON.stringify(updateData.delivery, null, 2));
     }
@@ -377,18 +585,74 @@ const EditProfileScreen = ({ navigation }: any) => {
           </View>
 
           <View style={styles.inputWrapper}>
-            <AutoText style={styles.label}>Address</AutoText>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={address}
-              onChangeText={setAddress}
-              placeholder="Enter your address"
-              placeholderTextColor={theme.textSecondary}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              editable={!saving}
-            />
+            <View style={styles.addressHeader}>
+              <AutoText style={styles.label}>Address</AutoText>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowAddAddressModal(true);
+                }}
+                style={styles.addAddressButton}
+              >
+                <MaterialCommunityIcons 
+                  name={savedAddresses.length > 0 ? "pencil" : "plus-circle"} 
+                  size={20} 
+                  color={theme.primary} 
+                />
+                <AutoText style={styles.addAddressText}>
+                  {savedAddresses.length > 0 ? 'Update Address' : 'Add Address'}
+                </AutoText>
+              </TouchableOpacity>
+            </View>
+            
+            {loadingAddresses ? (
+              <View style={styles.addressLoadingContainer}>
+                <ActivityIndicator size="small" color={theme.primary} />
+                <AutoText style={styles.addressLoadingText}>Loading address...</AutoText>
+              </View>
+            ) : savedAddresses.length === 0 ? (
+              <View style={styles.noAddressContainer}>
+                <MaterialCommunityIcons name="map-marker-off" size={32} color={theme.textSecondary} />
+                <AutoText style={styles.noAddressText}>No address saved</AutoText>
+                <AutoText style={styles.noAddressSubtext}>Add an address to get started</AutoText>
+              </View>
+            ) : (
+              // For B2B/B2C, show only the first address (they can only have one)
+              (() => {
+                const addr = savedAddresses[0];
+                return (
+                  <View key={addr.id} style={styles.addressCard}>
+                    <View style={styles.addressCardHeader}>
+                      <View style={styles.addressTypeBadge}>
+                        <MaterialCommunityIcons 
+                          name="map-marker" 
+                          size={16} 
+                          color={theme.primary} 
+                        />
+                        <AutoText style={styles.addressTypeText}>Address</AutoText>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteAddress(addr.id)}
+                        style={styles.deleteAddressButton}
+                      >
+                        <MaterialCommunityIcons name="delete-outline" size={20} color="#FF4444" />
+                      </TouchableOpacity>
+                    </View>
+                    <AutoText style={styles.addressCardText}>{addr.address}</AutoText>
+                    {addr.building_no && (
+                      <AutoText style={styles.addressCardSubtext}>Building: {addr.building_no}</AutoText>
+                    )}
+                    {addr.landmark && (
+                      <AutoText style={styles.addressCardSubtext}>Landmark: {addr.landmark}</AutoText>
+                    )}
+                    {(addr.latitude && addr.longitude) && (
+                      <AutoText style={styles.addressCardSubtext}>
+                        Location: {addr.latitude.toFixed(6)}, {addr.longitude.toFixed(6)}
+                      </AutoText>
+                    )}
+                  </View>
+                );
+              })()
+            )}
           </View>
         </View>
 
@@ -470,6 +734,28 @@ const EditProfileScreen = ({ navigation }: any) => {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Add Address Modal */}
+      <AddAddressModal
+        visible={showAddAddressModal}
+        onClose={() => setShowAddAddressModal(false)}
+        onSaveSuccess={async () => {
+          // Refresh addresses list after successful save
+          if (userData?.id) {
+            try {
+              const addresses = await getCustomerAddresses(userData.id);
+              setSavedAddresses(addresses);
+            } catch (error: any) {
+              console.error('Error refreshing addresses:', error);
+            }
+          }
+          // Emit event to notify other screens that addresses have been updated
+          DeviceEventEmitter.emit('addressesUpdated');
+        }}
+        userData={userData}
+        themeName={themeName}
+        profile={profile}
+      />
     </View>
   );
 };
@@ -520,6 +806,19 @@ const getStyles = (theme: any, isDark: boolean, themeName?: string) =>
     },
     inputWrapper: {
       marginBottom: '18@vs',
+    },
+    addressInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: '10@s',
+    },
+    locationButton: {
+      width: '44@s',
+      height: '44@s',
+      borderRadius: '12@ms',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: '2@vs',
     },
     label: {
       fontFamily: 'Poppins-Medium',
@@ -681,6 +980,104 @@ const getStyles = (theme: any, isDark: boolean, themeName?: string) =>
       fontSize: '12@s',
       color: theme.textPrimary,
       marginTop: '8@vs',
+    },
+    addressHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '12@vs',
+    },
+    addAddressButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: '12@s',
+      paddingVertical: '6@vs',
+      borderRadius: '8@ms',
+      backgroundColor: theme.background,
+      borderWidth: 1,
+      borderColor: theme.primary,
+    },
+    addAddressText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '12@s',
+      color: theme.primary,
+      marginLeft: '4@s',
+    },
+    addressLoadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: '20@vs',
+    },
+    addressLoadingText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textSecondary,
+      marginLeft: '8@s',
+    },
+    noAddressContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: '32@vs',
+      paddingHorizontal: '16@s',
+    },
+    noAddressText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '14@s',
+      color: theme.textPrimary,
+      marginTop: '12@vs',
+    },
+    noAddressSubtext: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginTop: '4@vs',
+    },
+    addressCard: {
+      backgroundColor: theme.background,
+      borderRadius: '12@ms',
+      padding: '14@s',
+      marginBottom: '12@vs',
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    addressCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '8@vs',
+    },
+    addressTypeBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: '10@s',
+      paddingVertical: '4@vs',
+      borderRadius: '6@ms',
+      backgroundColor: theme.card,
+      borderWidth: 1,
+      borderColor: theme.primary,
+    },
+    addressTypeText: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '11@s',
+      color: theme.primary,
+      marginLeft: '4@s',
+    },
+    deleteAddressButton: {
+      padding: '4@s',
+    },
+    addressCardText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textPrimary,
+      marginBottom: '4@vs',
+      lineHeight: '20@vs',
+    },
+    addressCardSubtext: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginTop: '2@vs',
     },
   });
 

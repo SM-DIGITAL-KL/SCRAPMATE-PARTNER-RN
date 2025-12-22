@@ -209,6 +209,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         await setAuthToken(response.data.token);
         await setUserData(response.data.user);
         
+        // Save FCM token after successful login
+        try {
+          const { fcmService } = await import('../../services/fcm/fcmService');
+          await fcmService.getFCMToken();
+          console.log('✅ FCM token saved after login');
+        } catch (fcmError) {
+          console.error('⚠️ Failed to save FCM token after login:', fcmError);
+          // Don't block the flow if FCM token saving fails
+        }
+        
         // Check user type FIRST before doing anything else
         const user = response.data.user;
         const userType = user?.user_type;

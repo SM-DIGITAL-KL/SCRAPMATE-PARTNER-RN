@@ -46,7 +46,7 @@ export const useSubcategories = (
   return useApiQuery<SubcategoriesResponse>({
     queryKey: queryKeys.subcategories.byCategory(categoryId || 0, userType),
     queryFn: () => getSubcategories(categoryId, userType),
-    enabled: enabled && !!categoryId,
+    enabled: enabled, // Allow fetching all subcategories when categoryId is undefined
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });

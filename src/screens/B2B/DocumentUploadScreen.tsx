@@ -247,6 +247,16 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
 
       await submitB2BSignup(userData.id, signupPayload);
       
+      // Save FCM token after successful B2B registration
+      try {
+        const { fcmService } = await import('../../services/fcm/fcmService');
+        await fcmService.getFCMToken();
+        console.log('✅ FCM token saved after B2B registration');
+      } catch (fcmError) {
+        console.error('⚠️ Failed to save FCM token after B2B registration:', fcmError);
+        // Don't block the flow if FCM token saving fails
+      }
+      
       // Invalidate profile cache to force fresh fetch with updated shop data
       console.log('🗑️  Invalidating profile cache after B2B signup submission');
       await queryClient.invalidateQueries({ queryKey: profileQueryKeys.all });

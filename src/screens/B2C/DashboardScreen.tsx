@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Vibration, Platform, Animated, Image, ActivityIndicator, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Vibration, Platform, Animated, Image, ActivityIndicator, Modal, Alert, DeviceEventEmitter } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -22,6 +22,7 @@ import { useCategories, useUserCategories, useUserSubcategories } from '../../ho
 import { useRecyclingStats } from '../../hooks/useRecycling';
 import { useMonthlyBreakdown } from '../../hooks/useEarnings';
 import { useActivePickup, useAvailablePickupRequests, useAcceptPickupRequest } from '../../hooks/useOrders';
+import { PickupRequest } from '../../services/api/v2/orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/api/queryKeys';
 
@@ -68,7 +69,7 @@ const DashboardScreen = () => {
   );
 
   // Get active pickup order (for R type users in B2C dashboard)
-  const { data: activePickup, isLoading: loadingActivePickup } = useActivePickup(
+  const { data: activePickup, isLoading: loadingActivePickup, refetch: refetchActivePickup } = useActivePickup(
     userData?.id,
     'R', // B2C dashboard is for R (Retailer) type users
     !!userData?.id
@@ -88,7 +89,8 @@ const DashboardScreen = () => {
   const acceptPickupMutation = useAcceptPickupRequest();
 
   // Get first available request to show in "Accept Waste Collection" section
-  const firstAvailableRequest = availablePickupRequests && availablePickupRequests.length > 0 
+  // Only show if there's no active pickup (when order is accepted, it becomes active pickup)
+  const firstAvailableRequest = !activePickup && availablePickupRequests && availablePickupRequests.length > 0 
     ? availablePickupRequests[0] 
     : null;
 
@@ -102,10 +104,25 @@ const DashboardScreen = () => {
         userId: userData.id,
         userType: 'R'
       });
-      // Refetch available requests after accepting
+      
+      // Show success message
+      Alert.alert(
+        t('dashboard.orderAccepted') || 'Order Accepted',
+        t('dashboard.orderAcceptedMessage') || `Order #${firstAvailableRequest.order_number} has been accepted successfully!`,
+        [{ text: t('common.ok') || 'OK' }]
+      );
+      
+      // Refetch both available requests and active pickup after accepting
+      // The mutation's onSuccess already invalidates queries, but we also manually refetch for immediate update
       refetchAvailableRequests();
-    } catch (error) {
+      refetchActivePickup();
+    } catch (error: any) {
       console.error('Error accepting order:', error);
+      Alert.alert(
+        t('common.error') || 'Error',
+        error?.message || t('dashboard.orderAcceptError') || 'Failed to accept order. Please try again.',
+        [{ text: t('common.ok') || 'OK' }]
+      );
     }
   };
 
@@ -125,6 +142,32 @@ const DashboardScreen = () => {
       }
     }, [userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, queryClient])
   );
+
+  // Listen for new order notifications and refresh orders list
+  React.useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('NEW_ORDER_RECEIVED', (data) => {
+      console.log('📦 B2C Dashboard: New order notification received:', data);
+      
+      if (userData?.id) {
+        // Invalidate and refetch orders queries
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.orders.availablePickupRequests(userData.id, 'R') 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.orders.activePickup(userData.id, 'R') 
+        });
+        
+        // Also manually refetch for immediate update
+        refetchAvailableRequests();
+        
+        console.log('✅ B2C Dashboard: Orders list refreshed after new order notification');
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [userData?.id, queryClient, refetchAvailableRequests]);
 
   // Listen for navigation events to refetch when returning from AddCategoryScreen
   React.useEffect(() => {
@@ -443,60 +486,147 @@ const DashboardScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <SectionCard>
-          <AutoText style={styles.sectionTitle} numberOfLines={2}>
-            {t('dashboard.acceptWasteCollection')}
-          </AutoText>
-          <AutoText style={styles.detailText} numberOfLines={1}>
-            {t('dashboard.client')}: EcoSolutions Inc.
-          </AutoText>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons
-              name="map-marker"
-              size={14}
-              color={theme.primary}
-            />
-            <AutoText style={styles.detailText} numberOfLines={2}>
-              House No. 45, Sector 12, Noida, Uttar Pradesh - 201301
-            </AutoText>
-          </View>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons
-              name="calendar"
-              size={14}
-              color={theme.primary}
-            />
-            <AutoText style={styles.detailText} numberOfLines={1}>
-              Today, 10:00 AM - 12:00 PM
-            </AutoText>
-          </View>
-          <View style={styles.priceRow}>
-            <AutoText style={styles.price} numberOfLines={1}>
-              ₹2,100
-            </AutoText>
-            <TouchableOpacity
-              style={styles.acceptButton}
-              onPress={() => {
-                // Haptic feedback
-                if (Platform.OS === 'ios') {
-                  Vibration.vibrate(10);
-                } else {
-                  Vibration.vibrate(50);
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <AutoText style={styles.acceptButtonText} numberOfLines={1}>
-                {t('dashboard.acceptOrder')}
+        {loadingAvailableRequests ? (
+          <SectionCard>
+            <View style={styles.activePickupLoading}>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <AutoText style={styles.activePickupLoadingText}>
+                {t('common.loading') || 'Loading orders...'}
               </AutoText>
+            </View>
+          </SectionCard>
+        ) : firstAvailableRequest ? (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              navigation.navigate('OrderDetails', { order: firstAvailableRequest });
+            }}
+          >
+            <SectionCard>
+              <AutoText style={styles.sectionTitle} numberOfLines={2}>
+                {t('dashboard.acceptWasteCollection')}
+              </AutoText>
+            <AutoText style={styles.detailText} numberOfLines={1}>
+              {t('dashboard.orderNumber') || 'Order'}: #{firstAvailableRequest.order_number}
+            </AutoText>
+            {firstAvailableRequest.customer_name && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="account"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={1}>
+                  {firstAvailableRequest.customer_name}
+                </AutoText>
+              </View>
+            )}
+            {firstAvailableRequest.customer_phone && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="phone"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={1}>
+                  {firstAvailableRequest.customer_phone}
+                </AutoText>
+              </View>
+            )}
+            <View style={styles.detailRow}>
               <MaterialCommunityIcons
-                name="arrow-right"
+                name="map-marker"
                 size={14}
-                color={theme.textPrimary}
+                color={theme.primary}
               />
-            </TouchableOpacity>
-          </View>
-        </SectionCard>
+              <AutoText style={styles.detailText} numberOfLines={3}>
+                {firstAvailableRequest.address || t('dashboard.addressNotProvided') || 'Address not provided'}
+              </AutoText>
+            </View>
+            {firstAvailableRequest.scrap_description && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="package-variant"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={2}>
+                  {firstAvailableRequest.scrap_description}
+                  {firstAvailableRequest.estimated_weight_kg > 0 && ` (${firstAvailableRequest.estimated_weight_kg} kg)`}
+                </AutoText>
+              </View>
+            )}
+            {firstAvailableRequest.preferred_pickup_time && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="calendar"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={1}>
+                  {t('dashboard.today') || 'Today'}, {firstAvailableRequest.preferred_pickup_time}
+                </AutoText>
+              </View>
+            )}
+            {firstAvailableRequest.distance_km !== undefined && firstAvailableRequest.distance_km !== null && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="map-marker-distance"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={1}>
+                  {firstAvailableRequest.distance_km.toFixed(1)} km away
+                </AutoText>
+              </View>
+            )}
+            <View style={styles.priceRow}>
+              <AutoText style={styles.price} numberOfLines={1}>
+                ₹{firstAvailableRequest.estimated_price?.toLocaleString('en-IN') || '0'}
+              </AutoText>
+              <TouchableOpacity
+                style={[styles.acceptButton, acceptPickupMutation.isPending && styles.acceptButtonDisabled]}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent navigation when clicking accept button
+                  // Haptic feedback
+                  if (Platform.OS === 'ios') {
+                    Vibration.vibrate(10);
+                  } else {
+                    Vibration.vibrate(50);
+                  }
+                  handleAcceptOrder();
+                }}
+                disabled={acceptPickupMutation.isPending}
+                activeOpacity={0.7}
+              >
+                {acceptPickupMutation.isPending ? (
+                  <ActivityIndicator size="small" color={theme.textPrimary} />
+                ) : (
+                  <>
+                    <AutoText style={styles.acceptButtonText} numberOfLines={1}>
+                      {t('dashboard.acceptOrder')}
+                    </AutoText>
+                    <MaterialCommunityIcons
+                      name="arrow-right"
+                      size={14}
+                      color={theme.textPrimary}
+                    />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+            </SectionCard>
+          </TouchableOpacity>
+        ) : (
+          <SectionCard>
+            <AutoText style={styles.sectionTitle} numberOfLines={2}>
+              {t('dashboard.acceptWasteCollection')}
+            </AutoText>
+            <AutoText style={styles.detailText} numberOfLines={2}>
+              {t('dashboard.noOrdersAvailable') || 'No orders available at the moment'}
+            </AutoText>
+          </SectionCard>
+        )}
 
         {loadingActivePickup ? (
           <SectionCard>
@@ -519,6 +649,30 @@ const DashboardScreen = () => {
                 </AutoText>
               </View>
             </View>
+            {activePickup.customer_name && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="account"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={1}>
+                  {activePickup.customer_name}
+                </AutoText>
+              </View>
+            )}
+            {activePickup.customer_phone && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="phone"
+                  size={14}
+                  color={theme.primary}
+                />
+                <AutoText style={styles.detailText} numberOfLines={1}>
+                  {activePickup.customer_phone}
+                </AutoText>
+              </View>
+            )}
             <View style={styles.detailRow}>
               <MaterialCommunityIcons
                 name="package-variant"
@@ -575,9 +729,12 @@ const DashboardScreen = () => {
             )}
             <OutlineGreenButton
               title={t('dashboard.viewDetails')}
-              onPress={() =>
-                navigation.navigate('DeliveryTracking', { orderId: activePickup.order_number })
-              }
+              onPress={() => {
+                navigation.navigate('DeliveryTracking', { 
+                  orderId: activePickup.order_number?.toString(),
+                  order: activePickup
+                });
+              }}
               style={styles.viewButton}
             />
           </SectionCard>
