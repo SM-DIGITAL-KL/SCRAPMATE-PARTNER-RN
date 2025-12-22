@@ -4,6 +4,7 @@ import { CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DashboardScreen from '../screens/B2C/DashboardScreen';
 import DeliveryTrackingScreen from '../screens/B2C/DeliveryTrackingScreen';
+import OrderDetailsScreen from '../screens/B2C/OrderDetailsScreen';
 import FullscreenMapScreen from '../screens/B2C/FullscreenMapScreen';
 import AssignPartnerScreen from '../screens/B2C/AssignPartnerScreen';
 import UserProfileScreen from '../screens/B2C/UserProfileScreen';
@@ -23,7 +24,8 @@ import { getUserData } from '../services/auth/authService';
 
 export type B2CStackParamList = {
   Dashboard: undefined;
-  DeliveryTracking: { orderId: string };
+  DeliveryTracking: { orderId: string; order?: any };
+  OrderDetails: { order: any };
   FullscreenMap: { destination: { latitude: number; longitude: number }; orderId?: string };
   AssignPartner: { orderId: string };
   UserProfile: undefined;
@@ -144,6 +146,7 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
     >
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="DeliveryTracking" component={DeliveryTrackingScreen} />
+      <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <Stack.Screen name="FullscreenMap" component={FullscreenMapScreen} />
       <Stack.Screen name="AssignPartner" component={AssignPartnerScreen} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />

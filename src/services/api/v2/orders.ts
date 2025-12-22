@@ -4,6 +4,8 @@ export interface PickupRequest {
   order_id: number;
   order_number: number;
   customer_id: number;
+  customer_name?: string | null;
+  customer_phone?: string | null;
   address: string;
   latitude: number | null;
   longitude: number | null;
@@ -17,11 +19,28 @@ export interface PickupRequest {
   images: string[];
 }
 
+export interface OrderItem {
+  subcategory_id?: number;
+  subcategoryId?: number;
+  category_id?: number;
+  categoryId?: number;
+  name?: string;
+  category_name?: string;
+  material_name?: string;
+  quantity?: number;
+  qty?: number;
+  weight?: number;
+  price?: number;
+  [key: string]: any; // Allow additional properties
+}
+
 export interface ActivePickup {
   order_id: number;
   order_number: number;
   order_no: string;
   customer_id: number;
+  customer_name?: string | null;
+  customer_phone?: string | null;
   address: string;
   latitude: number | null;
   longitude: number | null;
@@ -33,6 +52,7 @@ export interface ActivePickup {
   pickup_time_display: string;
   created_at: string;
   images: string[];
+  orderdetails?: OrderItem[]; // Parsed order items with subcategory info
 }
 
 export interface PlacePickupRequestData {
@@ -213,7 +233,39 @@ export const getActivePickup = async (
   return result.data;
 };
 
+/**
+ * Start pickup (vendor clicks "Myself Pickup")
+ */
+export const startPickup = async (
+  orderId: number | string,
+  user_id: number,
+  user_type: 'R' | 'S' | 'SR' | 'D'
+): Promise<{ order_id: number; order_number: number; status: number }> => {
+  const response = await fetch(
+    `${API_BASE_URL}/v2/orders/pickup-request/${orderId}/start-pickup`,
+    {
+      method: 'POST',
+      headers: {
+        'api-key': API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id,
+        user_type,
+      }),
+    }
+  );
 
+  if (!response.ok) {
+    throw new Error(`Failed to start pickup: ${response.statusText}`);
+  }
 
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || 'Failed to start pickup');
+  }
 
+  return result.data;
+};
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "124765287230",
+    "project_id": "scrapmate-partner-android",
+    "storage_bucket": "scrapmate-partner-android.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:124765287230:android:364598688d8f57bccb326f",
+        "android_client_info": {
+          "package_name": "com.app.scrapmatepartner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJPCI2Arn3JVm4U4r0_SyEGXJ3kky7sUM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
