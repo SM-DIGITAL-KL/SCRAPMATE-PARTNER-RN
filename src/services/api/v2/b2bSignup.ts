@@ -22,10 +22,24 @@ export interface B2BSignupData {
   contactPersonName: string;
   contactNumber: string;
   contactEmail: string;
+  bankName?: string;
+  accountHolderName?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  upiId?: string;
   businessLicenseUrl?: string;
   gstCertificateUrl?: string;
   addressProofUrl?: string;
   kycOwnerUrl?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  pincode?: string;
+  placeId?: string;
+  state?: string;
+  place?: string;
+  location?: string;
+  houseName?: string;
+  nearbyLocation?: string;
 }
 
 export interface B2BSignupResponse {
@@ -56,7 +70,7 @@ export const submitB2BSignup = async (
   }
 
   const result: B2BSignupResponse = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to submit B2B signup');
   }
@@ -99,7 +113,7 @@ export const uploadB2BDocument = async (
   }
 
   const result: DocumentUploadResponse = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to upload document');
   }

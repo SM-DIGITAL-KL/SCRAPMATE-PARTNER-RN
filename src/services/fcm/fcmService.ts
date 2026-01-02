@@ -5,6 +5,7 @@
 
 import messaging from '@react-native-firebase/messaging';
 import { Platform, Alert, AppState, DeviceEventEmitter } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserData } from '../auth/authService';
 import { storeFcmToken, clearFcmToken } from '../api/v2/fcm';
 
@@ -29,6 +30,11 @@ class FCMService {
     try {
       console.log('🔔 FCMService: Initializing...');
 
+      // Create notification channel for Android (required for Android 8.0+)
+      if (Platform.OS === 'android') {
+        await this.createNotificationChannel();
+      }
+
       // Request notification permissions
       await this.requestPermission();
 
@@ -48,6 +54,35 @@ class FCMService {
     } catch (error) {
       console.error('❌ FCMService: Initialization error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Create notification channel for Android (required for Android 8.0+)
+   */
+  private async createNotificationChannel(): Promise<void> {
+    try {
+      if (Platform.OS === 'android') {
+        // Try to create notification channel using native module
+        try {
+          const { NativeModules } = require('react-native');
+          const { NotificationChannelModule } = NativeModules;
+          
+          if (NotificationChannelModule && NotificationChannelModule.createNotificationChannel) {
+            await NotificationChannelModule.createNotificationChannel();
+            console.log('✅ FCMService: Notification channel created via native module');
+          } else {
+            console.warn('⚠️ FCMService: NotificationChannelModule not available, channel should be created from manifest');
+          }
+        } catch (nativeError: any) {
+          console.warn('⚠️ FCMService: Could not create channel via native module:', nativeError.message);
+          console.log('   Channel should be created from AndroidManifest.xml');
+          console.log('   Channel ID: scrapmate_partner_notifications');
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ FCMService: Error creating notification channel:', error);
+      // Don't throw - channel creation failure shouldn't break the app
     }
   }
 
@@ -108,18 +143,29 @@ class FCMService {
       const token = await messaging().getToken();
       if (token) {
         console.log('🔑 FCMService: FCM Token obtained:', token.substring(0, 20) + '...');
+        console.log('   Full token length:', token.length);
         this.fcmToken = token;
 
         // Store token on server if user is logged in
-        await this.storeTokenOnServer(token);
+        try {
+          await this.storeTokenOnServer(token);
+        } catch (storeError: any) {
+          console.error('❌ FCMService: Failed to store token on server:', storeError);
+          console.error('   Error message:', storeError.message);
+          // Don't throw - continue even if storage fails
+        }
 
         return token;
       } else {
         console.warn('⚠️ FCMService: No FCM token available');
         return null;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ FCMService: Error getting FCM token:', error);
+      console.error('   Error details:', error.message);
+      if (error.code) {
+        console.error('   Error code:', error.code);
+      }
       return null;
     }
   }
@@ -132,13 +178,27 @@ class FCMService {
       const userData = await getUserData();
       if (userData?.id) {
         console.log('💾 FCMService: Storing FCM token on server for user:', userData.id);
-        await storeFcmToken(userData.id, token);
-        console.log('✅ FCMService: FCM token stored on server');
+        console.log('   Token preview:', token.substring(0, 30) + '...');
+        try {
+          await storeFcmToken(userData.id, token);
+          console.log('✅ FCMService: FCM token stored on server successfully');
+        } catch (apiError: any) {
+          console.error('❌ FCMService: API error storing token:', apiError.message);
+          if (apiError.response) {
+            console.error('   Response status:', apiError.response.status);
+            console.error('   Response data:', apiError.response.data);
+          }
+          throw apiError;
+        }
       } else {
         console.log('ℹ️ FCMService: User not logged in, skipping token storage');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ FCMService: Error storing FCM token on server:', error);
+      console.error('   Error message:', error.message);
+      if (error.stack) {
+        console.error('   Stack:', error.stack);
+      }
       // Don't throw - token storage failure shouldn't break the app
     }
   }
@@ -174,7 +234,25 @@ class FCMService {
   private setupMessageHandlers(): void {
     // Handle foreground messages (when app is open)
     this.messageUnsubscribe = messaging().onMessage(async (remoteMessage) => {
-      console.log('📨 FCMService: Foreground message received:', remoteMessage);
+      console.log('📨 FCMService: Foreground message received');
+      console.log('   Full message:', JSON.stringify(remoteMessage, null, 2));
+      console.log('   Notification type:', remoteMessage.data?.type);
+      console.log('   Has notification:', !!remoteMessage.notification);
+      console.log('   Has data:', !!remoteMessage.data);
+      
+      if (remoteMessage.notification) {
+        console.log('   Title:', remoteMessage.notification.title);
+        console.log('   Body:', remoteMessage.notification.body);
+      }
+      
+      // Handle notification data FIRST (before showing alert)
+      // This ensures events are emitted even if user dismisses alert
+      if (remoteMessage.data) {
+        console.log('   Processing notification data...');
+        this.handleNotificationData(remoteMessage.data);
+      } else {
+        console.warn('⚠️ FCMService: Foreground message has no data field');
+      }
       
       // Show local notification for foreground messages
       if (remoteMessage.notification) {
@@ -183,24 +261,28 @@ class FCMService {
           remoteMessage.notification.body || '',
           remoteMessage.data
         );
-      }
-
-      // Handle notification data
-      if (remoteMessage.data) {
-        this.handleNotificationData(remoteMessage.data);
+      } else {
+        console.warn('⚠️ FCMService: Foreground message has no notification field');
+        console.warn('   This might be a data-only message');
+        
+        // Even if there's no notification field, try to show alert if we have data
+        if (remoteMessage.data && remoteMessage.data.type) {
+          const title = remoteMessage.data.title || 'New Notification';
+          const body = remoteMessage.data.body || remoteMessage.data.message || 'You have a new notification';
+          this.showLocalNotification(title, body, remoteMessage.data);
+        }
       }
     });
 
-    // Handle background messages (when app is in background)
-    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log('📨 FCMService: Background message received:', remoteMessage);
-      // Background messages are handled automatically by the system
-    });
+    // Note: Background message handler must be registered in index.js at the top level
+    // Do not call setBackgroundMessageHandler here - it won't work inside a method
 
     // Handle notification opened (when user taps notification)
     this.notificationOpenedUnsubscribe = messaging().onNotificationOpenedApp(
       (remoteMessage) => {
         console.log('🔔 FCMService: Notification opened app:', remoteMessage);
+        console.log('   Notification type:', remoteMessage.data?.type);
+        console.log('   Data:', JSON.stringify(remoteMessage.data, null, 2));
         this.handleNotificationOpened(remoteMessage);
       }
     );
@@ -208,8 +290,59 @@ class FCMService {
     // Monitor app state to refresh token when app comes to foreground
     this.appStateSubscription = AppState.addEventListener('change', async (nextAppState) => {
       if (nextAppState === 'active') {
+        console.log('🔄 FCMService: App came to foreground');
         // Refresh token when app comes to foreground
         await this.getFCMToken();
+        
+        // Check for any pending notifications stored in AsyncStorage from background handler
+        try {
+          const allKeys = await AsyncStorage.getAllKeys();
+          const notificationKeys = allKeys.filter(key => key.startsWith('pending_notification_'));
+          
+          if (notificationKeys.length > 0) {
+            console.log(`📨 FCMService: Found ${notificationKeys.length} pending notification(s) from background`);
+            
+            // Process all pending notifications
+            for (const key of notificationKeys) {
+              try {
+                const notificationData = await AsyncStorage.getItem(key);
+                if (notificationData) {
+                  const notification = JSON.parse(notificationData);
+                  console.log('📨 Processing stored notification:', notification.type);
+                  
+                  // Process the notification
+                  if (notification.data) {
+                    this.handleNotificationData(notification.data);
+                  }
+                  
+                  // Remove processed notification
+                  await AsyncStorage.removeItem(key);
+                  console.log('✅ Processed and removed stored notification:', key);
+                }
+              } catch (parseError) {
+                console.error('❌ Error processing stored notification:', parseError);
+                // Remove invalid notification
+                await AsyncStorage.removeItem(key);
+              }
+            }
+          }
+        } catch (storageError) {
+          console.error('❌ FCMService: Error checking stored notifications:', storageError);
+        }
+        
+        // Also check for initial notification (app opened from notification)
+        try {
+          const initialNotification = await messaging().getInitialNotification();
+          if (initialNotification && initialNotification.data) {
+            console.log('📨 FCMService: Found initial notification:', initialNotification.data?.type);
+            // Small delay to ensure app is fully initialized
+            setTimeout(() => {
+              this.handleNotificationData(initialNotification.data);
+            }, 500);
+          }
+        } catch (error) {
+          console.error('❌ FCMService: Error checking initial notification:', error);
+        }
       }
     });
   }
@@ -234,14 +367,21 @@ class FCMService {
 
   /**
    * Show local notification (for foreground messages)
+   * Note: React Native Firebase should automatically show notifications,
+   * but we can use Alert as a fallback for foreground messages
    */
   private showLocalNotification(
     title: string,
     body: string,
     data?: Record<string, any>
   ): void {
-    // For now, we'll use Alert. In production, you might want to use
-    // react-native-push-notification or a similar library for better UX
+    console.log('📢 FCMService: Showing local notification:', { title, body, hasData: !!data });
+    
+    // React Native Firebase should automatically display notifications
+    // But for foreground messages, we can show an Alert as well
+    // On Android, notifications should appear in the notification tray automatically
+    // On iOS, we need to show an Alert for foreground messages
+    
     if (Platform.OS === 'ios') {
       Alert.alert(title, body, [
         {
@@ -254,7 +394,11 @@ class FCMService {
         },
       ]);
     } else {
-      // Android shows notifications automatically, but we can still show an alert
+      // Android: React Native Firebase should show notification automatically
+      // But we can also show an Alert for immediate visibility
+      console.log('📱 FCMService: Android - notification should appear in notification tray');
+      
+      // Show Alert for immediate feedback (optional)
       Alert.alert(title, body, [
         {
           text: 'OK',
@@ -303,6 +447,47 @@ class FCMService {
           console.log('🚚 FCMService: Pickup request notification');
           DeviceEventEmitter.emit('PICKUP_REQUEST_RECEIVED', data);
           break;
+        case 'pickup_request_accepted_by_other':
+          // Another vendor accepted the pickup request
+          console.log('⚠️ FCMService: Pickup request accepted by another vendor');
+          console.log('   Order ID:', data.order_id);
+          console.log('   Order Number:', data.order_number);
+          console.log('   Accepted by User ID:', data.accepted_by_user_id);
+          console.log('   Full data:', JSON.stringify(data, null, 2));
+          
+          // Prepare event data
+          const eventData = {
+            order_id: data.order_id,
+            order_number: data.order_number,
+            accepted_by_user_id: data.accepted_by_user_id
+          };
+          
+          console.log('📤 FCMService: Emitting PICKUP_REQUEST_ACCEPTED_BY_OTHER event');
+          console.log('   Event data:', JSON.stringify(eventData, null, 2));
+          
+          // Emit event to trigger dashboard refresh and show alert
+          try {
+            DeviceEventEmitter.emit('PICKUP_REQUEST_ACCEPTED_BY_OTHER', eventData);
+            console.log('✅ FCMService: Event emitted successfully');
+          } catch (emitError) {
+            console.error('❌ FCMService: Error emitting event:', emitError);
+          }
+          break;
+        case 'order_list_updated':
+          // Order list has been updated (e.g., order was accepted by another vendor)
+          // Refresh the available orders list
+          console.log('🔄 FCMService: Order list updated notification');
+          console.log('   Order ID:', data.order_id);
+          console.log('   Order Number:', data.order_number);
+          console.log('   Action:', data.action);
+          
+          // Emit event to trigger dashboard refresh
+          DeviceEventEmitter.emit('ORDER_LIST_UPDATED', {
+            order_id: data.order_id,
+            order_number: data.order_number,
+            action: data.action || 'refresh_orders'
+          });
+          break;
         default:
           console.log('ℹ️ FCMService: Unknown notification type:', data.type);
       }
@@ -314,7 +499,10 @@ class FCMService {
    */
   private handleNotificationOpened(remoteMessage: any): void {
     console.log('🔔 FCMService: Handling notification opened:', remoteMessage);
+    console.log('   Notification type:', remoteMessage.data?.type);
+    console.log('   Data:', JSON.stringify(remoteMessage.data, null, 2));
     
+    // Process notification data when notification is tapped
     if (remoteMessage.data) {
       this.handleNotificationData(remoteMessage.data);
     }

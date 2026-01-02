@@ -13,6 +13,10 @@ import { getStoredLanguage } from '../i18n/config';
 import { queryClient } from '../services/api/queryClient';
 import { KeyboardProvider } from '../components/KeyboardProvider';
 import { fcmService } from '../services/fcm/fcmService';
+import { locationTrackingService } from '../services/location/locationTrackingService';
+import { REDIS_CONFIG } from '../config/redisConfig';
+import { UpdateModal } from '../components/UpdateModal';
+import { useAppUpdate } from '../hooks/useAppUpdate';
 import '../i18n/config';
 
 // Optional: Use PersistQueryClientProvider if persistence is needed
@@ -34,6 +38,11 @@ const { NavigationBarModule } = NativeModules;
 
 const AppContent = () => {
   const { isDark, theme } = useTheme();
+  const { showUpdateModal, latestVersion, setShowUpdateModal } = useAppUpdate();
+
+  useEffect(() => {
+    console.log('🎨 AppContent render - showUpdateModal:', showUpdateModal, 'latestVersion:', latestVersion);
+  }, [showUpdateModal, latestVersion]);
 
   useEffect(() => {
     if (Platform.OS === 'android' && NavigationBarModule?.setNavigationBarColor) {
@@ -90,6 +99,12 @@ const AppContent = () => {
         >
           <AppNavigator />
         </NavigationContainer>
+        
+        <UpdateModal
+          visible={showUpdateModal}
+          latestVersion={latestVersion}
+          onUpdate={() => setShowUpdateModal(false)}
+        />
       </SafeAreaProvider>
     </View>
   );
@@ -104,6 +119,13 @@ const App = () => {
         
         // Initialize FCM service
         await fcmService.initialize();
+        
+        // Initialize Redis credentials for location tracking
+        locationTrackingService.setRedisCredentials(
+          REDIS_CONFIG.REDIS_URL,
+          REDIS_CONFIG.REDIS_TOKEN
+        );
+        console.log('✅ Location tracking service initialized with Redis credentials');
       } catch (error) {
         console.error('Error initializing offline services:', error);
         // Continue even if initialization fails

@@ -72,6 +72,17 @@ class NativeMapViewModule(reactContext: ReactApplicationContext) : ReactContextB
     }
     
     @ReactMethod
+    fun isLocationEnabled(promise: Promise) {
+        try {
+            val isEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || 
+                           locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            promise.resolve(isEnabled)
+        } catch (e: Exception) {
+            promise.reject("ERROR", "Failed to check location status: ${e.message}")
+        }
+    }
+    
+    @ReactMethod
     fun getCurrentLocation(promise: Promise) {
         if (currentLocation != null) {
             val locationMap = Arguments.createMap()

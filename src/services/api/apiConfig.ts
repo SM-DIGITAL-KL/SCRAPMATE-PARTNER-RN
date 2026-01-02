@@ -13,10 +13,12 @@
  */
 
 // For ngrok tunnel (uncomment to use)
-  //  export const API_BASE_URL = 'https://5be164ada1bb.ngrok-free.app/api';
-// For AWS Lambda (uncomment to use)
+ export const API_BASE_URL = 'https://gpn6vt3mlkm6zq7ibxdtu6bphi0onexr.lambda-url.ap-south-1.on.aws/api';
+// For AWS Lambda Dev (uncomment to use)
   // export const API_BASE_URL = 'https://tvwi76fg9d.execute-api.ap-south-1.amazonaws.com/api';
-  export const API_BASE_URL = 'https://uodttljjzj3nh3e4cjqardxip40btqef.lambda-url.ap-south-1.on.aws/api'
+  // export const API_BASE_URL = 'https://uodttljjzj3nh3e4cjqardxip40btqef.lambda-url.ap-south-1.on.aws/api';
+// For AWS Lambda Production (uncomment to use)
+//  export const API_BASE_URL = 'https://gpn6vt3mlkm6zq7ibxdtu6bphi0onexr.lambda-url.ap-south-1.on.aws/api';
 /**
  * API Key for authentication
  * Update this value or set via environment variable
@@ -82,6 +84,7 @@ export const API_ROUTES = {
       uploadAadhar: (userId: string | number) => `/v2/profile/${userId}/aadhar`,
       uploadDrivingLicense: (userId: string | number) => `/v2/profile/${userId}/driving-license`,
       completeDeliverySignup: (userId: string | number) => `/v2/profile/${userId}/complete-delivery-signup`,
+      upgradeToSR: (userId: string | number) => `/v2/profile/${userId}/upgrade-to-sr`,
       deleteAccount: (userId: string | number) => `/v2/profile/${userId}`,
     },
     // B2B Signup Routes
@@ -96,6 +99,28 @@ export const API_ROUTES = {
       list: '/v2/categories',
       subcategories: '/v2/subcategories',
       withSubcategories: '/v2/categories/with-subcategories',
+    },
+    // Bulk Scrap Routes
+    bulkScrap: {
+      purchase: '/v2/bulk-scrap/purchase',
+      requests: '/v2/bulk-scrap/requests',
+      accepted: '/v2/bulk-scrap/requests/accepted',
+      byBuyer: (buyerId: string | number) => `/v2/bulk-scrap/requests/by-buyer/${buyerId}`,
+      accept: (requestId: string | number) => `/v2/bulk-scrap/requests/${requestId}/accept`,
+      reject: (requestId: string | number) => `/v2/bulk-scrap/requests/${requestId}/reject`,
+      startPickup: (requestId: string | number) => `/v2/bulk-scrap/requests/${requestId}/start-pickup`,
+      orders: (requestId: string | number) => `/v2/bulk-scrap/requests/${requestId}/orders`,
+      pendingOrders: '/v2/bulk-scrap/pending-orders',
+      updateBuyerStatus: (requestId: string | number) => `/v2/bulk-scrap/requests/${requestId}/update-buyer-status`,
+    },
+    // Bulk Sell Routes
+    bulkSell: {
+      create: '/v2/bulk-sell/create',
+      requests: '/v2/bulk-sell/requests',
+      accepted: '/v2/bulk-sell/requests/accepted',
+      bySeller: (sellerId: string | number) => `/v2/bulk-sell/requests/by-seller/${sellerId}`,
+      accept: (requestId: string | number) => `/v2/bulk-sell/requests/${requestId}/accept`,
+      reject: (requestId: string | number) => `/v2/bulk-sell/requests/${requestId}/reject`,
     },
   },
   // Legacy API Routes (if needed)

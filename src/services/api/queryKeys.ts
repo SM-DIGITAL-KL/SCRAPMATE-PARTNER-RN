@@ -45,6 +45,8 @@ export const queryKeys = {
       radius?: number
     ) =>
       [...queryKeys.orders.all, 'availablePickupRequests', userId, userType, latitude, longitude, radius] as const,
+    completedPickups: (userId: string | number | undefined, userType: 'R' | 'S' | 'SR' | 'D') =>
+      [...queryKeys.orders.all, 'completedPickups', userId, userType] as const,
   },
 
   // Product queries
@@ -137,6 +139,39 @@ export const queryKeys = {
     list: () => [...queryKeys.shopTypes.all, 'list'] as const,
     userDashboards: (userId: number | string | null) => 
       [...queryKeys.shopTypes.all, 'userDashboards', userId] as const,
+  },
+
+  // Bulk Scrap Requests queries
+  bulkScrap: {
+    all: ['bulkScrap'] as const,
+    requests: (
+      userId: string | number | undefined,
+      userType?: string,
+      latitude?: number,
+      longitude?: number
+    ) =>
+      [...queryKeys.bulkScrap.all, 'requests', userId, userType, latitude, longitude] as const,
+  },
+
+  // Bulk Sell Requests queries
+  bulkSell: {
+    all: ['bulkSell'] as const,
+    requests: (
+      userId: string | number | undefined,
+      userType?: string,
+      latitude?: number,
+      longitude?: number
+    ) =>
+      [...queryKeys.bulkSell.all, 'requests', userId, userType, latitude, longitude] as const,
+    accepted: (
+      userId: string | number | undefined,
+      userType?: string,
+      latitude?: number,
+      longitude?: number
+    ) =>
+      [...queryKeys.bulkSell.all, 'accepted', userId, userType, latitude, longitude] as const,
+    bySeller: (sellerId: string | number) =>
+      [...queryKeys.bulkSell.all, 'bySeller', sellerId] as const,
   },
 } as const;
 

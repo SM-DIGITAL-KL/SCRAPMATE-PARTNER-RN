@@ -9,10 +9,9 @@ const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
  *
  * @type {import('metro-config').MetroConfig}
  */
+const defaultConfig = getDefaultConfig(__dirname);
+
 const config = {
-  server: {
-    port: 8082, // Vendor app uses port 8082 to avoid conflicts
-  },
   transformer: {
     getTransformOptions: async () => ({
       transform: {
@@ -23,4 +22,6 @@ const config = {
   },
 };
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+const mergedConfig = mergeConfig(defaultConfig, config);
+
+module.exports = mergedConfig;

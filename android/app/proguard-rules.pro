@@ -30,10 +30,59 @@
 -keep class com.google.firebase.iid.FirebaseInstanceId { *; }
 -keep class com.google.firebase.iid.FirebaseInstanceIdService { *; }
 
+# Keep Firebase Installations (required for FCM)
+-keep class com.google.firebase.installations.** { *; }
+
+# Keep Firebase Analytics (required for FCM)
+-keep class com.google.firebase.analytics.** { *; }
+
+# Keep Firebase Components
+-keep class com.google.firebase.components.** { *; }
+
+# Keep Firebase Tasks
+-keep class com.google.android.gms.tasks.** { *; }
+
 # Keep Firebase Messaging metadata
 -keepattributes *Annotation*
 -keepattributes Signature
 -keepattributes Exceptions
+-keepattributes EnclosingMethod
+
+# ============================================
+# React Native Firebase ProGuard Rules
+# ============================================
+# Keep React Native Firebase classes
+-keep class io.invertase.firebase.** { *; }
+-keep class io.invertase.firebase.messaging.** { *; }
+-keep class io.invertase.firebase.common.** { *; }
+
+# Keep React Native Firebase native modules
+-keep class * implements io.invertase.firebase.interfaces.NativeModule { *; }
+
+# Keep React Native Firebase messaging service
+-keep class io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService { *; }
+
+# Keep React Native Firebase messaging receiver
+-keep class io.invertase.firebase.messaging.ReactNativeFirebaseMessagingReceiver { *; }
+
+# Keep React Native Firebase messaging module
+-keep class io.invertase.firebase.messaging.ReactNativeFirebaseMessagingModule { *; }
+
+# Keep React Native Firebase app module
+-keep class io.invertase.firebase.app.ReactNativeFirebaseAppModule { *; }
+
+# Keep React Native Firebase package
+-keep class io.invertase.firebase.ReactNativeFirebaseAppPackage { *; }
+-keep class io.invertase.firebase.messaging.ReactNativeFirebaseMessagingPackage { *; }
+
+# Keep React Native Firebase JSON classes
+-keep class io.invertase.firebase.common.** { *; }
+
+# Keep React Native Firebase utils
+-keep class io.invertase.firebase.utils.** { *; }
+
+# Keep React Native Firebase interfaces
+-keep interface io.invertase.firebase.interfaces.** { *; }
 
 # ============================================
 # React Native ProGuard Rules

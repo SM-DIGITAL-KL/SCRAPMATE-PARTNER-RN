@@ -5,8 +5,14 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- SMS permissions removed - not compliant with Google Play Store policy -->
+    <!-- App does not function as default SMS handler, so SMS permissions are not allowed -->
+    <!-- OTP must be entered manually by users -->
 
     <application
       android:name=".MainApplication"
@@ -42,6 +48,17 @@
         </intent-filter>
       </activity>
 
+      <!-- FileProvider for sharing QR code images -->
+      <provider
+        android:name="androidx.core.content.FileProvider"
+        android:authorities="${applicationId}.fileprovider"
+        android:exported="false"
+        android:grantUriPermissions="true">
+        <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/filepaths" />
+      </provider>
+
       <!-- Firebase Cloud Messaging Service -->
       <service
         android:name="com.google.firebase.messaging.FirebaseMessagingService"
@@ -69,3 +86,4 @@
         tools:replace="android:resource" />
     </application>
 </manifest>
+

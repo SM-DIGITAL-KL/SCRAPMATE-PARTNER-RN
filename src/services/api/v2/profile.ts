@@ -23,6 +23,59 @@ export interface ProfileData {
     shop_type?: string;
     aadhar_card?: string | null;
     driving_license?: string | null;
+    approval_status?: string;
+    rejection_reason?: string | null;
+    company_name?: string;
+    gst_number?: string;
+    pan_number?: string;
+    business_license_url?: string;
+    gst_certificate_url?: string;
+    address_proof_url?: string;
+    kyc_owner_url?: string;
+    lat_log?: string;
+    location?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  b2bShop?: {
+    id: string | number;
+    shopname: string;
+    ownername: string;
+    address: string;
+    contact: string;
+    company_name: string;
+    gst_number: string;
+    pan_number?: string;
+    business_license_url?: string;
+    gst_certificate_url?: string;
+    address_proof_url?: string;
+    kyc_owner_url?: string;
+    approval_status: string | null;
+    rejection_reason?: string | null;
+    shop_type: number;
+    lat_log?: string;
+    location?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  b2cShop?: {
+    id: string | number;
+    shopname: string;
+    address: string;
+    contact: string;
+    aadhar_card?: string | null;
+    driving_license?: string | null;
+    approval_status: string | null;
+    rejection_reason?: string | null;
+    shop_type: number;
+    lat_log?: string;
+    location?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    is_subscribed?: boolean;
+    subscribed_duration?: number; // Duration in days
+    subscription_ends_at?: string; // ISO date string
+    is_subscription_ends?: boolean;
   };
   delivery?: {
     id: string | number;
@@ -56,6 +109,24 @@ export interface ProfileData {
   };
   created_at?: string;
   updated_at?: string;
+  invoices?: Array<{
+    id: string | number;
+    user_id: string | number;
+    name?: string;
+    displayname?: string;
+    type?: string;
+    price?: string;
+    duration?: string | number;
+    from_date?: string;
+    to_date?: string;
+    approval_status?: 'pending' | 'approved' | 'rejected';
+    approval_notes?: string | null;
+    approved_at?: string;
+    payment_moj_id?: string | null;
+    payment_req_id?: string | null;
+    created_at?: string;
+    updated_at?: string;
+  }>;
 }
 
 export interface UpdateProfileData {
@@ -127,9 +198,24 @@ export const getProfile = async (userId: string | number): Promise<ProfileData> 
   }
 
   const result: ProfileResponse = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to fetch profile');
+  }
+
+  // Debug: Log invoices if present
+  if ((result.data as any).invoices) {
+    console.log('📋 [getProfile] Invoices in response:', {
+      count: ((result.data as any).invoices || []).length,
+      invoices: ((result.data as any).invoices || []).map((inv: any) => ({
+        id: inv.id,
+        approval_status: inv.approval_status,
+        approval_notes: inv.approval_notes,
+        type: inv.type
+      }))
+    });
+  } else {
+    console.log('⚠️ [getProfile] No invoices in profile response');
   }
 
   return result.data;
@@ -157,7 +243,7 @@ export const updateProfile = async (
   }
 
   const result: ProfileResponse = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to update profile');
   }
@@ -187,7 +273,7 @@ export const updateDeliveryMode = async (
   }
 
   const result: ProfileResponse = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to update delivery mode');
   }
@@ -217,7 +303,7 @@ export const updateOnlineStatus = async (
   }
 
   const result: ProfileResponse = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to update online status');
   }
@@ -258,7 +344,7 @@ export const uploadProfileImage = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to upload profile image');
   }
@@ -299,7 +385,7 @@ export const uploadAadharCard = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to upload Aadhar card');
   }
@@ -340,7 +426,7 @@ export const uploadDrivingLicense = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to upload driving license');
   }
@@ -369,7 +455,7 @@ export const completeDeliverySignup = async (
   }
 
   const result: ProfileResponse = await response.json();
-  
+
   if (result.status === 'error' || !result.data) {
     throw new Error(result.msg || 'Failed to complete delivery signup');
   }
@@ -397,7 +483,7 @@ export const deleteAccount = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error') {
     throw new Error(result.msg || result.message || 'Failed to delete account');
   }
@@ -427,7 +513,7 @@ export const updateUserCategories = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error') {
     throw new Error(result.msg || result.message || 'Failed to update categories');
   }
@@ -455,7 +541,7 @@ export const getUserCategories = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error') {
     throw new Error(result.msg || result.message || 'Failed to get categories');
   }
@@ -484,7 +570,7 @@ export const removeUserCategory = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error') {
     throw new Error(result.msg || result.message || 'Failed to remove category');
   }
@@ -514,7 +600,7 @@ export const updateUserSubcategories = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error') {
     throw new Error(result.msg || result.message || 'Failed to update subcategories');
   }
@@ -544,7 +630,7 @@ export const removeUserSubcategories = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error') {
     throw new Error(result.msg || result.message || 'Failed to remove subcategories');
   }
@@ -572,9 +658,38 @@ export const getUserSubcategories = async (
   }
 
   const result = await response.json();
-  
+
   if (result.status === 'error') {
     throw new Error(result.msg || result.message || 'Failed to get subcategories');
+  }
+
+  return result;
+};
+
+/**
+ * Upgrade user_type from 'S' to 'SR' and create R shop when switching to B2C mode
+ * Only works if user is approved by admin panel
+ */
+export const upgradeToSR = async (
+  userId: string | number
+): Promise<{ status: string; msg: string; data: { user_type: string; b2b_shop_id: string | number; r_shop_id: string | number } }> => {
+  const url = buildApiUrl(API_ROUTES.v2.profile.upgradeToSR(userId));
+  const headers = getApiHeaders();
+
+  const response = await fetchWithLogging(url, {
+    method: 'POST',
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to upgrade to SR: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || 'Failed to upgrade to SR');
   }
 
   return result;
