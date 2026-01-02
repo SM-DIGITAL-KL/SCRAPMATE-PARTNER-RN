@@ -121,6 +121,25 @@ const EditProfileScreen = ({ navigation }: any) => {
     };
   }, [loadAddresses]);
 
+  // Update address state when saved addresses are loaded
+  useEffect(() => {
+    if (savedAddresses.length > 0 && !loadingAddresses) {
+      const addr = savedAddresses[0];
+      if (addr.address && addr.address !== address) {
+        setAddress(addr.address);
+        if (addr.latitude && addr.longitude) {
+          setLatitude(addr.latitude);
+          setLongitude(addr.longitude);
+        }
+        if (addr.pincode) setPincode(addr.pincode);
+        if (addr.state) setState(addr.state);
+        if (addr.place) setPlace(addr.place);
+        if (addr.location) setLocation(addr.location);
+        if (addr.place_id) setPlaceId(addr.place_id);
+      }
+    }
+  }, [savedAddresses, loadingAddresses]);
+
   const handleDeleteAddress = async (addressId: number) => {
     Alert.alert(
       'Delete Address',
@@ -609,49 +628,39 @@ const EditProfileScreen = ({ navigation }: any) => {
                 <ActivityIndicator size="small" color={theme.primary} />
                 <AutoText style={styles.addressLoadingText}>Loading address...</AutoText>
               </View>
-            ) : savedAddresses.length === 0 ? (
+            ) : savedAddresses.length > 0 ? (
+              // Show the registered address in a display format
+              (() => {
+                const addr = savedAddresses[0];
+                // Build full address string with house name and nearby location
+                let fullAddress = addr.address || '';
+                if (addr.building_no) {
+                  fullAddress = `${addr.building_no}, ${fullAddress}`;
+                }
+                if (addr.landmark) {
+                  fullAddress = `${fullAddress}, ${addr.landmark}`;
+                }
+                return (
+                  <View style={styles.addressDisplayField}>
+                    <AutoText style={styles.addressDisplayText} numberOfLines={6}>
+                      {fullAddress}
+                    </AutoText>
+                  </View>
+                );
+              })()
+            ) : (profile?.shop?.address || profile?.delivery?.address) ? (
+              // Show address from profile (shop or delivery) if no saved addresses
+              <View style={styles.addressDisplayField}>
+                <AutoText style={styles.addressDisplayText} numberOfLines={6}>
+                  {profile.shop?.address || profile.delivery?.address || ''}
+                </AutoText>
+              </View>
+            ) : (
               <View style={styles.noAddressContainer}>
                 <MaterialCommunityIcons name="map-marker-off" size={32} color={theme.textSecondary} />
                 <AutoText style={styles.noAddressText}>No address saved</AutoText>
                 <AutoText style={styles.noAddressSubtext}>Add an address to get started</AutoText>
               </View>
-            ) : (
-              // For B2B/B2C, show only the first address (they can only have one)
-              (() => {
-                const addr = savedAddresses[0];
-                return (
-                  <View key={addr.id} style={styles.addressCard}>
-                    <View style={styles.addressCardHeader}>
-                      <View style={styles.addressTypeBadge}>
-                        <MaterialCommunityIcons 
-                          name="map-marker" 
-                          size={16} 
-                          color={theme.primary} 
-                        />
-                        <AutoText style={styles.addressTypeText}>Address</AutoText>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteAddress(addr.id)}
-                        style={styles.deleteAddressButton}
-                      >
-                        <MaterialCommunityIcons name="delete-outline" size={20} color="#FF4444" />
-                      </TouchableOpacity>
-                    </View>
-                    <AutoText style={styles.addressCardText}>{addr.address}</AutoText>
-                    {addr.building_no && (
-                      <AutoText style={styles.addressCardSubtext}>Building: {addr.building_no}</AutoText>
-                    )}
-                    {addr.landmark && (
-                      <AutoText style={styles.addressCardSubtext}>Landmark: {addr.landmark}</AutoText>
-                    )}
-                    {(addr.latitude && addr.longitude) && (
-                      <AutoText style={styles.addressCardSubtext}>
-                        Location: {addr.latitude.toFixed(6)}, {addr.longitude.toFixed(6)}
-                      </AutoText>
-                    )}
-                  </View>
-                );
-              })()
             )}
           </View>
         </View>
@@ -1078,6 +1087,27 @@ const getStyles = (theme: any, isDark: boolean, themeName?: string) =>
       fontSize: '12@s',
       color: theme.textSecondary,
       marginTop: '2@vs',
+    },
+    addressDisplayField: {
+      backgroundColor: theme.background,
+      borderRadius: '12@ms',
+      borderWidth: 1,
+      borderColor: theme.border,
+      padding: '14@s',
+      marginTop: '8@vs',
+    },
+    addressDisplayText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textPrimary,
+      lineHeight: '20@vs',
+      marginBottom: '8@vs',
+    },
+    addressDisplaySubtext: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginTop: '4@vs',
     },
   });
 

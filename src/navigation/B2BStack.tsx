@@ -8,15 +8,30 @@ import DealerSignupScreen from '../screens/B2B/DealerSignupScreen';
 import DocumentUploadScreen from '../screens/B2B/DocumentUploadScreen';
 import ApprovalWorkflowScreen from '../screens/B2B/ApprovalWorkflowScreen';
 import BulkScrapRequestScreen from '../screens/B2B/BulkScrapRequestScreen';
+import BulkSellRequestScreen from '../screens/B2B/BulkSellRequestScreen';
 import UserProfileScreen from '../screens/B2B/UserProfileScreen';
+import PendingBulkBuyOrdersScreen from '../screens/B2B/PendingBulkBuyOrdersScreen';
+import PendingBulkBuyOrderDetailScreen from '../screens/B2B/PendingBulkBuyOrderDetailScreen';
 import SubscriptionPlansScreen from '../screens/B2B/SubscriptionPlansScreen';
 import EditProfileScreen from '../screens/B2C/EditProfileScreen';
 import SelectLanguageScreen from '../screens/B2C/SelectLanguageScreen';
 import AddCategoryScreen from '../screens/B2C/AddCategoryScreen';
 import PrivacyPolicyScreen from '../screens/Common/PrivacyPolicyScreen';
 import TermsScreen from '../screens/Common/TermsScreen';
+import FullscreenMapScreen from '../screens/B2C/FullscreenMapScreen';
+import ActiveBuyRequestsListScreen from '../screens/B2C/ActiveBuyRequestsListScreen';
+import MyBulkBuyRequestsScreen from '../screens/B2B/MyBulkBuyRequestsScreen';
+import BulkRequestDetailsScreen from '../screens/B2B/BulkRequestDetailsScreen';
+import AvailableBulkSellRequestsScreen from '../screens/B2B/AvailableBulkSellRequestsScreen';
+import BulkSellRequestDetailsScreen from '../screens/B2B/BulkSellRequestDetailsScreen';
+import ParticipateBulkSellRequestScreen from '../screens/B2B/ParticipateBulkSellRequestScreen';
+import DeliveryTrackingScreen from '../screens/B2C/DeliveryTrackingScreen';
+import ParticipateBulkRequestScreen from '../screens/B2C/ParticipateBulkRequestScreen';
+import BulkRequestTrackingScreen from '../screens/B2C/BulkRequestTrackingScreen';
+import B2BMyOrdersScreen from '../screens/B2B/B2BMyOrdersScreen';
 import { useTheme } from '../components/ThemeProvider';
 import { getUserData } from '../services/auth/authService';
+import { getProfile } from '../services/api/v2/profile';
 
 export type B2BStackParamList = {
   Placeholder: undefined;
@@ -25,6 +40,7 @@ export type B2BStackParamList = {
   DocumentUpload: undefined;
   ApprovalWorkflow: { fromProfile?: boolean } | undefined;
   BulkScrapRequest: undefined;
+  BulkSellRequest: undefined;
   UserProfile: undefined;
   SubscriptionPlans: undefined;
   EditProfile: undefined;
@@ -32,6 +48,19 @@ export type B2BStackParamList = {
   AddCategory: undefined;
   PrivacyPolicy: undefined;
   Terms: undefined;
+  FullscreenMap: { destination: { latitude: number; longitude: number }; orderId?: string; requestId?: string };
+  ActiveBuyRequestsList: undefined;
+  MyBulkBuyRequests: undefined;
+  BulkRequestDetails: { request: any };
+  AvailableBulkSellRequests: undefined;
+  BulkSellRequestDetails: { request: any };
+  ParticipateBulkSellRequest: { request: any };
+  DeliveryTracking: { orderId: string; order?: any };
+  ParticipateBulkRequest: { request: any };
+  BulkRequestTracking: { bulkRequest: any; orderId?: string | number };
+  PendingBulkBuyOrders: { fromPayment?: boolean } | undefined;
+  PendingBulkBuyOrderDetail: { order: any };
+  MyOrders: undefined;
 };
 
 const Stack = createNativeStackNavigator<B2BStackParamList>();
@@ -40,7 +69,7 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
   const { theme } = useTheme();
   const navigationRef = useRef<any>(null);
   const [initialRoute, setInitialRoute] = React.useState<keyof B2BStackParamList | null>(null);
-  
+
   // Check B2B status and set initial route before rendering navigator
   React.useEffect(() => {
     const checkB2BStatusAndSetRoute = async (retryCount = 0) => {
@@ -48,10 +77,10 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
         // Add increasing delays for retries to ensure AsyncStorage is updated after login
         const delay = retryCount === 0 ? 100 : retryCount * 200;
         await new Promise(resolve => setTimeout(resolve, delay));
-        
+
         const b2bStatus = await AsyncStorage.getItem('@b2b_status');
         console.log(`🔍 B2BStack: B2B status from storage (attempt ${retryCount + 1}):`, b2bStatus);
-        
+
         // Also check user_type as fallback - if user_type is 'N', route to signup
         let userType: string | null = null;
         let userData: any = null;
@@ -63,19 +92,104 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
         } catch (error) {
           console.error('❌ B2BStack: Error getting user data:', error);
         }
-        
+
         // If no status found and this is the first attempt, retry a few times
         if (!b2bStatus && !userType && retryCount < 3) {
           console.log(`⏳ B2BStack: Status not found, retrying in ${(retryCount + 1) * 200}ms...`);
           return checkB2BStatusAndSetRoute(retryCount + 1);
         }
-        
+
         let route: keyof B2BStackParamList = 'DealerDashboard';
-        
-        // CRITICAL: Check user_type FIRST - if user_type is 'N' (new user), ALWAYS route to signup
-        // This applies even if shop data exists (for re-registering users with del_status = 2)
-        // New users (type 'N') must complete signup before accessing dashboard
-        if (userType === 'N' || userType === null || userType === undefined) {
+
+        // CRITICAL: Check user_type FIRST
+        if (userType === 'S') {
+          // S users always go to dashboard (they're pure B2B users)
+          console.log(`✅ B2BStack: User type is S (B2B user) - routing to DealerDashboard`);
+          route = 'DealerDashboard';
+          // Clear any old B2B status flags
+          if (b2bStatus) {
+            await AsyncStorage.removeItem('@b2b_status');
+          }
+        } else if (userType === 'SR') {
+          // For SR users, check B2B shop's approval status specifically (not merged status)
+          try {
+            // Fetch profile to check B2B shop approval status
+            const profile = await getProfile(userData?.id);
+            const b2bShop = (profile as any)?.b2bShop;
+            const shop = profile?.shop as any;
+            
+            console.log(`🔍 B2BStack: SR user - checking B2B shop approval status`);
+            console.log(`🔍 B2BStack: SR user - b2bShop exists:`, !!b2bShop);
+            console.log(`🔍 B2BStack: SR user - shop data exists:`, !!shop);
+            
+            let b2bApprovalStatus = null;
+            
+            // If we have separate b2bShop object, use it directly
+            if (b2bShop && b2bShop.id) {
+              b2bApprovalStatus = b2bShop.approval_status;
+              console.log(`✅ B2BStack: Using b2bShop.approval_status: ${b2bApprovalStatus}`);
+            } else if (shop && shop.id) {
+              // Fallback: Use merged shop data
+              const shopType = shop?.shop_type;
+              const isB2BShop = shopType === 1 || shopType === 4; // B2B shop types
+              const hasB2BFields = shop?.company_name || shop?.gst_number || shop?.business_license_url;
+              const approvalStatus = shop?.approval_status;
+              
+              if (isB2BShop) {
+                // This is the B2B shop itself, use its approval_status directly
+                b2bApprovalStatus = approvalStatus;
+                console.log(`✅ B2BStack: Shop is B2B shop (type ${shopType}), approval_status: ${b2bApprovalStatus}`);
+              } else if (hasB2BFields && approvalStatus === 'approved') {
+                // Shop has B2B fields and is approved
+                // Since merged shop prioritizes B2B approval_status, if it's approved and has B2B fields, B2B is approved
+                b2bApprovalStatus = 'approved';
+                console.log(`✅ B2BStack: Shop has B2B fields and is approved, B2B shop is approved`);
+              } else if (hasB2BFields) {
+                // Shop has B2B fields but approval_status is not approved (pending/rejected/null)
+                // Since merged shop prioritizes B2B status, this means B2B is not approved
+                b2bApprovalStatus = approvalStatus || 'pending';
+                console.log(`✅ B2BStack: Shop has B2B fields but approval_status is ${approvalStatus}, B2B shop is ${b2bApprovalStatus}`);
+              } else {
+                // No B2B fields - B2B shop might not exist
+                b2bApprovalStatus = 'pending';
+                console.log(`✅ B2BStack: No B2B fields found, B2B shop might not exist`);
+              }
+            } else {
+              // No shop data at all
+              console.log(`✅ B2BStack: SR user with no shop data - routing to ApprovalWorkflow`);
+              route = 'ApprovalWorkflow';
+              await AsyncStorage.setItem('@b2b_status', 'pending');
+            }
+            
+            if (b2bApprovalStatus === 'approved') {
+              console.log(`✅ B2BStack: SR user with B2B shop approved - routing to DealerDashboard`);
+              route = 'DealerDashboard';
+              // Clear any old B2B status flags
+              if (b2bStatus) {
+                await AsyncStorage.removeItem('@b2b_status');
+              }
+            } else if (b2bApprovalStatus === 'rejected') {
+              console.log(`✅ B2BStack: SR user with B2B shop rejected - routing to DealerSignup`);
+              route = 'DealerSignup';
+              await AsyncStorage.setItem('@b2b_status', 'rejected');
+            } else if (b2bApprovalStatus !== null) {
+              // B2B shop is pending or missing
+              console.log(`✅ B2BStack: SR user with B2B shop status '${b2bApprovalStatus}' - routing to ApprovalWorkflow`);
+              route = 'ApprovalWorkflow';
+              await AsyncStorage.setItem('@b2b_status', b2bApprovalStatus || 'pending');
+            } else {
+              // b2bApprovalStatus is null - no shop data
+              console.log(`✅ B2BStack: SR user with no B2B shop data - routing to ApprovalWorkflow`);
+              route = 'ApprovalWorkflow';
+              await AsyncStorage.setItem('@b2b_status', 'pending');
+            }
+          } catch (error) {
+            console.warn('⚠️ B2BStack: Failed to fetch profile for SR user, routing to ApprovalWorkflow as safe default:', error);
+            // If profile fetch fails, route to ApprovalWorkflow as safe default
+            route = 'ApprovalWorkflow';
+            await AsyncStorage.setItem('@b2b_status', 'pending');
+          }
+        } else if (userType === 'N' || userType === null || userType === undefined) {
           // If userType is null/undefined, treat as new user for safety
           if (!userType) {
             console.log('⚠️ B2BStack: User type is null/undefined - treating as new user (N) for safety');
@@ -85,7 +199,7 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
           route = 'DealerSignup';
           // Don't set AsyncStorage flags until signup is complete
         } else {
-          // User type is not 'N' - signup is complete, check approval status
+          // User type is not 'N', 'S', or 'SR' - check approval status
           if (b2bStatus === 'rejected') {
             // If rejected, route to signup screen to allow user to fix issues
             console.log('✅ B2BStack: Status is rejected - routing to DealerSignup to fix issues');
@@ -110,7 +224,7 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
             route = 'DealerDashboard';
           }
         }
-        
+
         console.log('🎯 B2BStack: Final initial route set to:', route);
         setInitialRoute(route);
       } catch (error) {
@@ -119,7 +233,7 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
         setInitialRoute('DealerDashboard');
       }
     };
-    
+
     checkB2BStatusAndSetRoute();
   }, []); // Empty deps - run on every mount/remount
 
@@ -150,13 +264,27 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="DocumentUpload" component={DocumentUploadScreen} />
       <Stack.Screen name="ApprovalWorkflow" component={ApprovalWorkflowScreen} />
       <Stack.Screen name="BulkScrapRequest" component={BulkScrapRequestScreen} />
+      <Stack.Screen name="BulkSellRequest" component={BulkSellRequestScreen} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+      <Stack.Screen name="PendingBulkBuyOrders" component={PendingBulkBuyOrdersScreen} />
+      <Stack.Screen name="PendingBulkBuyOrderDetail" component={PendingBulkBuyOrderDetailScreen} />
       <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="SelectLanguage" component={SelectLanguageScreen} />
       <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="FullscreenMap" component={FullscreenMapScreen} />
+      <Stack.Screen name="ActiveBuyRequestsList" component={ActiveBuyRequestsListScreen} />
+      <Stack.Screen name="MyBulkBuyRequests" component={MyBulkBuyRequestsScreen} />
+      <Stack.Screen name="BulkRequestDetails" component={BulkRequestDetailsScreen} />
+      <Stack.Screen name="AvailableBulkSellRequests" component={AvailableBulkSellRequestsScreen} />
+      <Stack.Screen name="BulkSellRequestDetails" component={BulkSellRequestDetailsScreen} />
+      <Stack.Screen name="ParticipateBulkSellRequest" component={ParticipateBulkSellRequestScreen} />
+      <Stack.Screen name="DeliveryTracking" component={DeliveryTrackingScreen} />
+      <Stack.Screen name="ParticipateBulkRequest" component={ParticipateBulkRequestScreen} />
+      <Stack.Screen name="BulkRequestTracking" component={BulkRequestTrackingScreen} />
+      <Stack.Screen name="MyOrders" component={B2BMyOrdersScreen} />
       <Stack.Screen name="Placeholder" component={B2BPlaceholderScreen} />
     </Stack.Navigator>
   );

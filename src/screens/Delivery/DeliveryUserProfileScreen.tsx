@@ -14,6 +14,7 @@ import { getUserData, logout } from '../../services/auth/authService';
 import { useProfile } from '../../hooks/useProfile';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteAccount } from '../../services/api/v2/profile';
+import { APP_VERSION, APP_NAME } from '../../constants/version';
 
 const DeliveryUserProfileScreen = ({ route }: any) => {
   const navigation = useNavigation<NavigationProp<DeliveryStackParamList>>();
@@ -436,7 +437,7 @@ const DeliveryUserProfileScreen = ({ route }: any) => {
 
         <View style={styles.appInfoContainer}>
           <AutoText style={styles.appInfoText}>
-            ScrapMate Partner v1.0.1
+            {APP_NAME} v{APP_VERSION}
           </AutoText>
         </View>
       </ScrollView>

@@ -7,10 +7,12 @@ import {
   getCategories, 
   getSubcategories, 
   getCategoriesWithSubcategories,
+  getUserSubcategoryRequests,
   Category,
   Subcategory,
   CategoriesResponse,
   SubcategoriesResponse,
+  UserSubcategoryRequestsResponse,
 } from '../services/api/v2/categories';
 import { 
   getUserCategories, 
@@ -156,5 +158,23 @@ export const useRemoveUserSubcategories = (userId: string | number) => {
       queryKeys.userSubcategories.byUser(userId),
       queryKeys.userCategories.byUser(userId),
     ],
+  });
+};
+
+/**
+ * Hook to get user's subcategory requests (pending, approved, rejected)
+ */
+export const useUserSubcategoryRequests = (
+  userId: string | number | null | undefined,
+  enabled = true
+) => {
+  return useApiQuery<UserSubcategoryRequestsResponse>({
+    queryKey: ['userSubcategoryRequests', userId],
+    queryFn: () => getUserSubcategoryRequests(Number(userId!)),
+    enabled: enabled && !!userId,
+    staleTime: 1 * 60 * 1000, // 1 minute (frequent updates)
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };

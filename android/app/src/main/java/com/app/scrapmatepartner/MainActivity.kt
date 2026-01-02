@@ -164,21 +164,75 @@ class MainActivity : ReactActivity() {
     super.onNewIntent(intent)
     setIntent(intent)
     
+    android.util.Log.e("MainActivity", "========================================")
+    android.util.Log.e("MainActivity", "onNewIntent called")
+    android.util.Log.e("MainActivity", "Intent: ${intent?.toString()}")
+    android.util.Log.e("MainActivity", "Intent data: ${intent?.data?.toString()}")
+    android.util.Log.e("MainActivity", "Intent scheme: ${intent?.data?.scheme}")
+    android.util.Log.e("MainActivity", "Intent query: ${intent?.data?.query}")
+    
+    checkAndHandleUPIIntent(intent)
+  }
+
+  override fun onResume() {
+    super.onResume()
+    android.util.Log.e("MainActivity", "========================================")
+    android.util.Log.e("MainActivity", "onResume called")
+    android.util.Log.e("MainActivity", "Checking current intent for UPI callback")
+    
+    // Check current intent when app resumes (in case onNewIntent wasn't called)
+    val currentIntent = intent
+    checkAndHandleUPIIntent(currentIntent)
+  }
+
+  private fun checkAndHandleUPIIntent(intent: Intent?) {
+    android.util.Log.e("MainActivity", "checkAndHandleUPIIntent called")
+    android.util.Log.e("MainActivity", "Intent: ${intent?.toString()}")
+    android.util.Log.e("MainActivity", "Intent data: ${intent?.data?.toString()}")
+    android.util.Log.e("MainActivity", "Intent scheme: ${intent?.data?.scheme}")
+    android.util.Log.e("MainActivity", "Intent query: ${intent?.data?.query}")
+    
     // Check if this is a UPI payment response
     intent?.data?.let { uri ->
+      android.util.Log.e("MainActivity", "URI scheme: ${uri.scheme}")
+      android.util.Log.e("MainActivity", "URI query: ${uri.query}")
+      android.util.Log.e("MainActivity", "URI toString: ${uri.toString()}")
+      
       if (uri.scheme == "upi" || uri.scheme == "scrapmatepartner") {
+        android.util.Log.e("MainActivity", "✅ URI matches UPI callback scheme")
         // Extract response from URI
         val response = uri.query ?: uri.toString()
+        android.util.Log.e("MainActivity", "Extracted response: $response")
+        android.util.Log.e("MainActivity", "Response length: ${response.length}")
+        
         if (response.isNotEmpty()) {
+          android.util.Log.e("MainActivity", "✅ Response is not empty, getting React Native context")
           // Get React Native context and module
           val reactContext = reactInstanceManager?.currentReactContext
           if (reactContext != null) {
+            android.util.Log.e("MainActivity", "✅ React Native context found")
             val module = reactContext.getNativeModule(UPIPaymentModule::class.java)
-            module?.handlePaymentResponse(response)
+            if (module != null) {
+              android.util.Log.e("MainActivity", "✅ UPIPaymentModule found, calling handlePaymentResponse")
+              module.handlePaymentResponse(response)
+              // Clear the intent data after handling to avoid processing it again
+              intent.data = null
+            } else {
+              android.util.Log.e("MainActivity", "❌ UPIPaymentModule not found")
+            }
+          } else {
+            android.util.Log.e("MainActivity", "❌ React Native context is null")
           }
+        } else {
+          android.util.Log.e("MainActivity", "❌ Response is empty")
         }
+      } else {
+        android.util.Log.e("MainActivity", "❌ URI scheme does not match (upi or scrapmatepartner), scheme: ${uri.scheme}")
       }
+    } ?: run {
+      android.util.Log.e("MainActivity", "❌ Intent data is null")
     }
+    android.util.Log.e("MainActivity", "========================================")
   }
 
 }

@@ -20,6 +20,8 @@ import { useTabBar } from '../../context/TabBarContext';
 import { sendOtp, verifyOtp } from '../../services/api';
 import { setAuthToken, setUserData } from '../../services/auth/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { smsService } from '../../services/sms/smsService';
+import { useTranslation } from 'react-i18next';
 
 interface LoginScreenProps {
   navigation?: any;
@@ -36,6 +38,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 }) => {
   const { theme, isDark } = useTheme();
   const { setTabBarVisible } = useTabBar();
+  const { t } = useTranslation();
   const styles = getStyles(theme, isDark);
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -49,9 +52,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [errorModalMessage, setErrorModalMessage] = useState('');
   const [shouldNavigateToJoinAs, setShouldNavigateToJoinAs] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
-  const [receivedOtp, setReceivedOtp] = useState<string | null>(null);
 
   const otpInputRefs = useRef<(TextInput | null)[]>([]);
+  const handleVerifyOtpRef = useRef<((otpValue?: string) => Promise<void>) | null>(null);
+  const phoneNumberRef = useRef<string>(''); // Store phone number to preserve it during OTP verification
 
   // Hide tab bar when screen is focused
   useFocusEffect(
@@ -88,21 +92,41 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     }
   }, [showOtp, setTabBarVisible]);
 
-  // Auto-fill OTP from API response
+  // NOTE: Removed auto-fill from API response
+  // OTP will ONLY be auto-filled when received from SMS
+  // Navigation will ONLY happen after OTP is verified from SMS
+
+  // Store handleVerifyOtp in ref
   useEffect(() => {
-    if (receivedOtp && receivedOtp.length === 6 && showOtp) {
-      // Split OTP into individual digits
-      const otpDigits = receivedOtp.split('');
-      setOtp(otpDigits);
-      
-      // Auto-verify OTP after a short delay to allow UI to update
-      const autoVerifyTimer = setTimeout(() => {
-        handleVerifyOtp(receivedOtp);
-      }, 500);
-      
-      return () => clearTimeout(autoVerifyTimer);
+    handleVerifyOtpRef.current = handleVerifyOtp;
+  }, [handleVerifyOtp]);
+
+  // Listen for OTP from SMS when OTP screen is shown
+  useEffect(() => {
+    if (showOtp && otpSent) {
+      // Start listening for SMS OTP
+      const handleOtpFromSms = (otpFromSms: string) => {
+        console.log('📱 OTP received from SMS:', otpFromSms);
+        // Split OTP into individual digits
+        const otpDigits = otpFromSms.split('');
+        setOtp(otpDigits);
+        
+        // Auto-verify OTP after a short delay
+        setTimeout(() => {
+          if (handleVerifyOtpRef.current) {
+            handleVerifyOtpRef.current(otpFromSms);
+          }
+        }, 500);
+      };
+
+      smsService.startListeningForOtp(handleOtpFromSms);
+
+      // Cleanup: stop listening when component unmounts or OTP screen is hidden
+      return () => {
+        smsService.stopListening();
+      };
     }
-  }, [receivedOtp, showOtp, handleVerifyOtp]);
+  }, [showOtp, otpSent]);
 
   // Validate phone number
   const validatePhoneNumber = (phone: string): boolean => {
@@ -116,29 +140,55 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const handleSendOtp = async () => {
     const cleanedPhone = phoneNumber.replace(/\D/g, '');
     
+    console.log('📤 [LoginScreen] handleSendOtp - Starting OTP send request');
+    console.log('   Phone number:', cleanedPhone);
+    
     if (!validatePhoneNumber(phoneNumber)) {
-      Alert.alert('Invalid Phone Number', 'Please enter a valid 10-digit phone number');
+      console.error('❌ [LoginScreen] handleSendOtp - Invalid phone number:', phoneNumber);
+      Alert.alert(t('auth.invalidPhoneNumber') || 'Invalid Phone Number', t('auth.invalidPhoneNumberMessage') || 'Please enter a valid 10-digit phone number');
       return;
     }
 
+    // Store phone number in ref to preserve it during OTP verification
+    phoneNumberRef.current = cleanedPhone;
+    console.log('💾 [LoginScreen] handleSendOtp - Stored phone number in ref:', cleanedPhone);
+
     setIsLoading(true);
     try {
+      console.log('📤 [LoginScreen] handleSendOtp - Calling sendOtp API...');
       const response = await sendOtp(cleanedPhone);
+      console.log('📥 [LoginScreen] handleSendOtp - API Response:', {
+        status: response.status,
+        message: response.message,
+        hasData: !!response.data,
+        isNewUser: response.data?.isNewUser,
+        userType: response.data?.userType,
+        userId: response.data?.userId,
+      });
       
       if (response.status === 'success' && response.data) {
-        // Store OTP from response (for development/testing)
-        setReceivedOtp(response.data.otp);
+        // Don't store OTP from response - wait for SMS instead
         setIsNewUser(response.data.isNewUser);
+        
+        console.log('✅ [LoginScreen] handleSendOtp - OTP sent successfully via SMS');
+        console.log('   Is new user:', response.data.isNewUser);
+        console.log('   User type:', response.data.userType);
+        console.log('   ⏳ Waiting for OTP to arrive via SMS...');
         
         setOtpSent(true);
         setShowOtp(true);
         setCountdown(60); // 60 seconds countdown
         setShowOtpSentModal(true);
       } else {
-        Alert.alert('Error', response.message || 'Failed to send OTP. Please try again.');
+        console.error('❌ [LoginScreen] handleSendOtp - API returned error:', response.message);
+        Alert.alert(t('common.error') || 'Error', response.message || t('auth.failedToSendOtp') || 'Failed to send OTP. Please try again.');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send OTP. Please try again.');
+      console.error('❌ [LoginScreen] handleSendOtp - Exception occurred:');
+      console.error('   Error message:', error.message);
+      console.error('   Error stack:', error.stack);
+      console.error('   Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      Alert.alert(t('common.error') || 'Error', error.message || t('auth.failedToSendOtp') || 'Failed to send OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -177,14 +227,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const handleVerifyOtp = useCallback(async (otpValue?: string) => {
     const otpString = otpValue || otp.join('');
     
+    console.log('🔐 [LoginScreen] handleVerifyOtp - Starting OTP verification');
+    console.log('   OTP length:', otpString.length);
+    console.log('   OTP value:', otpString.replace(/\d/g, '•')); // Mask OTP for security
+    
     if (otpString.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter the complete 6-digit OTP');
+      console.error('❌ [LoginScreen] handleVerifyOtp - Invalid OTP length:', otpString.length);
+      Alert.alert(t('auth.invalidOtp') || 'Invalid OTP', t('auth.invalidOtpMessage') || 'Please enter the complete 6-digit OTP');
       return;
     }
 
     setIsLoading(true);
     try {
-      const cleanedPhone = phoneNumber.replace(/\D/g, '');
+      // Use phone number from ref if available, otherwise from state
+      const phoneNumberToUse = phoneNumberRef.current || phoneNumber;
+      const cleanedPhone = phoneNumberToUse.replace(/\D/g, '');
+      console.log('📱 [LoginScreen] handleVerifyOtp - Phone number from ref:', phoneNumberRef.current);
+      console.log('📱 [LoginScreen] handleVerifyOtp - Phone number from state:', phoneNumber);
+      console.log('📱 [LoginScreen] handleVerifyOtp - Phone number to use:', cleanedPhone);
+      
+      if (!cleanedPhone || cleanedPhone.length === 0) {
+        console.error('❌ [LoginScreen] handleVerifyOtp - Phone number is empty!');
+        Alert.alert(t('common.error') || 'Error', t('auth.phoneNumberMissing') || 'Phone number is missing. Please try logging in again.');
+        setIsLoading(false);
+        return;
+      }
       
       // Get join type from AsyncStorage or current mode (for both new and existing users)
       // This ensures we use the user's selected join type, not the API's dashboardType
@@ -192,30 +259,51 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       const storedJoinType = await AsyncStorage.getItem('@selected_join_type');
       if (storedJoinType === 'b2b' || storedJoinType === 'b2c' || storedJoinType === 'delivery') {
         joinType = storedJoinType as 'b2b' | 'b2c' | 'delivery';
-        console.log('📝 LoginScreen: Using stored join type:', joinType);
+        console.log('📝 [LoginScreen] handleVerifyOtp - Using stored join type:', joinType);
       } else {
         // Fallback: if no stored join type, use current mode from UserModeContext
         // This works for new users who selected a type in JoinAsScreen but it wasn't stored
         const { useUserMode } = await import('../../context/UserModeContext');
         // We can't use hooks here, so we'll use a different approach
         // Instead, we'll temporarily store it in JoinAsScreen just for the login flow
-        console.log('⚠️ LoginScreen: No stored join type found - will use API dashboardType or mode');
+        console.log('⚠️ [LoginScreen] handleVerifyOtp - No stored join type found - will use API dashboardType or mode');
       }
 
+      console.log('📤 [LoginScreen] handleVerifyOtp - Calling verifyOtp API...');
+      console.log('   Parameters:', { phoneNumber: cleanedPhone, otp: '••••••', joinType });
       const response = await verifyOtp(cleanedPhone, otpString, joinType);
+      console.log('📥 [LoginScreen] handleVerifyOtp - API Response:', {
+        status: response.status,
+        message: response.message,
+        hasData: !!response.data,
+        hasToken: !!response.data?.token,
+        hasUser: !!response.data?.user,
+        dashboardType: response.data?.dashboardType,
+        userType: response.data?.user?.user_type,
+      });
       
       if (response.status === 'success' && response.data) {
+        console.log('✅ [LoginScreen] handleVerifyOtp - OTP verification successful!');
+        
         // Store auth token and user data
-        await setAuthToken(response.data.token);
-        await setUserData(response.data.user);
+        try {
+          console.log('💾 [LoginScreen] handleVerifyOtp - Storing auth token and user data...');
+          await setAuthToken(response.data.token);
+          await setUserData(response.data.user);
+          console.log('✅ [LoginScreen] handleVerifyOtp - Auth token and user data stored successfully');
+        } catch (storageError) {
+          console.error('❌ [LoginScreen] handleVerifyOtp - Error storing auth data:', storageError);
+          throw storageError; // Re-throw to be caught by outer catch
+        }
         
         // Save FCM token after successful login
         try {
+          console.log('📱 [LoginScreen] handleVerifyOtp - Saving FCM token...');
           const { fcmService } = await import('../../services/fcm/fcmService');
           await fcmService.getFCMToken();
-          console.log('✅ FCM token saved after login');
+          console.log('✅ [LoginScreen] handleVerifyOtp - FCM token saved after login');
         } catch (fcmError) {
-          console.error('⚠️ Failed to save FCM token after login:', fcmError);
+          console.error('⚠️ [LoginScreen] handleVerifyOtp - Failed to save FCM token after login:', fcmError);
           // Don't block the flow if FCM token saving fails
         }
         
@@ -223,10 +311,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         const user = response.data.user;
         const userType = user?.user_type;
         const appType = user?.app_type || user?.app_version;
-        console.log('🔍 LoginScreen: User type from API:', userType);
-        console.log('🔍 LoginScreen: App type/version:', appType);
-        console.log('🔍 LoginScreen: Dashboard type:', response.data.dashboardType);
-        console.log('🔍 LoginScreen: Join type (from user selection):', joinType);
+        console.log('🔍 [LoginScreen] handleVerifyOtp - User details:');
+        console.log('   User type:', userType);
+        console.log('   App type/version:', appType);
+        console.log('   Dashboard type:', response.data.dashboardType);
+        console.log('   Join type (from user selection):', joinType);
         
         
         // Determine dashboard type based on user_type (only if app_type is V2)
@@ -270,14 +359,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           // Determine final dashboard type to pass to callback
           // Use joinType (from user's selection) instead of API dashboardType
           finalDashboardTypeForCallback = joinType || response.data.dashboardType || 'b2c';
-          console.log('🔍 LoginScreen: Final dashboard type for new user:', finalDashboardTypeForCallback);
+          console.log('🔍 [LoginScreen] handleVerifyOtp - Final dashboard type for new user:', finalDashboardTypeForCallback);
           
           // Call success callback with dashboard type and allowed dashboards
+          // ONLY AFTER successful OTP verification
+          console.log('🚀 [LoginScreen] handleVerifyOtp - Calling onLoginSuccess callback (navigation will happen)');
+          console.log('   Dashboard type:', finalDashboardTypeForCallback);
+          console.log('   Allowed dashboards:', response.data.allowedDashboards);
           onLoginSuccess?.(
             phoneNumber, 
             finalDashboardTypeForCallback,
             response.data.allowedDashboards
           );
+          console.log('✅ [LoginScreen] handleVerifyOtp - onLoginSuccess callback called');
         } else {
           // For registered users (not 'N'), store data normally
           // If we determined a dashboard type from user_type, use it
@@ -360,14 +454,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           finalDashboardTypeForCallback = determinedDashboardType || response.data.dashboardType;
           
           // Call success callback with dashboard type and allowed dashboards
+          // ONLY AFTER successful OTP verification
+          console.log('🚀 [LoginScreen] handleVerifyOtp - Calling onLoginSuccess callback (navigation will happen)');
+          console.log('   Dashboard type:', finalDashboardTypeForCallback);
+          console.log('   Allowed dashboards:', response.data.allowedDashboards);
           onLoginSuccess?.(
             phoneNumber, 
             finalDashboardTypeForCallback,
             response.data.allowedDashboards
           );
+          console.log('✅ [LoginScreen] handleVerifyOtp - onLoginSuccess callback called');
         }
       } else {
-        Alert.alert('Error', response.message || 'Invalid OTP. Please try again.');
+        console.error('❌ [LoginScreen] handleVerifyOtp - API returned error status');
+        console.error('   Response status:', response.status);
+        console.error('   Response message:', response.message);
+        console.error('   Full response:', JSON.stringify(response, null, 2));
+        Alert.alert(t('common.error') || 'Error', response.message || t('auth.invalidOtpTryAgain') || 'Invalid OTP. Please try again.');
         // Clear OTP on error
         setOtp(['', '', '', '', '', '']);
         otpInputRefs.current[0]?.focus();
@@ -399,15 +502,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       else if (errorMessage.includes('Delivery partners cannot login') || 
           errorMessage.includes('delivery account') ||
           errorMessage.includes('Delivery partners')) {
-        console.log('⚠️ LoginScreen: Delivery user tried to login with wrong join type');
-        console.log('🗑️  Clearing incorrect join type and setting to delivery');
+        console.log('⚠️ [LoginScreen] handleVerifyOtp - Delivery user tried to login with wrong join type');
+        console.log('🗑️  [LoginScreen] handleVerifyOtp - Clearing incorrect join type and setting to delivery');
         // Clear incorrect join type and set to delivery
         await AsyncStorage.setItem('@selected_join_type', 'delivery');
         // Also clear any other related flags
         await AsyncStorage.removeItem('@b2b_status');
         await AsyncStorage.removeItem('@b2c_signup_needed');
         await AsyncStorage.removeItem('@allowed_dashboards');
-        console.log('✅ LoginScreen: Set join type to delivery for delivery user');
+        console.log('✅ [LoginScreen] handleVerifyOtp - Set join type to delivery for delivery user');
         
         // Show error modal and navigate to JoinAs
         setErrorModalMessage(errorMessage);
@@ -415,7 +518,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         setShowErrorModal(true);
       } else {
         // For other errors, show regular alert
-        Alert.alert('Error', errorMessage);
+        console.error('❌ [LoginScreen] handleVerifyOtp - Other error occurred:', errorMessage);
+        Alert.alert(t('common.error') || 'Error', errorMessage);
       }
       
       // Clear OTP on error
@@ -423,6 +527,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       otpInputRefs.current[0]?.focus();
     } finally {
       setIsLoading(false);
+      console.log('🏁 [LoginScreen] handleVerifyOtp - Verification process completed');
     }
   }, [phoneNumber, isNewUser, onLoginSuccess, otp]);
 
@@ -493,7 +598,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   />
                 </View>
                 <GreenButton
-                  title="Continue"
+                  title={t('buttons.continue') || 'Continue'}
                   onPress={handleSendOtp}
                   loading={isLoading}
                   disabled={!validatePhoneNumber(phoneNumber) || isLoading}
@@ -540,7 +645,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 </View>
 
                 <GreenButton
-                  title="Verify OTP"
+                  title={t('buttons.verifyOtp') || 'Verify OTP'}
                   onPress={() => handleVerifyOtp()}
                   loading={isLoading}
                   disabled={otp.some((digit) => !digit) || isLoading}

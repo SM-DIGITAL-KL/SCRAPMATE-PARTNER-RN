@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, TouchableOpacity, StatusBar } from 'react-native';
+import { View, TouchableOpacity, StatusBar, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../components/ThemeProvider';
@@ -14,6 +14,8 @@ interface FullscreenMapScreenProps {
     params: {
       destination: { latitude: number; longitude: number };
       orderId?: string;
+      requestId?: string;
+      customer_phone?: string;
     };
   };
   navigation: any;
@@ -24,9 +26,10 @@ const FullscreenMapScreen: React.FC<FullscreenMapScreenProps> = ({ route, naviga
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
-  const { destination, orderId } = route.params || { 
+  const { destination, orderId, customer_phone } = route.params || { 
     destination: { latitude: 9.1530, longitude: 76.7356 },
-    orderId: undefined 
+    orderId: undefined,
+    customer_phone: undefined
   };
   
   // Log destination to verify it matches small map
@@ -36,10 +39,55 @@ const FullscreenMapScreen: React.FC<FullscreenMapScreenProps> = ({ route, naviga
   }, [destination]);
   
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
+  const [estimatedTime, setEstimatedTime] = useState<number | null>(null);
   
   // Track address lookup to prevent repeated calls
   const addressFetchedRef = useRef(false);
   const addressFailedRef = useRef(false);
+  
+  // Calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  };
+  
+  // Calculate estimated travel time based on distance and route profile
+  const calculateEstimatedTime = (distanceKm: number, routeProfile: 'driving' | 'cycling' | 'walking' = 'driving'): number => {
+    // Average speeds in km/h
+    const averageSpeeds = {
+      driving: 40, // Average city driving speed (can vary from 30-60 km/h)
+      cycling: 15,
+      walking: 5
+    };
+    
+    const speed = averageSpeeds[routeProfile];
+    const timeInHours = distanceKm / speed;
+    return Math.round(timeInHours * 60); // Convert to minutes
+  };
+  
+  // Update distance and time when current location or destination changes
+  useEffect(() => {
+    if (currentLocation && destination) {
+      const distance = calculateDistance(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        destination.latitude,
+        destination.longitude
+      );
+      setCalculatedDistance(distance);
+      
+      const time = calculateEstimatedTime(distance, 'driving');
+      setEstimatedTime(time);
+    }
+  }, [currentLocation, destination]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -113,16 +161,56 @@ const FullscreenMapScreen: React.FC<FullscreenMapScreenProps> = ({ route, naviga
               color={theme.textPrimary}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.floatingButton}>
+          <TouchableOpacity 
+            style={styles.floatingButton}
+            onPress={() => {
+              if (customer_phone) {
+                const phoneNumber = customer_phone.replace(/[^0-9+]/g, ''); // Remove non-numeric characters except +
+                const phoneUrl = `tel:${phoneNumber}`;
+                Linking.openURL(phoneUrl).catch((err) => {
+                  console.error('Error making phone call:', err);
+                  Alert.alert(
+                    t('common.error'),
+                    t('common.cannotMakeCall')
+                  );
+                });
+              } else {
+                Alert.alert(
+                  t('common.info'),
+                  t('common.phoneNumberNotAvailable')
+                );
+              }
+            }}
+          >
             <MaterialCommunityIcons
               name="phone"
               size={16}
               color={theme.textPrimary}
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.floatingButton}>
+          <TouchableOpacity 
+            style={styles.floatingButton}
+            onPress={() => {
+              if (destination && destination.latitude && destination.longitude) {
+                // Open Google Maps with the destination location
+                const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${destination.latitude},${destination.longitude}`;
+                Linking.openURL(googleMapsUrl).catch((err) => {
+                  console.error('Error opening Google Maps:', err);
+                  Alert.alert(
+                    t('common.error'),
+                    t('common.cannotOpenMaps')
+                  );
+                });
+              } else {
+                Alert.alert(
+                  t('common.info'),
+                  t('common.locationNotAvailable')
+                );
+              }
+            }}
+          >
             <MaterialCommunityIcons
-              name="message-text"
+              name="map"
               size={16}
               color={theme.textPrimary}
             />
@@ -189,11 +277,46 @@ const getStyles = (theme: any, themeName?: string) =>
       shadowRadius: 4,
       elevation: 5,
     },
+    distanceBar: {
+      position: 'absolute',
+      left: '16@s',
+      right: '16@s',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: '16@s',
+      paddingVertical: '14@vs',
+      backgroundColor: theme.card,
+      borderRadius: '12@s',
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    distanceInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '8@s',
+    },
+    timeInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '8@s',
+    },
+    distanceText: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '14@s',
+      color: theme.textPrimary,
+    },
+    timeText: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '14@s',
+      color: theme.textPrimary,
+    },
   });
 
 export default FullscreenMapScreen;
-
-
 
 
 

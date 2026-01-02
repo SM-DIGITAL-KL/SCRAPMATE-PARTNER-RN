@@ -55,6 +55,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
   const [nearbyLocation, setNearbyLocation] = useState('');
   const [savingAddress, setSavingAddress] = useState(false);
   const locationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(true);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -66,6 +67,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
       setCurrentAddress('Shop No 15, Katraj');
       setCurrentLocation(null);
       setAddressDetails(null);
+      setIsLocationLoading(true); // Start loading when modal opens
       if (locationTimeoutRef.current) {
         clearTimeout(locationTimeoutRef.current);
         locationTimeoutRef.current = null;
@@ -81,6 +83,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
     setCurrentAddress('Shop No 15, Katraj');
     setCurrentLocation(null);
     setAddressDetails(null);
+    setIsLocationLoading(false);
     if (locationTimeoutRef.current) {
       clearTimeout(locationTimeoutRef.current);
       locationTimeoutRef.current = null;
@@ -297,7 +300,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     locationTimeoutRef.current = setTimeout(() => {
                       if (!locationFetchedRef.current && !showAddressForm) {
                         console.log('⏰ Location fetch timeout - user can still click Continue to enter address manually');
-                        // Don't auto-show form, just log - user can click Continue button
+                        setIsLocationLoading(false);
                       }
                     }, 15000);
                   }}
@@ -311,6 +314,13 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     // Let user see the map centered on their location first
                     if (!locationFetchedRef.current) {
                       locationFetchedRef.current = true;
+                      setIsLocationLoading(false); // Hide loader when location is received
+                      
+                      // Clear timeout since we got location
+                      if (locationTimeoutRef.current) {
+                        clearTimeout(locationTimeoutRef.current);
+                        locationTimeoutRef.current = null;
+                      }
                       
                       setCurrentLocation({
                         latitude: location.latitude,
@@ -418,6 +428,15 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     }
                   }}
                 />
+                {/* Loading Overlay */}
+                {isLocationLoading && (
+                  <View style={styles.loadingOverlay}>
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color={theme.primary} />
+                      <AutoText style={styles.loadingText}>Finding your location...</AutoText>
+                    </View>
+                  </View>
+                )}
                 <View style={styles.mapSkipButtonContainer}>
                   <TouchableOpacity
                     style={styles.mapSkipButton}
@@ -658,6 +677,27 @@ const getStyles = (theme: any, themeName?: string) =>
       fontFamily: 'Poppins-SemiBold',
       fontSize: '14@s',
       color: '#FFFFFF',
+    },
+    loadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    loadingContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loadingText: {
+      marginTop: '16@vs',
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textSecondary,
     },
   });
 

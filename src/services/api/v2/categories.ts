@@ -156,6 +156,180 @@ export const getCategoriesWithSubcategories = async (
   return response.json();
 };
 
+/**
+ * Request a new subcategory (for B2C users)
+ * @param mainCategoryId - Main category ID
+ * @param subcategoryName - Name of the subcategory
+ * @param userId - User ID making the request
+ * @param defaultPrice - Default price (optional)
+ * @param priceUnit - Price unit: 'kg' or 'pcs' (optional, default: 'kg')
+ */
+export const requestSubcategory = async (
+  mainCategoryId: number,
+  subcategoryName: string,
+  userId: number,
+  defaultPrice?: string,
+  priceUnit?: string
+): Promise<{ status: string; msg: string; data: any }> => {
+  const url = buildApiUrl('/v2/subcategories/request');
+  const headers = getApiHeaders();
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      main_category_id: mainCategoryId,
+      subcategory_name: subcategoryName,
+      user_id: userId,
+      default_price: defaultPrice || '0',
+      price_unit: priceUnit || 'kg',
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to request subcategory: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || 'Failed to request subcategory');
+  }
+
+  return result;
+};
+
+/**
+ * Get pending subcategory requests (for admin)
+ */
+export const getPendingSubcategoryRequests = async (): Promise<{
+  status: string;
+  msg: string;
+  data: Array<{
+    id: number;
+    subcategory_name: string;
+    subcategory_img?: string;
+    default_price: string;
+    price_unit: string;
+    main_category_id: number;
+    main_category?: {
+      id: number;
+      name: string;
+      image: string;
+    };
+    approval_status: string;
+    requested_by_user_id: number;
+    requester?: {
+      id: number;
+      name: string;
+      contact: string;
+      email: string;
+    };
+    created_at: string;
+    updated_at: string;
+  }>;
+}> => {
+  const url = buildApiUrl('/v2/subcategories/pending');
+  const headers = getApiHeaders();
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch pending requests: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Approve or reject a subcategory request (for admin)
+ * @param subcategoryId - Subcategory ID
+ * @param action - 'approve' or 'reject'
+ * @param approvalNotes - Optional notes from admin
+ */
+export const approveRejectSubcategory = async (
+  subcategoryId: number,
+  action: 'approve' | 'reject',
+  approvalNotes?: string
+): Promise<{ status: string; msg: string; data: any }> => {
+  const url = buildApiUrl(`/v2/subcategories/${subcategoryId}/approve`);
+  const headers = getApiHeaders();
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      action,
+      approval_notes: approvalNotes || null,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.msg || errorData.message || `Failed to ${action} subcategory: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.status === 'error') {
+    throw new Error(result.msg || result.message || `Failed to ${action} subcategory`);
+  }
+
+  return result;
+};
+
+/**
+ * Get subcategory requests by user ID (for B2C users to see their requests)
+ * @param userId - User ID
+ */
+export interface UserSubcategoryRequest {
+  id: number;
+  subcategory_name: string;
+  subcategory_img?: string;
+  default_price: string;
+  price_unit: string;
+  main_category_id: number;
+  main_category?: {
+    id: number;
+    name: string;
+    image: string;
+  };
+  approval_status: 'pending' | 'approved' | 'rejected';
+  requested_by_user_id: number;
+  approved_by_user_id?: number | null;
+  approval_notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSubcategoryRequestsResponse {
+  status: string;
+  msg: string;
+  data: UserSubcategoryRequest[];
+  count: number;
+}
+
+export const getUserSubcategoryRequests = async (
+  userId: number
+): Promise<UserSubcategoryRequestsResponse> => {
+  const url = buildApiUrl(`/v2/subcategories/user/${userId}/requests`);
+  const headers = getApiHeaders();
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user subcategory requests: ${response.statusText}`);
+  }
+
+  return response.json();
+};
 
 
 

@@ -14,10 +14,11 @@ import { getUserData, logout } from '../../services/auth/authService';
 import { useProfile } from '../../hooks/useProfile';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteAccount } from '../../services/api/v2/profile';
+import { APP_VERSION, APP_NAME } from '../../constants/version';
 
 const UserProfileScreen = ({ navigation, route }: any) => {
   const { theme, isDark, themeName, setTheme } = useTheme();
-  
+
   // Get button text color based on theme
   const getButtonTextColor = () => {
     if (themeName === 'darkGreen') {
@@ -25,7 +26,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     }
     return '#FF4C4C'; // Standard red for other themes
   };
-  
+
   const buttonTextColor = getButtonTextColor();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -37,6 +38,10 @@ const UserProfileScreen = ({ navigation, route }: any) => {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const { mode } = useUserMode();
+  
+  // Check if user is B2B - hide premium button for B2B users
+  const isB2BUser = userData?.user_type === 'S' || mode === 'b2b';
+  
   const styles = useMemo(() => getStyles(theme, isEnglish, isDark, themeName), [theme, isEnglish, isDark, themeName]);
 
   // Get profile data from route params (passed from dashboard)
@@ -55,7 +60,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
 
   // Use React Query hook for profile - always enabled to get fresh data
   const { data: profileFromQuery, refetch: refetchProfile } = useProfile(userData?.id, !!userData?.id);
-  
+
   // Refetch profile when screen comes into focus to get latest updates
   useFocusEffect(
     React.useCallback(() => {
@@ -64,7 +69,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
       }
     }, [userData?.id, refetchProfile])
   );
-  
+
   // Prioritize query result over params to ensure fresh data
   const profile = profileFromQuery || profileDataFromParams;
 
@@ -81,11 +86,11 @@ const UserProfileScreen = ({ navigation, route }: any) => {
         }
       }
     };
-    
+
     syncB2BStatus();
   }, [profile?.shop?.approval_status, userData?.id]);
   const completionPercentage = profile?.completion_percentage || 32;
-  
+
   // Get user's name from profile or userData
   const userName = profile?.name || userData?.name || 'User';
   const userInitial = userName.charAt(0).toUpperCase();
@@ -96,11 +101,11 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     if (!profile) return false;
     const shop = profile.shop;
     if (!shop || !shop.id) return false;
-    
+
     // Check if all required fields and at least one document are present
     const hasRequiredFields = shop.company_name && shop.gst_number;
     const hasDocuments = shop.business_license_url || shop.gst_certificate_url || shop.address_proof_url || shop.kyc_owner_url;
-    
+
     return hasRequiredFields && hasDocuments;
   }, [profile]);
 
@@ -116,7 +121,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     } catch (error: any) {
       console.error('Error logging out:', error);
       setShowLogoutModal(false);
-      Alert.alert('Error', error.message || 'Failed to logout');
+      Alert.alert(t('common.error') || 'Error', error.message || t('profile.failedToLogout') || 'Failed to logout');
     }
   };
 
@@ -126,7 +131,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
 
   const confirmDeleteAccount = async () => {
     if (!userData?.id) {
-      Alert.alert('Error', 'User ID not found');
+      Alert.alert(t('common.error') || 'Error', t('profile.userIdNotFound') || 'User ID not found');
       return;
     }
 
@@ -140,7 +145,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     } catch (error: any) {
       console.error('Error deleting account:', error);
       setIsDeletingAccount(false);
-      Alert.alert('Error', error.message || 'Failed to delete account');
+      Alert.alert(t('common.error') || 'Error', error.message || t('profile.failedToDeleteAccount') || 'Failed to delete account');
     }
   };
 
@@ -176,6 +181,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     { icon: 'account', label: t('userProfile.yourProfile') || 'Your Profile', subtitle: `${completionPercentage}% completed`, action: 'EditProfile' },
     ...(hasCompletedSignup ? [{ icon: 'check-circle', label: t('userProfile.approvalStatus') || 'Approval Status', subtitle: getApprovalStatusLabel(), action: 'ApprovalStatus' }] : []),
     { icon: 'package-variant', label: t('userProfile.myOrders'), action: 'MyOrders' },
+    { icon: 'clock-outline', label: t('userProfile.pendingOrders') || 'Pending Orders', subtitle: t('userProfile.pendingOrdersSubtitle') || 'Bulk buy orders awaiting payment approval', action: 'PendingOrders' },
     { icon: 'truck-delivery-outline', label: t('userProfile.pickupStatus'), action: 'PickupStatus' },
     { icon: 'weather-sunny', label: t('userProfile.appearance'), subtitle: getThemeSubtitle(), action: 'Appearance' },
     { icon: 'truck', label: t('userProfile.addDeliveryPartner'), action: null },
@@ -241,22 +247,24 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                   <AutoText style={styles.name} numberOfLines={1}>
                     {userName}
                   </AutoText>
-                  <TouchableOpacity 
-                    activeOpacity={0.8}
-                    onPress={() => navigation.navigate('SubscriptionPlans')}
-                    style={styles.upgradeButton}
-                  >
-                    <LinearGradient
-                      colors={[theme.primary, theme.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.upgradeGradient}
+                  {!isB2BUser && (
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => navigation.navigate('SubscriptionPlans')}
+                      style={styles.upgradeButton}
                     >
-                      <AutoText style={styles.upgradeText} numberOfLines={2}>
-                        {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
-                      </AutoText>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                      <LinearGradient
+                        colors={[theme.primary, theme.secondary]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.upgradeGradient}
+                      >
+                        <AutoText style={styles.upgradeText} numberOfLines={2}>
+                          {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
+                        </AutoText>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
                 </View>
                 <MaterialCommunityIcons
                   name="chevron-right"
@@ -286,22 +294,24 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                   <AutoText style={styles.name} numberOfLines={1}>
                     {userName}
                   </AutoText>
-                  <TouchableOpacity 
-                    activeOpacity={0.8}
-                    onPress={() => navigation.navigate('SubscriptionPlans')}
-                    style={styles.upgradeButton}
-                  >
-                    <LinearGradient
-                      colors={[theme.primary, theme.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.upgradeGradient}
+                  {!isB2BUser && (
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => navigation.navigate('SubscriptionPlans')}
+                      style={styles.upgradeButton}
                     >
-                      <AutoText style={styles.upgradeText} numberOfLines={2}>
-                        {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
-                      </AutoText>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                      <LinearGradient
+                        colors={[theme.primary, theme.secondary]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.upgradeGradient}
+                      >
+                        <AutoText style={styles.upgradeText} numberOfLines={2}>
+                          {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
+                        </AutoText>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
                 </View>
                 <MaterialCommunityIcons
                   name="chevron-right"
@@ -323,6 +333,10 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                 navigation.navigate('EditProfile');
               } else if (item.action === 'ApprovalStatus') {
                 navigation.navigate('ApprovalWorkflow', { fromProfile: true });
+              } else if (item.action === 'MyOrders') {
+                navigation.navigate('MyOrders');
+              } else if (item.action === 'PendingOrders') {
+                navigation.navigate('PendingBulkBuyOrders');
               } else if (item.action === 'Appearance') {
                 setShowThemeModal(true);
               } else if (item.action === 'ChangeLanguage') {
@@ -398,7 +412,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
 
         <View style={styles.appInfoContainer}>
           <AutoText style={styles.appInfoText}>
-            ScrapMate Partner v1.0.1
+            {APP_NAME} v{APP_VERSION}
           </AutoText>
         </View>
       </ScrollView>
@@ -754,7 +768,7 @@ const getStyles = (theme: any, isEnglish: boolean, isDark: boolean, themeName?: 
       justifyContent: 'center',
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor:  theme.textSecondary,
+      borderColor: theme.textSecondary,
     },
     avatarImage: {
       width: '100%',

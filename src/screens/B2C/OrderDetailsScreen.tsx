@@ -15,6 +15,7 @@ import { useAcceptPickupRequest } from '../../hooks/useOrders';
 import { getUserData } from '../../services/auth/authService';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/api/queryKeys';
+import { useProfile } from '../../hooks/useProfile';
 
 interface OrderDetailsScreenProps {
   route: {
@@ -42,10 +43,211 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const imageScrollViewRef = useRef<ScrollView>(null);
+  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
+  const [estimatedTime, setEstimatedTime] = useState<number | null>(null);
   
   // Track address lookup to prevent repeated calls
   const addressFetchedRef = useRef(false);
   const addressFailedRef = useRef(false);
+  
+  // Calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  };
+  
+  // Calculate estimated travel time based on distance and route profile
+  const calculateEstimatedTime = (distanceKm: number, routeProfile: 'driving' | 'cycling' | 'walking' = 'driving'): number => {
+    // Average speeds in km/h
+    const averageSpeeds = {
+      driving: 40, // Average city driving speed (can vary from 30-60 km/h)
+      cycling: 15,
+      walking: 5
+    };
+    
+    const speed = averageSpeeds[routeProfile];
+    const timeInHours = distanceKm / speed;
+    return Math.round(timeInHours * 60); // Convert to minutes
+  };
+  
+  // Update distance and time when current location or destination changes
+  useEffect(() => {
+    if (currentLocation && destination) {
+      const distance = calculateDistance(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        destination.latitude,
+        destination.longitude
+      );
+      setCalculatedDistance(distance);
+      
+      const time = calculateEstimatedTime(distance, 'driving');
+      setEstimatedTime(time);
+      console.log('📍 Calculated distance:', distance.toFixed(1), 'km, Time:', time, 'mins');
+    }
+  }, [currentLocation, destination]);
+  
+  // Helper function to format address (handles string, object, or JSON string)
+  const formatAddress = (address: any): string => {
+    if (!address) return '';
+    
+    try {
+      // If address is already a string
+      if (typeof address === 'string') {
+        // Check if it's a JSON string that needs parsing
+        const trimmed = address.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(address);
+            if (typeof parsed === 'object' && parsed !== null) {
+              // Extract address from object
+              return parsed.address || 
+                     parsed.formattedAddress || 
+                     parsed.fullAddress || 
+                     parsed.customerdetails ||
+                     (parsed.name && parsed.location ? `${parsed.name}, ${parsed.location}` : '') ||
+                     JSON.stringify(parsed);
+            }
+          } catch {
+            // If JSON parsing fails, return the string as is
+            return address;
+          }
+        }
+        return address;
+      }
+      
+      // If address is an object
+      if (typeof address === 'object' && address !== null) {
+        return address.address || 
+               address.formattedAddress || 
+               address.fullAddress || 
+               address.customerdetails ||
+               (address.name && address.location ? `${address.name}, ${address.location}` : '') ||
+               JSON.stringify(address);
+      }
+      
+      return String(address);
+    } catch (error) {
+      console.error('Error formatting address:', error);
+      return String(address);
+    }
+  };
+
+  // Helper function to format scheduled date and time - same format as customer app
+  const formatScheduledDateTime = (order: PickupRequest): string => {
+    try {
+      const preferredDate = (order as any)?.preferred_pickup_date;
+      const preferredTimeSlot = (order as any)?.preferred_pickup_time_slot;
+      
+      // Use backend formatted fields if available (from updated backend)
+      if (preferredDate && preferredTimeSlot) {
+        return `${preferredDate}, ${preferredTimeSlot}`;
+      }
+      
+      // If we have time slot but no date, try to get date from preferred_pickup_time or use pickup_time_display
+      if (preferredTimeSlot) {
+        if (preferredDate) {
+          return `${preferredDate}, ${preferredTimeSlot}`;
+        }
+        // Try to extract date from preferred_pickup_time
+        const preferredTime = order?.preferred_pickup_time;
+        if (preferredTime) {
+          const dateTimeMatch = preferredTime.match(/(\d{4}-\d{2}-\d{2})\s+(.+)/);
+          if (dateTimeMatch) {
+            const dateStr = dateTimeMatch[1];
+            try {
+              const pickupDate = new Date(dateStr);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const tomorrow = new Date(today);
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              const dateOnly = new Date(pickupDate);
+              dateOnly.setHours(0, 0, 0, 0);
+              
+              const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+              const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+              
+              let formattedDate = '';
+              if (dateOnly.getTime() === today.getTime()) {
+                formattedDate = t('dashboard.today') || 'Today';
+              } else if (dateOnly.getTime() === tomorrow.getTime()) {
+                formattedDate = t('dashboard.tomorrow') || 'Tomorrow';
+              } else {
+                const dayName = days[pickupDate.getDay()];
+                const day = pickupDate.getDate();
+                const month = months[pickupDate.getMonth()];
+                const year = pickupDate.getFullYear();
+                formattedDate = `${dayName}, ${day} ${month} ${year}`;
+              }
+              
+              return `${formattedDate}, ${preferredTimeSlot}`;
+            } catch (e) {
+              console.error('Error parsing date from preferred_pickup_time:', e);
+            }
+          }
+        }
+        // If we have time slot but can't get date, just show time slot
+        return preferredTimeSlot;
+      }
+      
+      // Fallback: parse from preferred_pickup_time if backend hasn't been updated yet
+      const preferredTime = order?.preferred_pickup_time;
+      
+      if (preferredTime) {
+        // Parse format: "YYYY-MM-DD 9:00 AM - 12:00 PM" (customer app format)
+        const dateTimeMatch = preferredTime.match(/(\d{4}-\d{2}-\d{2})\s+(.+)/);
+        
+        if (dateTimeMatch) {
+          const dateStr = dateTimeMatch[1]; // "YYYY-MM-DD"
+          const timeSlot = dateTimeMatch[2]; // "9:00 AM - 12:00 PM"
+          
+          try {
+            const pickupDate = new Date(dateStr);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const dateOnly = new Date(pickupDate);
+            dateOnly.setHours(0, 0, 0, 0);
+            
+            // Format date same as customer app: "Monday, 15 January 2024"
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            let formattedDate = '';
+            if (dateOnly.getTime() === today.getTime()) {
+              formattedDate = t('dashboard.today') || 'Today';
+            } else if (dateOnly.getTime() === tomorrow.getTime()) {
+              formattedDate = t('dashboard.tomorrow') || 'Tomorrow';
+            } else {
+              const dayName = days[pickupDate.getDay()];
+              const day = pickupDate.getDate();
+              const month = months[pickupDate.getMonth()];
+              const year = pickupDate.getFullYear();
+              formattedDate = `${dayName}, ${day} ${month} ${year}`;
+            }
+            
+            return `${formattedDate}, ${timeSlot}`;
+          } catch (e) {
+            console.error('Error parsing preferred_pickup_time date:', e);
+          }
+        }
+      }
+      
+      // Final fallback
+      return (order as any)?.pickup_time_display || t('dashboard.today') || 'Today';
+    } catch (error) {
+      console.error('Error formatting scheduled date/time:', error);
+      return (order as any)?.pickup_time_display || t('dashboard.today') || 'Today';
+    }
+  };
   
   // Destination coordinates from order
   const destination = order.latitude && order.longitude 
@@ -60,6 +262,30 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
     };
     loadUserData();
   }, []);
+
+  // Fetch profile data to check subscription status
+  const { data: profileData } = useProfile(userData?.id, !!userData?.id);
+
+  // Check subscription status for R type users
+  const isSubscribed = React.useMemo(() => {
+    if (!profileData || userData?.user_type !== 'R') return true; // Non-R users are always considered subscribed
+    const b2cShop = (profileData.b2cShop || profileData.shop) as any;
+    if (!b2cShop) return false;
+    
+    // Check if subscribed
+    if (b2cShop.is_subscribed === false) return false;
+    if (b2cShop.is_subscription_ends === true) return false;
+    
+    // Check if subscription has ended
+    if (b2cShop.subscription_ends_at) {
+      const endsAt = new Date(b2cShop.subscription_ends_at);
+      const now = new Date();
+      if (endsAt < now) return false;
+    }
+    
+    // For R type users, require explicit subscription confirmation
+    return b2cShop.is_subscribed === true;
+  }, [profileData, userData?.user_type]);
 
   // Accept order mutation
   const acceptPickupMutation = useAcceptPickupRequest();
@@ -137,11 +363,27 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
               destination={destination}
               routeProfile="driving"
               onLocationUpdate={async (location) => {
-                setCurrentLocation({
+                const newLocation = {
                   latitude: location.latitude,
                   longitude: location.longitude
-                });
-                console.log('📍 Current location:', location);
+                };
+                setCurrentLocation(newLocation);
+                console.log('📍 Current location updated:', newLocation);
+                
+                // Calculate distance immediately when location updates
+                if (destination) {
+                  const distance = calculateDistance(
+                    newLocation.latitude,
+                    newLocation.longitude,
+                    destination.latitude,
+                    destination.longitude
+                  );
+                  setCalculatedDistance(distance);
+                  
+                  const time = calculateEstimatedTime(distance, 'driving');
+                  setEstimatedTime(time);
+                  console.log('📍 Recalculated - Distance:', distance.toFixed(1), 'km, Time:', time, 'mins');
+                }
                 
                 // Get and log address for debugging - only once (success or failure)
                 if (!addressFetchedRef.current && !addressFailedRef.current) {
@@ -162,7 +404,11 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
             <View style={styles.mapFloatingButtons}>
               <TouchableOpacity 
                 style={styles.floatingButton}
-                onPress={() => navigation.navigate('FullscreenMap', { destination, orderId: order.order_number?.toString() })}
+                onPress={() => navigation.navigate('FullscreenMap', { 
+                  destination, 
+                  orderId: order.order_number?.toString(),
+                  customer_phone: order.customer_phone || undefined
+                })}
               >
                 <MaterialCommunityIcons
                   name="fullscreen"
@@ -171,14 +417,30 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
                 />
               </TouchableOpacity>
             </View>
-            {order.distance_km !== undefined && order.distance_km !== null && (
+            {calculatedDistance !== null && (
               <View style={styles.distanceBar}>
-                <AutoText style={styles.distanceText}>
-                  {order.distance_km.toFixed(1)} km
-                </AutoText>
-                <AutoText style={styles.timeText}>
-                  {Math.round(order.distance_km * 2)} mins
-                </AutoText>
+                <View style={styles.distanceInfo}>
+                  <MaterialCommunityIcons
+                    name="map-marker-distance"
+                    size={16}
+                    color={theme.primary}
+                  />
+                  <AutoText style={styles.distanceText}>
+                    {calculatedDistance.toFixed(1)} km
+                  </AutoText>
+                </View>
+                <View style={styles.timeInfo}>
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={16}
+                    color={theme.primary}
+                  />
+                  <AutoText style={styles.timeText}>
+                    {estimatedTime !== null 
+                      ? `${estimatedTime} ${t('common.minutes') || 'mins'}`
+                      : `${calculateEstimatedTime(calculatedDistance, 'driving')} ${t('common.minutes') || 'mins'}`}
+                  </AutoText>
+                </View>
               </View>
             )}
           </View>
@@ -206,8 +468,9 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
                 name="account"
                 size={14}
                 color={theme.primary}
+                style={!isSubscribed ? { opacity: 0 } : undefined}
               />
-              <AutoText style={styles.detailText} numberOfLines={1}>
+              <AutoText style={[styles.detailText, !isSubscribed && { opacity: 0 }]} numberOfLines={1}>
                 {order.customer_name}
               </AutoText>
             </View>
@@ -219,8 +482,9 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
                 name="phone"
                 size={14}
                 color={theme.primary}
+                style={!isSubscribed ? { opacity: 0 } : undefined}
               />
-              <AutoText style={styles.detailText} numberOfLines={1}>
+              <AutoText style={[styles.detailText, !isSubscribed && { opacity: 0 }]} numberOfLines={1}>
                 {order.customer_phone}
               </AutoText>
             </View>
@@ -233,7 +497,7 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
               color={theme.primary}
             />
             <AutoText style={styles.addressText} numberOfLines={4}>
-              {order.address || t('dashboard.addressNotProvided') || 'Address not provided'}
+              {order.address ? formatAddress(order.address) : (t('dashboard.addressNotProvided') || 'Address not provided')}
             </AutoText>
           </View>
 
@@ -251,15 +515,15 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
             </View>
           )}
 
-          {order.preferred_pickup_time && (
+          {((order as any)?.preferred_pickup_time_slot || order?.preferred_pickup_time || (order as any)?.preferred_pickup_date) && (
             <View style={styles.detailRow}>
               <MaterialCommunityIcons
-                name="calendar"
+                name="clock-outline"
                 size={14}
                 color={theme.primary}
               />
               <AutoText style={styles.detailText} numberOfLines={1}>
-                {t('dashboard.today') || 'Today'}, {order.preferred_pickup_time}
+                {formatScheduledDateTime(order)}
               </AutoText>
             </View>
           )}
@@ -521,20 +785,31 @@ const getStyles = (theme: any, themeName?: string, screenWidth?: number, screenH
       right: 0,
       flexDirection: 'row',
       justifyContent: 'space-between',
+      alignItems: 'center',
       paddingHorizontal: '14@s',
       paddingVertical: '10@vs',
       backgroundColor: theme.card,
       borderTopWidth: 1,
       borderTopColor: theme.border,
     },
+    distanceInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '6@s',
+    },
+    timeInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '6@s',
+    },
     distanceText: {
       fontFamily: 'Poppins-SemiBold',
-      fontSize: '12@s',
+      fontSize: '13@s',
       color: theme.textPrimary,
     },
     timeText: {
       fontFamily: 'Poppins-SemiBold',
-      fontSize: '12@s',
+      fontSize: '13@s',
       color: theme.textPrimary,
     },
     noMapContainer: {

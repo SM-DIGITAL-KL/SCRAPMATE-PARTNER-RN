@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Keyboard, Platform, Animated, Easing, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Keyboard, Platform, Animated, Easing, Alert, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -10,12 +10,13 @@ import { AutoText } from '../../components/AutoText';
 import { ScaledSheet } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
 import * as DocumentPicker from '@react-native-documents/picker';
-import { getUserData } from '../../services/auth/authService';
+import { getUserData, logout } from '../../services/auth/authService';
 import { uploadB2BDocument } from '../../services/api/v2/b2bSignup';
 import { submitB2BSignup } from '../../services/api/v2/b2bSignup';
 import { useQueryClient } from '@tanstack/react-query';
 import { profileQueryKeys } from '../../hooks/useProfile';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions } from '@react-navigation/native';
 
 const DocumentUploadScreen = ({ navigation, route }: any) => {
   const { theme, isDark, themeName } = useTheme();
@@ -73,42 +74,83 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
   const buttonTranslateY = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(1)).current;
 
+  // Navigate to JoinAs screen helper function
+  const navigateToJoinAs = useCallback(async () => {
+    // Clear all signup flags to allow user to select a different signup type
+    await AsyncStorage.removeItem('@join_as_shown');
+    await AsyncStorage.removeItem('@b2b_status');
+    await AsyncStorage.removeItem('@b2c_signup_needed');
+    await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
+    await AsyncStorage.removeItem('@selected_join_type');
+    
+    console.log('✅ DocumentUploadScreen: Cleared all signup flags to allow type switching');
+    
+    // Emit event to navigate to JoinAs (this will be handled by AppNavigator)
+    DeviceEventEmitter.emit('NAVIGATE_TO_JOIN_AS');
+    
+    // Also try direct navigation
+    try {
+      // Get root navigator (AppNavigator level)
+      const rootNavigation = navigation.getParent()?.getParent()?.getParent();
+      
+      if (rootNavigation) {
+        // Reset navigation to show AuthFlow with JoinAs screen
+        rootNavigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'AuthFlow',
+                state: {
+                  routes: [{ name: 'JoinAs' }],
+                  index: 0,
+                },
+              },
+            ],
+          })
+        );
+      }
+    } catch (error) {
+      console.log('Error navigating to JoinAs:', error);
+    }
+  }, [navigation]);
+
   // Function to hide UI (tab bar and button)
   const hideUI = useCallback(() => {
     setTabBarVisible(false);
-        Animated.parallel([
-          Animated.timing(buttonTranslateY, {
-            toValue: 100,
-            duration: 500,
-            easing: Easing.in(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(buttonOpacity, {
-            toValue: 0,
-            duration: 500,
-            easing: Easing.in(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]).start();
+    Animated.parallel([
+      Animated.timing(buttonTranslateY, {
+        toValue: 100,
+        duration: 500,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonOpacity, {
+        toValue: 0,
+        duration: 500,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, [setTabBarVisible, buttonTranslateY, buttonOpacity]);
 
   // Function to show UI (tab bar and button)
   const showUI = useCallback(() => {
     setTabBarVisible(true);
-        Animated.parallel([
-          Animated.timing(buttonTranslateY, {
-            toValue: 0,
-            duration: 500,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(buttonOpacity, {
-            toValue: 1,
-            duration: 500,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]).start();
+    Animated.parallel([
+      Animated.timing(buttonTranslateY, {
+        toValue: 0,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonOpacity, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, [setTabBarVisible, buttonTranslateY, buttonOpacity]);
 
   // Show UI when keyboard closes (if keyboard was opened from another screen)
@@ -226,10 +268,24 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
       return;
     }
 
+    // Validate contact person name is not a default username
+    if (signupData?.contactPersonName) {
+      const trimmedContactName = signupData.contactPersonName.trim();
+      const defaultNamePattern = /^[Uu]ser_\d+$/;
+      if (defaultNamePattern.test(trimmedContactName)) {
+        Alert.alert(
+           'Please Change Your Name / Change to Shop Name',
+          'You are using a default username. Please enter your actual name to continue.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+
     // Validate required documents
     const requiredDocs = ['business-license', 'gst-certificate', 'address-proof', 'kyc-owner'];
     const missingDocs = requiredDocs.filter(doc => !documentUrls[doc]);
-    
+
     if (missingDocs.length > 0) {
       Alert.alert('Error', 'Please upload all required documents');
       return;
@@ -246,7 +302,7 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
       };
 
       await submitB2BSignup(userData.id, signupPayload);
-      
+
       // Save FCM token after successful B2B registration
       try {
         const { fcmService } = await import('../../services/fcm/fcmService');
@@ -256,17 +312,17 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
         console.error('⚠️ Failed to save FCM token after B2B registration:', fcmError);
         // Don't block the flow if FCM token saving fails
       }
-      
+
       // Invalidate profile cache to force fresh fetch with updated shop data
       console.log('🗑️  Invalidating profile cache after B2B signup submission');
       await queryClient.invalidateQueries({ queryKey: profileQueryKeys.all });
       await queryClient.invalidateQueries({ queryKey: profileQueryKeys.detail(userData.id) });
       await queryClient.invalidateQueries({ queryKey: profileQueryKeys.current() });
-      
+
       // Refresh user data to get updated user_type
       const updatedUserData = await getUserData();
       console.log('✅ Updated user type after B2B signup:', updatedUserData?.user_type);
-      
+
       // If user_type is no longer 'N', clear the 'new_user' flag
       if (updatedUserData?.user_type && updatedUserData.user_type !== 'N') {
         const currentB2bStatus = await AsyncStorage.getItem('@b2b_status');
@@ -275,16 +331,50 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
           await AsyncStorage.removeItem('@b2b_status');
         }
       }
-      
+
       // Update B2B status to 'pending' in AsyncStorage (for approval workflow)
       await AsyncStorage.setItem('@b2b_status', 'pending');
       console.log('✅ B2B status updated to pending after document submission');
-      
-      // Navigate to dashboard after successful submission
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'DealerDashboard' }],
-      });
+
+      // Check if this is the first signup (user_type is 'S' - only B2B completed)
+      // If user_type is 'SR', both signups are complete, go to dashboard
+      // If user_type is 'S', only B2B is complete, go to JoinAs to complete B2C
+      const isFirstSignup = updatedUserData?.user_type === 'S';
+      const bothSignupsComplete = updatedUserData?.user_type === 'SR';
+
+      // Show success message and navigate
+      Alert.alert(
+        t('documentUpload.success') || 'Success',
+        t('documentUpload.successMessage') || 'B2B signup completed successfully',
+        [
+          {
+            text: t('common.ok') || 'OK',
+            onPress: async () => {
+              if (bothSignupsComplete) {
+                // Both signups complete - navigate to dashboard
+                console.log('✅ Both B2B and B2C signups complete - navigating to Dashboard');
+                // Navigate to B2B dashboard
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'DealerDashboard' }],
+                });
+              } else if (isFirstSignup) {
+                // First signup (B2B only) - go to JoinAs to complete B2C
+                console.log('✅ B2B signup complete - navigating to JoinAs to complete B2C signup');
+                navigateToJoinAs();
+              } else {
+                // Fallback - navigate to dashboard
+                console.log('⚠️ Unknown user_type - navigating to Dashboard');
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'DealerDashboard' }],
+                });
+              }
+            },
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (error: any) {
       console.error('Error submitting B2B signup:', error);
       Alert.alert('Error', error.message || 'Failed to submit B2B signup');
@@ -299,7 +389,7 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={isDark ? theme.background : '#FFFFFF'}
       />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>

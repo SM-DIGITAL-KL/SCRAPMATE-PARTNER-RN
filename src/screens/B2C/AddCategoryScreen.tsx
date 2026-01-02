@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, StatusBar, Vibration, Platform, ActivityIndicator, Image, Alert, TextInput, Modal } from 'react-native';
+import { View, ScrollView, TouchableOpacity, StatusBar, Vibration, Platform, ActivityIndicator, Image, Alert, TextInput, Modal, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../components/ThemeProvider';
@@ -9,7 +9,7 @@ import { AutoText } from '../../components/AutoText';
 import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import { ScaledSheet } from 'react-native-size-matters';
-import { Category, Subcategory } from '../../services/api/v2/categories';
+import { Category, Subcategory, requestSubcategory } from '../../services/api/v2/categories';
 import { getUserData } from '../../services/auth/authService';
 import { useUserMode } from '../../context/UserModeContext';
 import { 
@@ -45,6 +45,12 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
   const [hadExistingSubcategories, setHadExistingSubcategories] = useState(false);
   // Track previously selected subcategories to detect deselections
   const [previousSelectedSubcategoryIds, setPreviousSelectedSubcategoryIds] = useState<Set<number>>(new Set());
+  // Request new subcategory modal state
+  const [requestModalVisible, setRequestModalVisible] = useState(false);
+  const [requestSubcategoryName, setRequestSubcategoryName] = useState('');
+  const [requestDefaultPrice, setRequestDefaultPrice] = useState('');
+  const [requestPriceUnit, setRequestPriceUnit] = useState<'kg' | 'pcs'>('kg');
+  const [isRequesting, setIsRequesting] = useState(false);
   const styles = useMemo(() => getStyles(theme, isDark, themeName), [theme, isDark, themeName]);
 
   // React Query hooks
@@ -73,6 +79,12 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
   
   // Check if user is a delivery person (no permission to edit prices)
   const isDeliveryUser = userData?.user_type === 'D';
+  // Check if user is B2C (can request new subcategories)
+  const isB2CUser = userData?.user_type === 'R' || mode === 'b2c';
+  // Check if user is B2B (can also request new subcategories)
+  const isB2BUser = userData?.user_type === 'S' || mode === 'b2b';
+  // Allow both B2B and B2C users to request subcategories
+  const canRequestSubcategory = isB2CUser || isB2BUser;
   
   // Get user's category IDs to mark already added categories
   const userCategoryIds = useMemo(() => {
@@ -455,6 +467,72 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
     return 'package-variant';
   };
 
+  // Handle requesting a new subcategory
+  const handleRequestSubcategory = async () => {
+    if (!requestSubcategoryName.trim()) {
+      Alert.alert(
+        t('common.error') || 'Error',
+        t('addCategory.subcategoryNameRequired') || 'Please enter a subcategory name'
+      );
+      return;
+    }
+
+    if (!selectedCategoryId) {
+      Alert.alert(
+        t('common.error') || 'Error',
+        t('addCategory.categoryRequired') || 'Please select a category first'
+      );
+      return;
+    }
+
+    if (!userData?.id) {
+      Alert.alert(
+        t('common.error') || 'Error',
+        t('addCategory.userNotFound') || 'User not found'
+      );
+      return;
+    }
+
+    setIsRequesting(true);
+    try {
+      await requestSubcategory(
+        selectedCategoryId,
+        requestSubcategoryName.trim(),
+        userData.id,
+        requestDefaultPrice || '0',
+        requestPriceUnit
+      );
+
+      Alert.alert(
+        t('common.success') || 'Success',
+        t('addCategory.subcategoryRequestSubmitted') || 'Subcategory request submitted successfully. It will be reviewed by admin.',
+        [
+          {
+            text: t('common.ok') || 'OK',
+            onPress: () => {
+              setRequestModalVisible(false);
+              setRequestSubcategoryName('');
+              setRequestDefaultPrice('');
+              setRequestPriceUnit('kg');
+              // Invalidate subcategories cache to refresh the list
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.subcategories.byCategory(selectedCategoryId, userType)
+              });
+            }
+          }
+        ]
+      );
+    } catch (error: any) {
+      console.error('Error requesting subcategory:', error);
+      Alert.alert(
+        t('common.error') || 'Error',
+        error.message || t('addCategory.requestError') || 'Failed to submit subcategory request. Please try again.'
+      );
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
   const selectedCategory = categories.find(c => c.id === selectedCategoryId);
 
   return (
@@ -598,6 +676,22 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
                     }
                   </AutoText>
                 </TouchableOpacity>
+                {canRequestSubcategory && (
+                  <TouchableOpacity
+                    style={styles.requestSubcategoryButton}
+                    onPress={() => setRequestModalVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialCommunityIcons
+                      name="plus-circle"
+                      size={20}
+                      color={theme.primary}
+                    />
+                    <AutoText style={styles.requestSubcategoryText}>
+                      {t('addCategory.requestNew') || 'Request New'}
+                    </AutoText>
+                  </TouchableOpacity>
+                )}
               </View>
               <ScrollView
                 contentContainerStyle={styles.subcategoriesList}
@@ -784,6 +878,112 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </Modal>
+
+      {/* Request New Subcategory Modal */}
+      <Modal
+        visible={requestModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setRequestModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <AutoText style={styles.modalTitle}>
+                {t('addCategory.requestNewSubcategory') || 'Request New Subcategory'}
+              </AutoText>
+              <TouchableOpacity
+                onPress={() => {
+                  setRequestModalVisible(false);
+                  setRequestSubcategoryName('');
+                  setRequestDefaultPrice('');
+                  setRequestPriceUnit('kg');
+                }}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={theme.textPrimary}
+                />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              style={styles.requestFormScrollView}
+              contentContainerStyle={styles.requestFormContainer}
+              showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={styles.requestInfoText}>
+                {t('addCategory.requestInfo') || 'Request a new subcategory to be added. It will be reviewed by admin before approval.'}
+              </Text>
+              
+              <View style={styles.requestInputContainer}>
+                <AutoText style={styles.priceLabel}>
+                  {t('addCategory.subcategoryName') || 'Subcategory Name'} *
+                </AutoText>
+                <TextInput
+                  style={styles.requestInput}
+                  value={requestSubcategoryName}
+                  onChangeText={setRequestSubcategoryName}
+                  placeholder={t('addCategory.enterSubcategoryName') || 'Enter subcategory name'}
+                  placeholderTextColor={theme.textSecondary}
+                />
+              </View>
+
+              <View style={styles.requestInputContainer}>
+                <AutoText style={styles.priceLabel}>
+                  {t('addCategory.defaultPrice') || 'Default Price (₹)'}
+                </AutoText>
+                <TextInput
+                  style={styles.requestInput}
+                  value={requestDefaultPrice}
+                  onChangeText={setRequestDefaultPrice}
+                  placeholder="0.00"
+                  keyboardType="decimal-pad"
+                  placeholderTextColor={theme.textSecondary}
+                />
+              </View>
+
+              <View style={styles.requestInputContainer}>
+                <AutoText style={styles.priceLabel}>
+                  {t('addCategory.unit') || 'Unit'}
+                </AutoText>
+                <View style={styles.unitButtons}>
+                  {['kg', 'pcs'].map(unit => (
+                    <TouchableOpacity
+                      key={unit}
+                      style={[
+                        styles.unitButton,
+                        requestPriceUnit === unit && styles.unitButtonSelected
+                      ]}
+                      onPress={() => setRequestPriceUnit(unit as 'kg' | 'pcs')}
+                    >
+                      <AutoText style={[
+                        styles.unitButtonText,
+                        requestPriceUnit === unit && styles.unitButtonTextSelected
+                      ]}>
+                        {unit.toUpperCase()}
+                      </AutoText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <GreenButton
+                title={
+                  isRequesting
+                    ? (t('common.submitting') || 'Submitting...')
+                    : (t('addCategory.submitRequest') || 'Submit Request')
+                }
+                onPress={handleRequestSubcategory}
+                style={styles.modalSaveButton}
+                disabled={isRequesting || !requestSubcategoryName.trim()}
+              />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -874,9 +1074,11 @@ const getStyles = (theme: any, isDark: boolean, themeName?: string) =>
       paddingVertical: '12@vs',
       borderBottomWidth: 1,
       borderBottomColor: theme.border,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
     },
     selectAllButton: {
-      alignSelf: 'flex-end',
       paddingHorizontal: '16@s',
       paddingVertical: '8@vs',
       backgroundColor: theme.accent,
@@ -886,6 +1088,20 @@ const getStyles = (theme: any, isDark: boolean, themeName?: string) =>
       fontFamily: 'Poppins-Medium',
       fontSize: '14@s',
       color: theme.textPrimary,
+    },
+    requestSubcategoryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: '16@s',
+      paddingVertical: '8@vs',
+      backgroundColor: theme.primary + '20',
+      borderRadius: '8@ms',
+      gap: '6@s',
+    },
+    requestSubcategoryText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '14@s',
+      color: theme.primary,
     },
     subcategoriesList: {
       paddingHorizontal: '18@s',
@@ -1034,7 +1250,8 @@ const getStyles = (theme: any, isDark: boolean, themeName?: string) =>
       paddingHorizontal: '18@s',
       paddingTop: '20@vs',
       paddingBottom: '30@vs',
-      maxHeight: '70%',
+      maxHeight: '85%',
+      minHeight: '300@vs',
     },
     modalHeader: {
       flexDirection: 'row',
@@ -1099,6 +1316,36 @@ const getStyles = (theme: any, isDark: boolean, themeName?: string) =>
       color: theme.primary,
     },
     modalSaveButton: {
+      marginTop: '8@vs',
+    },
+    requestFormScrollView: {
+      maxHeight: '500@vs',
+    },
+    requestFormContainer: {
+      paddingTop: '10@vs',
+      paddingBottom: '20@vs',
+    },
+    requestInfoText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '13@s',
+      color: theme.textSecondary,
+      marginBottom: '20@vs',
+      lineHeight: '18@vs',
+      flexWrap: 'wrap',
+    },
+    requestInputContainer: {
+      marginBottom: '20@vs',
+    },
+    requestInput: {
+      backgroundColor: theme.background,
+      borderRadius: '12@ms',
+      paddingHorizontal: '16@s',
+      paddingVertical: '12@vs',
+      fontFamily: 'Poppins-Regular',
+      fontSize: '16@s',
+      color: theme.textPrimary,
+      borderWidth: 1,
+      borderColor: theme.border,
       marginTop: '8@vs',
     },
   });

@@ -14,10 +14,12 @@ import { useUserMode } from '../../context/UserModeContext';
 import { getUserData, logout } from '../../services/auth/authService';
 import { useProfile } from '../../hooks/useProfile';
 import { deleteAccount } from '../../services/api/v2/profile';
+import { useUserSubcategoryRequests } from '../../hooks/useCategories';
+import { APP_VERSION, APP_NAME } from '../../constants/version';
 
 const UserProfileScreen = ({ navigation, route }: any) => {
   const { theme, isDark, themeName, setTheme } = useTheme();
-  
+
   // Get button text color based on theme
   const getButtonTextColor = () => {
     if (themeName === 'darkGreen') {
@@ -25,10 +27,27 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     }
     return '#FF4C4C'; // Standard red for other themes
   };
-  
+
   const buttonTextColor = getButtonTextColor();
+
+  // Get premium button text color based on theme for better contrast
+  const getPremiumButtonTextColor = () => {
+    if (themeName === 'dark') {
+      // Dark theme has white primary, so use dark text
+      return '#000000';
+    } else if (themeName === 'darkGreen') {
+      // Dark green theme - use light text
+      return theme.textPrimary;
+    } else {
+      // Light themes - use white text
+      return '#FFFFFF';
+    }
+  };
+
+  const premiumButtonTextColor = getPremiumButtonTextColor();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { mode } = useUserMode();
   const currentLanguage = i18n.language;
   const isEnglish = currentLanguage === 'en';
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -36,7 +55,9 @@ const UserProfileScreen = ({ navigation, route }: any) => {
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [userData, setUserData] = useState<any>(null);
-  const { mode } = useUserMode();
+  
+  // Check if user is B2B - hide premium button for B2B users
+  const isB2BUser = userData?.user_type === 'S' || mode === 'b2b';
   const styles = useMemo(() => getStyles(theme, isEnglish, isDark, themeName), [theme, isEnglish, isDark, themeName]);
 
   // Get profile data from route params (passed from dashboard)
@@ -55,7 +76,18 @@ const UserProfileScreen = ({ navigation, route }: any) => {
 
   // Use React Query hook for profile - always enabled to get fresh data
   const { data: profileFromQuery, refetch: refetchProfile } = useProfile(userData?.id, !!userData?.id);
-  
+
+  // Fetch user's subcategory requests to check for pending ones
+  const { data: subcategoryRequestsData } = useUserSubcategoryRequests(userData?.id, !!userData?.id);
+
+  // Check if user has any pending subcategory requests
+  const hasPendingSubcategoryRequests = React.useMemo(() => {
+    if (!subcategoryRequestsData?.data) return false;
+    return subcategoryRequestsData.data.some(
+      (request: any) => request.approval_status === 'pending'
+    );
+  }, [subcategoryRequestsData]);
+
   // Refetch profile when screen comes into focus to get latest updates
   useFocusEffect(
     React.useCallback(() => {
@@ -64,28 +96,39 @@ const UserProfileScreen = ({ navigation, route }: any) => {
       }
     }, [userData?.id, refetchProfile])
   );
-  
-  // Prioritize query result over params to ensure fresh data
-  const profile = profileFromQuery || profileDataFromParams;
-  const completionPercentage = profile?.completion_percentage || 32;
 
-  // Sync AsyncStorage with latest approval status when profile is fetched
-  React.useEffect(() => {
-    const syncB2CStatus = async () => {
-      if (profile?.shop?.approval_status && userData?.id) {
-        try {
-          const approvalStatus = profile.shop.approval_status;
-          await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
-          console.log('✅ UserProfileScreen: Synced @b2c_approval_status to AsyncStorage:', approvalStatus);
-        } catch (error) {
-          console.error('❌ Error syncing B2C status:', error);
-        }
-      }
-    };
-    
-    syncB2CStatus();
-  }, [profile?.shop?.approval_status, userData?.id]);
+  // Prioritize query result over params to ensure fresh data (especially invoices)
+  // Always prefer query result as it has the latest data including invoices
+  // Route params might not have invoices, so we need the query result
+  const profile = profileFromQuery || profileDataFromParams;
   
+  // If we only have params but no query result, log a warning
+  if (profileDataFromParams && !profileFromQuery) {
+    console.warn('⚠️ [UserProfile] Using profile from params - invoices may be missing. Waiting for query result...');
+  }
+  const completionPercentage = profile?.completion_percentage || 32;
+  
+  // Debug: Log profile data to check for invoices
+  useEffect(() => {
+    if (profile) {
+      console.log('🔍 [UserProfile] Profile data:', {
+        hasInvoices: !!(profile as any)?.invoices,
+        invoicesCount: ((profile as any)?.invoices || []).length,
+        source: profileFromQuery ? 'query' : 'params',
+        hasProfileFromQuery: !!profileFromQuery,
+        hasProfileFromParams: !!profileDataFromParams,
+        invoices: ((profile as any)?.invoices || []).map((inv: any) => ({
+          id: inv.id,
+          approval_status: inv.approval_status,
+          approval_notes: inv.approval_notes,
+          type: inv.type
+        }))
+      });
+    } else {
+      console.log('⚠️ [UserProfile] No profile data available');
+    }
+  }, [profile, profileFromQuery, profileDataFromParams]);
+
   // Get user's name from profile or userData
   const userName = profile?.name || userData?.name || 'User';
   const userInitial = userName.charAt(0).toUpperCase();
@@ -106,25 +149,150 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     }
   };
 
+  // Check if user has completed business signup (for SR conversion)
+  const hasCompletedBusinessSignup = React.useMemo(() => {
+    if (!profile || !userData) return false;
+    const shop = profile.shop;
+    if (!shop || !shop.id) return false;
+
+    // Check if user has business signup fields (indicating they've submitted SR conversion request)
+    const hasCompanyName = shop.company_name && String(shop.company_name).trim() !== '';
+    const hasGstNumber = shop.gst_number && String(shop.gst_number).trim() !== '';
+    const hasPanNumber = shop.pan_number && String(shop.pan_number).trim() !== '';
+    
+    // If user type is 'R' and has business fields, they've completed business signup for SR conversion
+    return userData.user_type === 'R' && (hasCompanyName || hasGstNumber || hasPanNumber);
+  }, [profile, userData]);
+
+  // Sync AsyncStorage with latest approval status when profile is fetched
+  React.useEffect(() => {
+    const syncApprovalStatus = async () => {
+      if (profile?.shop?.approval_status && userData?.id) {
+        try {
+          const approvalStatus = profile.shop.approval_status;
+          
+          // If user has completed business signup (for SR conversion), sync to both B2C and B2B status
+          // Otherwise, just sync to B2C status
+          if (hasCompletedBusinessSignup) {
+            // User has submitted SR conversion request - sync to both statuses
+            await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
+            await AsyncStorage.setItem('@b2b_status', approvalStatus);
+            console.log('✅ UserProfileScreen: Synced SR approval status to AsyncStorage (both B2C and B2B):', approvalStatus);
+          } else {
+            // Regular B2C approval status
+            await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
+            console.log('✅ UserProfileScreen: Synced @b2c_approval_status to AsyncStorage:', approvalStatus);
+          }
+        } catch (error) {
+          console.error('❌ Error syncing approval status:', error);
+        }
+      }
+    };
+
+    syncApprovalStatus();
+  }, [profile?.shop?.approval_status, userData?.id, hasCompletedBusinessSignup]);
+
   // Check if B2C signup is complete (has all required fields)
   const hasCompletedSignup = React.useMemo(() => {
     if (!profile) return false;
     const shop = profile.shop;
     if (!shop || !shop.id) return false;
-    
+
     // Check if all required B2C signup fields are present
-    const hasName = profile.name && profile.name.trim() !== '';
-    const hasEmail = profile.email && profile.email.trim() !== '';
-    const hasAddress = shop.address && shop.address.trim() !== '';
-    const hasContact = shop.contact && shop.contact.trim() !== '';
-    const hasAadhar = shop.aadhar_card && shop.aadhar_card.trim() !== '';
-    
+    const hasName = profile.name && String(profile.name).trim() !== '';
+    const hasEmail = profile.email && String(profile.email).trim() !== '';
+    const hasAddress = shop.address && String(shop.address).trim() !== '';
+    const hasContact = shop.contact && String(shop.contact).trim() !== '';
+    const hasAadhar = shop.aadhar_card && String(shop.aadhar_card).trim() !== '';
+
     return hasName && hasEmail && hasAddress && hasContact && hasAadhar;
   }, [profile]);
 
-  // Get approval status label
+  // Check if user has approval status (even if signup is not fully complete)
+  // This allows showing approval status for users who have submitted signup but may have incomplete data
+  const hasApprovalStatus = React.useMemo(() => {
+    if (!profile) {
+      console.log('❌ UserProfileScreen: hasApprovalStatus = false (no profile)');
+      return false;
+    }
+    
+    const shop = profile.shop;
+    
+    // For SR or S users, show approval status option even if shop data is missing
+    // (they should have approval status, so show the option to check it)
+    if (userData?.user_type === 'SR' || userData?.user_type === 'S') {
+      if (!shop || !shop.id) {
+        // For SR/S users without shop data, still show approval status option (treat as pending)
+        console.log('✅ UserProfileScreen: hasApprovalStatus = true (user_type is SR or S, no shop data - showing as pending)');
+        return true;
+      }
+      const hasStatus = shop.approval_status !== undefined && shop.approval_status !== null;
+      console.log('✅ UserProfileScreen: hasApprovalStatus =', hasStatus, '(user_type is SR or S, shop.approval_status:', shop.approval_status, ')');
+      return hasStatus;
+    }
+    
+    if (!shop || !shop.id) {
+      console.log('❌ UserProfileScreen: hasApprovalStatus = false (no shop or shop.id)');
+      return false;
+    }
+    
+    // For user_type 'R' who has completed business signup, show approval status
+    // This covers users who have submitted business signup but haven't been upgraded to SR yet
+    // Show approval status option even if approval_status is not yet set (it will be pending)
+    if (hasCompletedBusinessSignup) {
+      // Always show approval status option if user has completed business signup
+      // The approval_status might be pending, approved, rejected, or not yet set
+      console.log('✅ UserProfileScreen: hasApprovalStatus = true (user_type R with completed business signup, shop.approval_status:', shop.approval_status, ')');
+      return true;
+    }
+    
+    // If shop has approval_status, show the approval status menu item
+    // This covers cases where user has submitted signup but some fields might be missing
+    const hasStatus = shop.approval_status !== undefined && shop.approval_status !== null;
+    console.log('✅ UserProfileScreen: hasApprovalStatus =', hasStatus, '(shop.approval_status:', shop.approval_status, ')');
+    return hasStatus;
+  }, [profile, userData?.user_type, hasCompletedBusinessSignup]);
+
+  // Check if JoinB2BNetwork option should be shown - for approved 'R' users and pending 'SR' users
+  const shouldShowJoinB2BNetwork = React.useMemo(() => {
+    // Only show for 'R' and 'SR' user types
+    if (userData?.user_type !== 'R' && userData?.user_type !== 'SR') {
+      return false;
+    }
+
+    const shop = profile?.shop as any;
+    if (!shop || !shop.id) {
+      return false;
+    }
+
+    const approvalStatus = shop?.approval_status;
+
+    // For 'R' users: show if approved (no business signup required)
+    if (userData?.user_type === 'R') {
+      // Show only if approved
+      return approvalStatus === 'approved';
+    }
+
+    // For 'SR' users: show only if pending (not approved)
+    if (userData?.user_type === 'SR') {
+      return approvalStatus === 'pending';
+    }
+
+    return false;
+  }, [userData?.user_type, profile?.shop]);
+
+  // Get approval status label - prioritize SR approval status if user has completed business signup
   const getApprovalStatusLabel = () => {
+    // For users with type 'R' who have completed business signup, show SR approval status
+    // For SR or S users, show their approval status
+    // Otherwise, show B2C approval status
     const approvalStatus = profile?.shop?.approval_status;
+    
+    // If shop data is not available but user is SR or S, default to pending
+    if ((userData?.user_type === 'SR' || userData?.user_type === 'S') && !approvalStatus) {
+      return t('userProfile.pending') || 'Pending';
+    }
+    
     if (approvalStatus === 'approved') {
       return t('userProfile.approved') || 'Approved';
     } else if (approvalStatus === 'pending') {
@@ -147,7 +315,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     } catch (error: any) {
       console.error('Error logging out:', error);
       setShowLogoutModal(false);
-      Alert.alert('Error', error.message || 'Failed to logout');
+      Alert.alert(t('common.error') || 'Error', error.message || t('profile.failedToLogout') || 'Failed to logout');
     }
   };
 
@@ -157,7 +325,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
 
   const confirmDeleteAccount = async () => {
     if (!userData?.id) {
-      Alert.alert('Error', 'User ID not found');
+      Alert.alert(t('common.error') || 'Error', t('profile.userIdNotFound') || 'User ID not found');
       return;
     }
 
@@ -171,7 +339,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     } catch (error: any) {
       console.error('Error deleting account:', error);
       setIsDeletingAccount(false);
-      Alert.alert('Error', error.message || 'Failed to delete account');
+      Alert.alert(t('common.error') || 'Error', error.message || t('profile.failedToDeleteAccount') || 'Failed to delete account');
     }
   };
 
@@ -194,21 +362,55 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     } else if (item.action === 'Terms') {
       navigation.navigate('Terms');
     } else if (item.action === 'JoinB2BNetwork') {
-      navigation.navigate('DealerSignup');
+      // Handle navigation based on user type
+      if (userData?.user_type === 'SR') {
+        // For SR users, navigate to ApprovalWorkflow to see their status
+        // If approved, they can switch to B2B mode from there
+        console.log('✅ UserProfileScreen: User type SR - navigating to ApprovalWorkflow');
+        navigation.navigate('ApprovalWorkflow', { fromProfile: true });
+      } else if (userData?.user_type === 'R') {
+        const shop = profile?.shop;
+        const approvalStatus = shop?.approval_status;
+        
+        // Check if user has completed business signup
+        const hasCompanyName = shop?.company_name && String(shop.company_name).trim() !== '';
+        const hasGstNumber = shop?.gst_number && String(shop.gst_number).trim() !== '';
+        const hasPanNumber = shop?.pan_number && String(shop.pan_number).trim() !== '';
+        const hasCompletedBusinessSignup = hasCompanyName || hasGstNumber || hasPanNumber;
+        
+        if (hasCompletedBusinessSignup) {
+          // User has completed business signup - navigate to ApprovalWorkflow to see status
+          console.log('✅ UserProfileScreen: User type R with completed business signup - navigating to ApprovalWorkflow');
+          navigation.navigate('ApprovalWorkflow', { fromProfile: true });
+        } else {
+          // User hasn't completed business signup - navigate to business signup screen
+          console.log('✅ UserProfileScreen: User type R without completed business signup - navigating to Business signup screen');
+          navigation.navigate('DealerSignup');
+        }
+      } else {
+        // For other user types, navigate to Business signup screen
+        console.log('✅ UserProfileScreen: Navigating to Business signup screen');
+        navigation.navigate('DealerSignup');
+      }
     } else if (item.action === 'ApprovalStatus') {
       navigation.navigate('ApprovalWorkflow', { fromProfile: true });
+    } else if (item.action === 'PickupStatus') {
+      navigation.navigate('PickupStatus');
+    } else if (item.action === 'SubcategoryRequests') {
+      navigation.navigate('SubcategoryRequests');
     }
   };
 
   const menuItems = [
     { icon: 'account', label: t('userProfile.yourProfile') || 'Your Profile', subtitle: `${completionPercentage}% completed`, action: 'EditProfile' },
-    ...(hasCompletedSignup ? [{ icon: 'check-circle', label: t('userProfile.approvalStatus') || 'Approval Status', subtitle: getApprovalStatusLabel(), action: 'ApprovalStatus' }] : []),
+    ...(hasCompletedSignup || hasApprovalStatus ? [{ icon: 'check-circle', label: t('userProfile.approvalStatus') || 'Approval Status', subtitle: getApprovalStatusLabel(), action: 'ApprovalStatus' }] : []),
+    ...(hasPendingSubcategoryRequests ? [{ icon: 'file-document-outline', label: t('userProfile.subcategoryRequests') || 'Subcategory Requests', action: 'SubcategoryRequests' }] : []),
     { icon: 'package-variant', label: t('userProfile.myOrders'), action: 'MyOrders' },
     { icon: 'truck-delivery-outline', label: t('userProfile.pickupStatus'), action: 'PickupStatus' },
     { icon: 'weather-sunny', label: t('userProfile.appearance'), subtitle: getThemeSubtitle(), action: 'Appearance' },
     { icon: 'truck', label: t('userProfile.addDeliveryPartner'), action: null },
     { icon: 'star', label: t('userProfile.changeLanguage'), action: 'ChangeLanguage' },
-    { icon: 'office-building', label: t('userProfile.joinB2BNetwork'), action: 'JoinB2BNetwork' },
+    ...(shouldShowJoinB2BNetwork ? [{ icon: 'office-building', label: t('userProfile.joinB2BNetwork'), action: 'JoinB2BNetwork' }] : []),
     { icon: 'shield', label: t('userProfile.privacyPolicy'), action: 'PrivacyPolicy' },
     { icon: 'file-document', label: t('userProfile.terms'), action: 'Terms' },
   ];
@@ -267,25 +469,71 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                   )}
                 </View>
                 <View style={styles.profileInfo}>
-                  <AutoText style={styles.name} numberOfLines={1}>
+                  <AutoText style={styles.name} numberOfLines={2}>
                     {userName}
                   </AutoText>
-                  <TouchableOpacity 
-                    activeOpacity={0.8}
-                    onPress={() => navigation.navigate('SubscriptionPlans')}
-                    style={styles.upgradeButton}
-                  >
-                    <LinearGradient
-                      colors={[theme.primary, theme.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.upgradeGradient}
-                    >
-                      <AutoText style={styles.upgradeText} numberOfLines={2}>
-                        {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
-                      </AutoText>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  {!isB2BUser && (() => {
+                    // For SR users, check b2cShop; for R users, check shop or b2cShop
+                    const shop = (userData?.user_type === 'SR' ? profile?.b2cShop : profile?.b2cShop || profile?.shop) as any;
+                    const invoices = (profile as any)?.invoices || [];
+                    const approvedInvoice = invoices.find((inv: any) => inv?.approval_status === 'approved' && inv?.type === 'Paid');
+                    // For subscription check: if shop.is_subscribed is true, user is subscribed (invoice check is optional)
+                    // The admin panel sets is_subscribed=true when approving, so we trust that
+                    const isSubscribed = shop?.is_subscribed === true;
+                    const subscriptionEndsAt = shop?.subscription_ends_at;
+                    const currentPlanName = approvedInvoice?.name || approvedInvoice?.package_id || 'B2C Monthly';
+                    
+                    if (isSubscribed && subscriptionEndsAt) {
+                      const endDate = new Date(subscriptionEndsAt);
+                      const formattedDate = endDate.toLocaleDateString('en-IN', { 
+                        day: 'numeric', 
+                        month: 'short', 
+                        year: 'numeric' 
+                      });
+                      return (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => navigation.navigate('SubscriptionPlans')}
+                          style={styles.upgradeButton}
+                        >
+                          <LinearGradient
+                            colors={isDark 
+                              ? [theme.primary, theme.secondary, theme.accent]
+                              : [theme.primary, theme.secondary, theme.accent]
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.upgradeGradient}
+                          >
+                            <AutoText style={[styles.upgradeText, { color: premiumButtonTextColor }]} numberOfLines={2}>
+                              Current Plan: {currentPlanName}{'\n'}Valid until: {formattedDate}
+                            </AutoText>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      );
+                    }
+                    return (
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => navigation.navigate('SubscriptionPlans')}
+                        style={styles.upgradeButton}
+                      >
+                        <LinearGradient
+                          colors={isDark 
+                            ? [theme.primary, theme.secondary, theme.accent]
+                            : [theme.primary, theme.secondary, theme.accent]
+                          }
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.upgradeGradient}
+                        >
+                          <AutoText style={[styles.upgradeText, { color: premiumButtonTextColor }]} numberOfLines={2}>
+                            {t('userProfile.upgradeToPremium') || 'Activate Premium\nto Accept Orders'}
+                          </AutoText>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    );
+                  })()}
                 </View>
                 <MaterialCommunityIcons
                   name="chevron-right"
@@ -312,25 +560,71 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                   )}
                 </View>
                 <View style={styles.profileInfo}>
-                  <AutoText style={styles.name} numberOfLines={1}>
+                  <AutoText style={styles.name} numberOfLines={2}>
                     {userName}
                   </AutoText>
-                  <TouchableOpacity 
-                    activeOpacity={0.8}
-                    onPress={() => navigation.navigate('SubscriptionPlans')}
-                    style={styles.upgradeButton}
-                  >
-                    <LinearGradient
-                      colors={[theme.primary, theme.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.upgradeGradient}
-                    >
-                      <AutoText style={styles.upgradeText} numberOfLines={2}>
-                        {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
-                      </AutoText>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  {!isB2BUser && (() => {
+                    // For SR users, check b2cShop; for R users, check shop or b2cShop
+                    const shop = (userData?.user_type === 'SR' ? profile?.b2cShop : profile?.b2cShop || profile?.shop) as any;
+                    const invoices = (profile as any)?.invoices || [];
+                    const approvedInvoice = invoices.find((inv: any) => inv?.approval_status === 'approved' && inv?.type === 'Paid');
+                    // For subscription check: if shop.is_subscribed is true, user is subscribed (invoice check is optional)
+                    // The admin panel sets is_subscribed=true when approving, so we trust that
+                    const isSubscribed = shop?.is_subscribed === true;
+                    const subscriptionEndsAt = shop?.subscription_ends_at;
+                    const currentPlanName = approvedInvoice?.name || approvedInvoice?.package_id || 'B2C Monthly';
+                    
+                    if (isSubscribed && subscriptionEndsAt) {
+                      const endDate = new Date(subscriptionEndsAt);
+                      const formattedDate = endDate.toLocaleDateString('en-IN', { 
+                        day: 'numeric', 
+                        month: 'short', 
+                        year: 'numeric' 
+                      });
+                      return (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => navigation.navigate('SubscriptionPlans')}
+                          style={styles.upgradeButton}
+                        >
+                          <LinearGradient
+                            colors={isDark 
+                              ? [theme.primary, theme.secondary, theme.accent]
+                              : [theme.primary, theme.secondary, theme.accent]
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.upgradeGradient}
+                          >
+                            <AutoText style={[styles.upgradeText, { color: premiumButtonTextColor }]} numberOfLines={2}>
+                              Current Plan: {currentPlanName}{'\n'}Valid until: {formattedDate}
+                            </AutoText>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      );
+                    }
+                    return (
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => navigation.navigate('SubscriptionPlans')}
+                        style={styles.upgradeButton}
+                      >
+                        <LinearGradient
+                          colors={isDark 
+                            ? [theme.primary, theme.secondary, theme.accent]
+                            : [theme.primary, theme.secondary, theme.accent]
+                          }
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.upgradeGradient}
+                        >
+                          <AutoText style={[styles.upgradeText, { color: premiumButtonTextColor }]} numberOfLines={2}>
+                            {t('userProfile.upgradeToPremium') || 'Activate Premium\nto Accept Orders'}
+                          </AutoText>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    );
+                  })()}
                 </View>
                 <MaterialCommunityIcons
                   name="chevron-right"
@@ -413,7 +707,7 @@ const UserProfileScreen = ({ navigation, route }: any) => {
 
         <View style={styles.appInfoContainer}>
           <AutoText style={styles.appInfoText}>
-            ScrapMate Partner v1.0.1
+            {APP_NAME} v{APP_VERSION}
           </AutoText>
         </View>
       </ScrollView>
@@ -769,7 +1063,7 @@ const getStyles = (theme: any, isEnglish: boolean, isDark: boolean, themeName?: 
       justifyContent: 'center',
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor:  theme.textSecondary,
+      borderColor: theme.textSecondary,
     },
     avatarImage: {
       width: '100%',
@@ -787,7 +1081,7 @@ const getStyles = (theme: any, isEnglish: boolean, isDark: boolean, themeName?: 
     },
     name: {
       fontFamily: 'Poppins-SemiBold',
-      fontSize: '20@s',
+      fontSize: '14@s',
       color: theme.textPrimary,
       marginBottom: '8@vs',
     },
@@ -808,9 +1102,11 @@ const getStyles = (theme: any, isEnglish: boolean, isDark: boolean, themeName?: 
     upgradeText: {
       fontFamily: 'Poppins-SemiBold',
       fontSize: '12@s',
-      color: themeName === 'darkGreen' ? '#000000' : '#FFFFFF',
       flexShrink: 1,
       textAlign: 'center',
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 8,
+      lineHeight: '16@s',
     },
     menuRow: {
       flexDirection: 'row',

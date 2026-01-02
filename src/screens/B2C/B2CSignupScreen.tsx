@@ -33,6 +33,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
 import { useLocationService, getAddressFromCoordinates } from '../../components/LocationView';
+import { SignupAddressModal } from '../../components/SignupAddressModal';
 
 const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
@@ -60,7 +61,7 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingAadhar, setUploadingAadhar] = useState(false);
   const [uploadingDrivingLicense, setUploadingDrivingLicense] = useState(false);
-  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [pincode, setPincode] = useState<string>('');
@@ -69,9 +70,8 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
   const [language, setLanguage] = useState<string>('');
   const [place, setPlace] = useState<string>('');
   const [location, setLocation] = useState<string>('');
-
-  // Location service hook
-  const { getCurrentLocationWithAddress } = useLocationService();
+  const [houseName, setHouseName] = useState<string>('');
+  const [nearbyLocation, setNearbyLocation] = useState<string>('');
 
   // Load user data
   useEffect(() => {
@@ -313,12 +313,12 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
       
       // Validate file type - only PDF allowed
       if (file.type !== 'application/pdf' && !fileUri.toLowerCase().endsWith('.pdf')) {
-        Alert.alert('Error', 'Please upload a PDF file only');
+        Alert.alert(t('common.error') || 'Error', t('signup.pleaseUploadPdfOnly') || 'Please upload a PDF file only');
         return;
       }
 
       if (!userData?.id) {
-        Alert.alert('Error', 'User not found');
+        Alert.alert(t('common.error') || 'Error', t('auth.userNotFound') || 'User not found');
         return;
       }
 
@@ -328,12 +328,12 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           onSuccess: (result) => {
             setAadharCard(result.image_url);
             setUploadingAadhar(false);
-            Alert.alert('Success', 'Aadhar card uploaded successfully');
+            Alert.alert(t('common.success') || 'Success', t('signup.aadharUploaded') || 'Aadhar card uploaded successfully');
           },
           onError: (error: any) => {
             console.error('Error uploading Aadhar card:', error);
             setUploadingAadhar(false);
-            Alert.alert('Error', error.message || 'Failed to upload Aadhar card');
+            Alert.alert(t('common.error') || 'Error', error.message || t('signup.failedToUploadAadhar') || 'Failed to upload Aadhar card');
           },
         });
       } else if (type === 'drivingLicense') {
@@ -342,12 +342,12 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           onSuccess: (result) => {
             setDrivingLicense(result.image_url);
             setUploadingDrivingLicense(false);
-            Alert.alert('Success', 'Driving license uploaded successfully');
+            Alert.alert(t('common.success') || 'Success', t('signup.drivingLicenseUploaded') || 'Driving license uploaded successfully');
           },
           onError: (error: any) => {
             console.error('Error uploading driving license:', error);
             setUploadingDrivingLicense(false);
-            Alert.alert('Error', error.message || 'Failed to upload driving license');
+            Alert.alert(t('common.error') || 'Error', error.message || t('signup.failedToUploadDrivingLicense') || 'Failed to upload driving license');
           },
         });
       }
@@ -356,7 +356,7 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
         return;
       }
       console.error('Error picking document:', err);
-      Alert.alert('Error', err.message || 'Failed to pick document');
+      Alert.alert(t('common.error') || 'Error', err.message || t('signup.failedToPickDocument') || 'Failed to pick document');
       if (type === 'aadhar') {
         setUploadingAadhar(false);
       } else if (type === 'drivingLicense') {
@@ -365,123 +365,185 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
     }
   };
 
-  // Function to get current location and fill address
-  const handleGetCurrentLocation = async () => {
-    try {
-      setLoadingLocation(true);
-      const locationData = await getCurrentLocationWithAddress();
-      
-      if (locationData) {
-        // Set latitude and longitude
-        if (locationData.latitude && locationData.longitude) {
-          setLatitude(locationData.latitude);
-          setLongitude(locationData.longitude);
-        }
-        
-        // Set address and location fields if available
-        if (locationData.address) {
-        const addressText = locationData.address.address || locationData.address.formattedAddress || '';
-        if (addressText) {
-          setAddress(addressText);
-            
-            // Set location fields from address data
-            if (locationData.address.postcode) {
-              setPincode(locationData.address.postcode);
-            }
-            if (locationData.address.state) {
-              setState(locationData.address.state);
-            }
-            if (locationData.address.city) {
-              setPlace(locationData.address.city);
-            }
-            // Build location string from available components
-            const locationParts = [];
-            if (locationData.address.city) locationParts.push(locationData.address.city);
-            if (locationData.address.state) locationParts.push(locationData.address.state);
-            if (locationData.address.country) locationParts.push(locationData.address.country);
-            if (locationParts.length > 0) {
-              setLocation(locationParts.join(', '));
-            }
-            // Set language based on state (2 for Kerala/Malayalam, 1 for others)
-            if (locationData.address.state === 'Kerala') {
-              setLanguage('2');
-            } else {
-              setLanguage('1');
-            }
-            
-          Alert.alert('Success', 'Address filled from your current location');
-        } else {
-          Alert.alert('Info', 'Could not determine address from location');
-          }
-        } else {
-          Alert.alert('Error', 'Could not get your location. Please enter address manually.');
-        }
-      } else {
-        Alert.alert('Error', 'Could not get your location. Please enter address manually.');
-      }
-    } catch (error: any) {
-      console.error('Error getting location:', error);
-      Alert.alert('Error', error.message || 'Failed to get location. Please enter address manually.');
-    } finally {
-      setLoadingLocation(false);
+  // Handle address selection from map modal
+  const handleAddressSelect = (addressData: {
+    address: string;
+    latitude: number;
+    longitude: number;
+    lat_log: string;
+    houseName?: string;
+    nearbyLocation?: string;
+    pincode?: string;
+    state?: string;
+    place?: string;
+    location?: string;
+    place_id?: string;
+  }) => {
+    // Build full address string with house name and nearby location
+    let fullAddress = addressData.address;
+    if (addressData.houseName) {
+      fullAddress = `${addressData.houseName}, ${fullAddress}`;
     }
+    if (addressData.nearbyLocation) {
+      fullAddress = `${fullAddress}, ${addressData.nearbyLocation}`;
+    }
+    
+    setAddress(fullAddress);
+    setHouseName(addressData.houseName || '');
+    setNearbyLocation(addressData.nearbyLocation || '');
+    setLatitude(addressData.latitude);
+    setLongitude(addressData.longitude);
+    if (addressData.pincode) setPincode(addressData.pincode);
+    if (addressData.state) setState(addressData.state);
+    if (addressData.place) setPlace(addressData.place);
+    if (addressData.location) setLocation(addressData.location);
+    if (addressData.place_id) setPlaceId(addressData.place_id);
+    
+    // Set language based on state (2 for Kerala/Malayalam, 1 for others)
+    if (addressData.state === 'Kerala') {
+      setLanguage('2');
+    } else {
+      setLanguage('1');
+    }
+  };
+
+  // Check if location is enabled
+  const checkLocationEnabled = async (): Promise<boolean> => {
+    if (Platform.OS === 'android') {
+      try {
+        const { NativeMapViewModule } = require('react-native').NativeModules;
+        if (NativeMapViewModule) {
+          const isEnabled = await NativeMapViewModule.isLocationEnabled();
+          return isEnabled;
+        }
+      } catch (error) {
+        console.warn('Failed to check location status:', error);
+      }
+    }
+    return true; // Assume enabled for iOS or if check fails
   };
 
   // Handle form submission
   const handleSubmit = async () => {
     // Validate required fields
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter your name');
+      Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterYourName') || 'Please enter your name');
+      return;
+    }
+
+    // Check if name is a default username pattern (User_xxx or user_xxx where xxx is phone number)
+    const trimmedName = name.trim();
+    const defaultNamePattern = /^[Uu]ser_\d+$/;
+    if (defaultNamePattern.test(trimmedName)) {
+      Alert.alert(
+        t('auth.defaultUsernameTitle') || 'Please Change Your Name / Change to Shop Name',
+        t('auth.defaultUsernameMessage') || 'You are using a default username. Please enter your actual name to continue.',
+        [{ text: t('common.ok') || 'OK' }]
+      );
       return;
     }
 
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterEmailAddress') || 'Please enter your email address');
       return;
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      Alert.alert('Error', 'Please enter a valid email address');
+    // Validate email format - more comprehensive validation
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    const trimmedEmail = email.trim();
+    if (!emailRegex.test(trimmedEmail)) {
+      Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterValidEmail') || 'Please enter a valid email address');
+      return;
+    }
+    
+    // Additional validation: email should not start or end with special characters
+    if (trimmedEmail.startsWith('.') || trimmedEmail.startsWith('@') || 
+        trimmedEmail.endsWith('.') || trimmedEmail.endsWith('@')) {
+      Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterValidEmail') || 'Please enter a valid email address');
+      return;
+    }
+    
+    // Check for consecutive dots or @ symbols
+    if (trimmedEmail.includes('..') || trimmedEmail.includes('@@') || 
+        trimmedEmail.split('@').length !== 2) {
+      Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterValidEmail') || 'Please enter a valid email address');
       return;
     }
 
     if (!address.trim()) {
-      Alert.alert('Error', 'Please enter your address');
+      Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterYourAddress') || 'Please enter your address');
+      return;
+    }
+
+    // Validate address has latitude and longitude
+    if (latitude === null || longitude === null) {
+      Alert.alert(t('common.error') || 'Error', t('signup.addressNotProper') || 'Address is not proper. Please select address from map to get proper location.');
+      return;
+    }
+
+    // Check if location services are enabled before saving
+    const isLocationEnabled = await checkLocationEnabled();
+    if (!isLocationEnabled) {
+      Alert.alert(
+        t('signup.locationDisabled') || 'Location Disabled',
+        t('signup.locationDisabledMessage') || 'Location services are disabled on your device. Please enable location in your device settings to save address with proper coordinates.',
+        [{ text: t('common.ok') || 'OK' }]
+      );
       return;
     }
 
     if (!contactNumber.trim()) {
-      Alert.alert('Error', 'Please enter your contact number');
+      Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterContactNumber') || 'Please enter your contact number');
       return;
     }
 
     // Aadhar card is required
     if (!aadharCard) {
-      Alert.alert('Error', 'Please upload your Aadhar card');
+      Alert.alert(t('common.error') || 'Error', t('signup.pleaseUploadAadhar') || 'Please upload your Aadhar card');
       return;
     }
 
     // Vehicle details are required if vehicle pickup is selected, but not for cycle
     if (vehiclePickup && vehicleType !== 'cycle') {
-      if (!vehicleModel.trim()) {
-        Alert.alert('Error', 'Please enter vehicle model');
+      // Validate vehicle model
+      const trimmedVehicleModel = vehicleModel.trim();
+      if (!trimmedVehicleModel) {
+        Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterVehicleModel') || 'Please enter vehicle model');
         return;
       }
-      if (!registrationNumber.trim()) {
-        Alert.alert('Error', 'Please enter registration number');
+      if (trimmedVehicleModel.length < 2) {
+        Alert.alert(t('common.error') || 'Error', t('signup.vehicleModelMinLength') || 'Vehicle model must be at least 2 characters long');
         return;
       }
+      
+      // Validate registration number
+      const trimmedRegistrationNumber = registrationNumber.trim();
+      if (!trimmedRegistrationNumber) {
+        Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterRegistrationNumber') || 'Please enter registration number');
+        return;
+      }
+      // Indian vehicle registration format: XX-XX-XX-XXXX (e.g., KL-01-AB-1234)
+      // Allow flexible format but ensure it's not too short
+      if (trimmedRegistrationNumber.length < 5) {
+        Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterValidRegistrationNumber') || 'Please enter a valid registration number');
+        return;
+      }
+      // Check for basic format (should contain alphanumeric characters and possibly hyphens)
+      const registrationRegex = /^[A-Z0-9-]+$/i;
+      if (!registrationRegex.test(trimmedRegistrationNumber)) {
+        Alert.alert(t('common.error') || 'Error', t('signup.registrationNumberFormat') || 'Registration number can only contain letters, numbers, and hyphens');
+        return;
+      }
+      
       // Driving license is required only if vehicle type is not cycle
       if (!drivingLicense) {
-        Alert.alert('Error', 'Please upload your driving license for vehicle pickup');
+        Alert.alert(t('common.error') || 'Error', t('signup.pleaseUploadDrivingLicense') || 'Please upload your driving license for vehicle pickup');
         return;
       }
     }
 
     if (!userData?.id) {
-      Alert.alert('Error', 'User not found');
+      Alert.alert(t('common.error') || 'Error', t('auth.userNotFound') || 'User not found');
       return;
     }
 
@@ -517,8 +579,8 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           updateData.shop.driving_license = drivingLicense;
         }
         updateData.shop.vehicle_type = vehicleType;
-        updateData.shop.vehicle_model = vehicleModel.trim();
-        updateData.shop.vehicle_registration_number = registrationNumber.trim();
+        updateData.shop.vehicle_model = vehicleModel.trim().toUpperCase(); // Store in uppercase for consistency
+        updateData.shop.vehicle_registration_number = registrationNumber.trim().toUpperCase(); // Store in uppercase for consistency
       }
       
       console.log('📤 B2C Signup - Shop updateData:', JSON.stringify(updateData.shop, null, 2));
@@ -542,7 +604,15 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           await queryClient.invalidateQueries({ queryKey: profileQueryKeys.detail(userData.id) });
           await queryClient.invalidateQueries({ queryKey: profileQueryKeys.current() });
 
-          // Refresh user data to get updated user_type
+          // Get user_type from updatedProfile response (most up-to-date)
+          // Also check if user has B2B shop to determine if both signups are complete
+          const userTypeFromProfile = updatedProfile?.user_type || updatedProfile?.user?.user_type;
+          const hasB2BShop = !!(updatedProfile?.b2bShop || (updatedProfile?.shop && (updatedProfile.shop as any)?.shop_type === 1 || (updatedProfile.shop as any)?.shop_type === 4));
+          
+          console.log('✅ User type from updated profile:', userTypeFromProfile);
+          console.log('✅ Has B2B shop:', hasB2BShop);
+
+          // Refresh user data to update AsyncStorage
           const updatedUserData = await getUserData();
           console.log('✅ Updated user type after B2C signup:', updatedUserData?.user_type);
 
@@ -554,16 +624,37 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
             console.log('⚠️ B2C signup not complete yet - user_type is still N');
           }
 
-          // Navigate to dashboard after successful submission
+          // Check if this is the first signup
+          // If user_type is 'SR' OR has B2B shop, both signups are complete, go to dashboard
+          // Otherwise, it's the first signup (B2C only) - go to JoinAs to complete B2B
+          const bothSignupsComplete = userTypeFromProfile === 'SR' || hasB2BShop;
+          
+          console.log('🔍 Navigation decision:', {
+            userTypeFromProfile,
+            hasB2BShop,
+            bothSignupsComplete,
+            isFirstSignup: !bothSignupsComplete
+          });
+
+          // Navigate after successful submission
           Alert.alert('Success', 'Profile updated successfully', [
             {
               text: 'OK',
               onPress: () => {
-                // Navigate to dashboard
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'Dashboard' }],
-                });
+                if (bothSignupsComplete) {
+                  // Both signups complete - go to dashboard
+                  console.log('✅ Both B2C and B2B signups complete - navigating to Dashboard');
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Dashboard' }],
+                  });
+                } else {
+                  // First signup (B2C only) - go to JoinAs to complete B2B
+                  // This handles cases where user_type is 'N', 'R', or any other value
+                  // as long as they don't have both signups complete
+                  console.log('✅ B2C signup complete (first signup) - navigating to JoinAs to complete B2B signup');
+                  navigateToJoinAs();
+                }
               },
             },
           ]);
@@ -639,29 +730,35 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
               autoCorrect={false}
               onFocus={hideUI}
             />
-            <View style={styles.addressInputContainer}>
-              <TextInput
-                style={[styles.input, styles.textArea, { color: theme.textPrimary, flex: 1 }]}
-                placeholder="Enter your address"
-                placeholderTextColor={theme.textSecondary}
-                value={address}
-                onChangeText={setAddress}
-                multiline
-                numberOfLines={3}
-                onFocus={hideUI}
-              />
-              <TouchableOpacity
-                style={[styles.locationButton, { backgroundColor: theme.primary }]}
-                onPress={handleGetCurrentLocation}
-                disabled={loadingLocation}
-                activeOpacity={0.7}
-              >
-                {loadingLocation ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#FFFFFF" />
-                )}
-              </TouchableOpacity>
+            <View style={styles.addressContainer}>
+              {address ? (
+                <View style={styles.addressDisplayContainer}>
+                  <AutoText style={[styles.addressDisplayText, { color: theme.textPrimary }]} numberOfLines={3}>
+                    {address}
+                  </AutoText>
+                  <TouchableOpacity
+                    style={styles.addressEditButton}
+                    onPress={() => setShowAddressModal(true)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialCommunityIcons name="pencil" size={18} color={theme.primary} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.addressButton}
+                  onPress={() => setShowAddressModal(true)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.addressButtonContent}>
+                    <MaterialCommunityIcons name="map-marker" size={20} color={theme.primary} />
+                    <AutoText style={[styles.addressButtonText, { color: theme.textSecondary }]}>
+                      Select Address
+                    </AutoText>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                  </View>
+                </TouchableOpacity>
+              )}
             </View>
             <TextInput
               style={[styles.input, { color: theme.textPrimary }]}
@@ -694,15 +791,15 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           {/* Vehicle Type Selection - Show when vehicle pickup is enabled */}
           {vehiclePickup && (
             <SectionCard>
-              <AutoText style={styles.sectionTitle}>Select Vehicle Type</AutoText>
+              <AutoText style={styles.sectionTitle}>{t('vehicle.selectVehicleType') || 'Select Vehicle Type'}</AutoText>
               <View style={styles.vehicleTypeGrid}>
                 {[
-                  { key: 'car' as const, icon: 'car', label: 'Car' },
-                  { key: 'motorcycle' as const, icon: 'motorbike', label: 'Motorcycle' },
-                  { key: 'van' as const, icon: 'van-utility', label: 'Van' },
-                  { key: 'truck' as const, icon: 'truck', label: 'Truck' },
-                  { key: 'pickup_auto' as const, icon: 'car-estate', label: 'Pickup Auto' },
-                  { key: 'cycle' as const, icon: 'bicycle', label: 'Cycle' },
+                  { key: 'car' as const, icon: 'car', label: t('vehicle.car') || 'Car' },
+                  { key: 'motorcycle' as const, icon: 'motorbike', label: t('vehicle.motorcycle') || 'Motorcycle' },
+                  { key: 'van' as const, icon: 'van-utility', label: t('vehicle.van') || 'Van' },
+                  { key: 'truck' as const, icon: 'truck', label: t('vehicle.truck') || 'Truck' },
+                  { key: 'pickup_auto' as const, icon: 'car-estate', label: t('vehicle.pickupAuto') || 'Pickup Auto' },
+                  { key: 'cycle' as const, icon: 'bicycle', label: t('vehicle.cycle') || 'Cycle' },
                 ].map((type) => (
                   <TouchableOpacity
                     key={type.key}
@@ -776,12 +873,12 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
               ) : (
                 <>
                   <MaterialCommunityIcons
-                    name={aadharCard ? 'check-circle' : 'upload'}
+                    name={aadharCard ? 'reload' : 'upload'}
                     size={20}
-                    color={aadharCard ? theme.success : theme.primary}
+                    color={theme.primary}
                   />
                   <AutoText style={styles.documentButtonText}>
-                    {aadharCard ? 'Aadhar Card Uploaded' : 'Upload Aadhar Card *'}
+                    {aadharCard ? 'Reupload Aadhar Card *' : 'Upload Aadhar Card *'}
                   </AutoText>
                 </>
               )}
@@ -797,12 +894,12 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
                 ) : (
                   <>
                     <MaterialCommunityIcons
-                      name={drivingLicense ? 'check-circle' : 'upload'}
+                      name={drivingLicense ? 'reload' : 'upload'}
                       size={20}
-                      color={drivingLicense ? theme.success : theme.primary}
+                      color={theme.primary}
                     />
                     <AutoText style={styles.documentButtonText}>
-                      {drivingLicense ? 'Driving License Uploaded' : 'Upload Driving License *'}
+                      {drivingLicense ? 'Reupload Driving License *' : 'Upload Driving License *'}
                     </AutoText>
                   </>
                 )}
@@ -835,12 +932,22 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           ]}
         >
           <GreenButton
-            title="Submit"
+            title={t('buttons.submit') || 'Submit'}
             onPress={handleSubmit}
             disabled={isSubmitting || !name.trim() || !email.trim() || !address.trim() || !contactNumber.trim() || !aadharCard || (vehiclePickup && vehicleType !== 'cycle' && (!drivingLicense || !vehicleModel.trim() || !registrationNumber.trim()))}
           />
         </Animated.View>
       </KeyboardAvoidingView>
+
+      {/* Address Map Modal */}
+      <SignupAddressModal
+        visible={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        onAddressSelect={handleAddressSelect}
+        initialAddress={address}
+        initialLatitude={latitude || undefined}
+        initialLongitude={longitude || undefined}
+      />
     </View>
   );
 };
@@ -900,6 +1007,46 @@ const getStyles = (theme: any, themeName?: string, isDark?: boolean) =>
       borderWidth: 1,
       borderColor: theme.border,
       marginBottom: '14@vs', // Keep margin for personal info section
+    },
+    addressContainer: {
+      marginBottom: '14@vs',
+    },
+    addressButton: {
+      backgroundColor: theme.card,
+      borderRadius: '12@ms',
+      borderWidth: 1,
+      borderColor: theme.border,
+      padding: '14@s',
+    },
+    addressButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '12@s',
+    },
+    addressButtonText: {
+      flex: 1,
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      lineHeight: '20@vs',
+    },
+    addressDisplayContainer: {
+      backgroundColor: theme.card,
+      borderRadius: '12@ms',
+      borderWidth: 1,
+      borderColor: theme.border,
+      padding: '14@s',
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: '12@s',
+    },
+    addressDisplayText: {
+      flex: 1,
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      lineHeight: '20@vs',
+    },
+    addressEditButton: {
+      padding: '4@s',
     },
     addressInputContainer: {
       flexDirection: 'row',

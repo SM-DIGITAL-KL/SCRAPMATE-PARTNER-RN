@@ -10,6 +10,8 @@ import com.app.scrapmatepartner.NavigationBarPackage
 import com.app.scrapmatepartner.UPIPaymentPackage
 import com.app.scrapmatepartner.NativeMapViewPackage
 import com.app.scrapmatepartner.KeyboardControllerPackage
+import com.app.scrapmatepartner.NotificationChannelPackage
+// SmsReaderPackage removed - SMS permissions not compliant with Google Play Store policy
 
 class MainApplication : Application(), ReactApplication {
 
@@ -24,6 +26,8 @@ class MainApplication : Application(), ReactApplication {
           add(UPIPaymentPackage())
           add(NativeMapViewPackage())  // Small screen map
           add(KeyboardControllerPackage())
+          add(NotificationChannelPackage())
+          // SmsReaderPackage removed - SMS permissions not compliant with Google Play Store policy
         },
     )
   }
@@ -33,3 +37,5 @@ class MainApplication : Application(), ReactApplication {
     loadReactNative(this)
   }
 }
+
+

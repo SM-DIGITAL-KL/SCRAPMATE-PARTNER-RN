@@ -197,7 +197,7 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
   );
 
   // Get active pickup order (for D type users in Delivery dashboard)
-  const { data: activePickup, isLoading: loadingActivePickup } = useActivePickup(
+  const { data: activePickup, isLoading: loadingActivePickup, refetch: refetchActivePickup } = useActivePickup(
     userData?.id,
     'D', // Delivery dashboard is for D (Delivery) type users
     !!userData?.id
@@ -279,6 +279,53 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
       subscription.remove();
     };
   }, [userData?.id, queryClient, refetchAvailableRequests]);
+
+  // Listen for pickup request accepted by another vendor/delivery person notification
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('PICKUP_REQUEST_ACCEPTED_BY_OTHER', async (data) => {
+      console.log('⚠️ Delivery Dashboard: Pickup request accepted by another vendor:', data);
+      
+      if (userData?.id) {
+        // First, invalidate and refetch orders queries to remove the accepted order
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.orders.availablePickupRequests(userData.id, 'D') 
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.orders.activePickup(userData.id, 'D') 
+        });
+        
+        // Also manually refetch for immediate update
+        try {
+          await Promise.all([
+            refetchAvailableRequests(),
+            refetchActivePickup()
+          ]);
+          console.log('✅ Delivery Dashboard: Available requests refreshed after order accepted by another vendor');
+        } catch (error) {
+          console.error('❌ Error refetching after order accepted by another vendor:', error);
+        }
+        
+        // Show alert to user after refreshing (so they see the order is gone)
+        Alert.alert(
+          'Order Accepted',
+          `Order #${data.order_number || data.order_id} has been accepted by another vendor.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                console.log('User acknowledged order accepted by another vendor');
+              }
+            }
+          ],
+          { cancelable: true }
+        );
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [userData?.id, queryClient, refetchAvailableRequests, refetchActivePickup]);
 
   // Check approval status and redirect to VehicleInformation if rejected
   useEffect(() => {

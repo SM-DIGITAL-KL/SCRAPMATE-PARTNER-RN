@@ -17,36 +17,49 @@ import { useFocusEffect, useNavigation, CommonActions } from '@react-navigation/
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../components/ThemeProvider';
 import { useTabBar } from '../../context/TabBarContext';
+import { useUserMode } from '../../context/UserModeContext';
 import { GreenButton } from '../../components/GreenButton';
 import { AutoText } from '../../components/AutoText';
 import { ScaledSheet } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
-import { getUserData } from '../../services/auth/authService';
+import { getUserData, isLoggedIn } from '../../services/auth/authService';
 import { submitB2BSignup, B2BSignupData } from '../../services/api/v2/b2bSignup';
 import { Alert, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfile } from '../../hooks/useProfile';
+import { SignupAddressModal } from '../../components/SignupAddressModal';
 
-const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
+const DealerSignupScreen = ({ navigation: routeNavigation, route }: any) => {
   const { theme, isDark, themeName } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
   const { setTabBarVisible } = useTabBar();
+  const { setMode } = useUserMode();
   const buttonTranslateY = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(1)).current;
   const navigation = useNavigation();
 
   // Form state
   const [companyName, setCompanyName] = useState('');
-  const [gstNumber, setGstNumber] = useState('');
-  const [panNumber, setPanNumber] = useState('');
+  const [gstNumber, setGstNumber] = useState(''); // TODO: Remove default value for production
+  const [panNumber, setPanNumber] = useState(''); // TODO: Remove default value for production
   const [businessAddress, setBusinessAddress] = useState('');
   const [contactPersonName, setContactPersonName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [userData, setUserData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [pincode, setPincode] = useState<string>('');
+  const [placeId, setPlaceId] = useState<string>('');
+  const [state, setState] = useState<string>('');
+  const [place, setPlace] = useState<string>('');
+  const [location, setLocation] = useState<string>('');
+  const [houseName, setHouseName] = useState<string>('');
+  const [nearbyLocation, setNearbyLocation] = useState<string>('');
 
   // Load user data and profile
   useEffect(() => {
@@ -64,10 +77,10 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
   useEffect(() => {
     if (profileData && userData) {
       const isV1User = !userData.app_version || userData.app_version === 'v1' || userData.app_version === 'v1.0';
-      
+
       if (isV1User) {
         console.log('📝 Auto-filling B2B signup form for v1 user');
-        
+
         // Auto-fill from shop data if available
         if (profileData.shop) {
           if (profileData.shop.shopname && !companyName) {
@@ -80,7 +93,7 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
             setContactNumber(profileData.shop.contact);
           }
         }
-        
+
         // Auto-fill from user data
         if (profileData.name && !companyName && !contactPersonName) {
           setCompanyName(profileData.name);
@@ -101,20 +114,20 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
     // Start both animations at exactly the same time
     requestAnimationFrame(() => {
       setTabBarVisible(false);
-        Animated.parallel([
-          Animated.timing(buttonTranslateY, {
-            toValue: 100,
-            duration: 500,
-            easing: Easing.in(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(buttonOpacity, {
-            toValue: 0,
-            duration: 500,
-            easing: Easing.in(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]).start();
+      Animated.parallel([
+        Animated.timing(buttonTranslateY, {
+          toValue: 100,
+          duration: 500,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonOpacity, {
+          toValue: 0,
+          duration: 500,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
     });
   }, [setTabBarVisible, buttonTranslateY, buttonOpacity]);
 
@@ -123,20 +136,20 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
     // Start both animations at exactly the same time
     requestAnimationFrame(() => {
       setTabBarVisible(true);
-        Animated.parallel([
-          Animated.timing(buttonTranslateY, {
-            toValue: 0,
-            duration: 500,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(buttonOpacity, {
-            toValue: 1,
-            duration: 500,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]).start();
+      Animated.parallel([
+        Animated.timing(buttonTranslateY, {
+          toValue: 0,
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonOpacity, {
+          toValue: 1,
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
     });
   }, [setTabBarVisible, buttonTranslateY, buttonOpacity]);
 
@@ -154,73 +167,96 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
     };
   }, [showUI]);
 
-  // Navigate to JoinAs screen helper function
-  const navigateToJoinAs = useCallback(async () => {
-    // Check if user is new (type 'N') - always clear @selected_join_type for new users
-    let isNewUser = false;
+  // Navigate back helper function
+  const handleGoBack = useCallback(async () => {
     try {
-      const userData = await getUserData();
-      if (userData?.user_type === 'N') {
-        isNewUser = true;
-        console.log('✅ DealerSignupScreen: User type is N - clearing @selected_join_type');
-      }
-    } catch (error) {
-      console.log('DealerSignupScreen: Error checking user data:', error);
-    }
-    
-    // Clear all signup flags to allow user to select a different signup type
-    await AsyncStorage.removeItem('@join_as_shown');
-    await AsyncStorage.removeItem('@b2b_status');
-    await AsyncStorage.removeItem('@b2c_signup_needed');
-    await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
-    
-    // Always clear @selected_join_type for new users, or if user is not logged in yet
-    if (isNewUser) {
-      await AsyncStorage.removeItem('@selected_join_type');
-      console.log('✅ DealerSignupScreen: Cleared @selected_join_type for new user');
-    } else {
-      // For existing users, also clear it to allow type switching
-    await AsyncStorage.removeItem('@selected_join_type');
-      console.log('✅ DealerSignupScreen: Cleared @selected_join_type to allow type switching');
-    }
-    
-    console.log('✅ DealerSignupScreen: Cleared all signup flags to allow type switching');
-    
-    // Emit event to navigate to JoinAs (this will be handled by AppNavigator)
-    DeviceEventEmitter.emit('NAVIGATE_TO_JOIN_AS');
-    
-    // Also try direct navigation
-    try {
-      // Get root navigator (AppNavigator level)
-      const rootNavigation = navigation.getParent()?.getParent()?.getParent();
-      
-      if (rootNavigation) {
-        // Reset navigation to show AuthFlow with JoinAs screen
-        rootNavigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [
-              {
-                name: 'AuthFlow',
-                state: {
-                  routes: [{ name: 'JoinAs' }],
-                  index: 0,
-                },
-              },
-            ],
-          })
-        );
-      }
-    } catch (error) {
-      console.log('Error navigating to JoinAs:', error);
-    }
-  }, [navigation]);
+      // Check user type to determine navigation
+      // user_type 'N' = New user in signup flow → go to JoinAs
+      // user_type 'R' or 'D' = Existing B2C user trying to add B2B → go to B2C Dashboard
+      const userType = userData?.user_type;
+      console.log('🔍 DealerSignupScreen: handleGoBack - user_type:', userType);
 
-  // Handle hardware back button - navigate to JoinAs screen
+      if (userType && userType !== 'N') {
+        // Existing B2C user (type 'R' or 'D') trying to become B2B, navigate back to B2C Dashboard
+        console.log('✅ DealerSignupScreen: Navigating back to B2C Dashboard (existing B2C user)');
+
+        // Get root navigator (AppNavigator level)
+        const rootNavigation = navigation.getParent()?.getParent()?.getParent();
+
+        if (rootNavigation) {
+          // Reset navigation to B2C Dashboard
+          rootNavigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [
+                {
+                  name: 'MainFlow',
+                  state: {
+                    routes: [{ name: 'Dashboard' }],
+                    index: 0,
+                  },
+                },
+              ]
+            })
+          );
+        } else if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+      } else {
+        // New user (type 'N' or null) came from signup flow after OTP, navigate to JoinAs screen
+        console.log('✅ DealerSignupScreen: Navigating to JoinAs screen (new user after OTP)');
+
+        // Clear all signup flags
+        await AsyncStorage.removeItem('@join_as_shown');
+        await AsyncStorage.removeItem('@b2b_status');
+        await AsyncStorage.removeItem('@b2c_signup_needed');
+        await AsyncStorage.removeItem('@delivery_vehicle_info_needed');
+        await AsyncStorage.removeItem('@selected_join_type');
+
+        // Emit event to navigate to JoinAs (this will be handled by AppNavigator)
+        DeviceEventEmitter.emit('NAVIGATE_TO_JOIN_AS');
+
+        // Also try direct navigation
+        try {
+          // Get root navigator (AppNavigator level)
+          const rootNavigation = navigation.getParent()?.getParent()?.getParent();
+
+          if (rootNavigation) {
+            // Reset navigation to show AuthFlow with JoinAs screen
+            rootNavigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [
+                  {
+                    name: 'AuthFlow',
+                    state: {
+                      routes: [{ name: 'JoinAs' }],
+                      index: 0,
+                    },
+                  },
+                ]
+              })
+            );
+          }
+        } catch (error) {
+          console.log('Error navigating to JoinAs:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleGoBack:', error);
+      // Fallback: navigate to JoinAs
+      DeviceEventEmitter.emit('NAVIGATE_TO_JOIN_AS');
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
+    }
+  }, [navigation, userData]);
+
+  // Handle hardware back button - always navigate to JoinAs screen after successful OTP
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        navigateToJoinAs();
+        handleGoBack();
         return true; // Prevent default back behavior
       };
 
@@ -231,8 +267,57 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
         // Restore tab bar when leaving screen
         setTabBarVisible(true);
       };
-    }, [setTabBarVisible, navigateToJoinAs])
+    }, [setTabBarVisible, handleGoBack])
   );
+
+  // Validation functions
+  const validatePhoneNumber = (phone: string): boolean => {
+    // Remove any non-digit characters
+    const cleaned = phone.replace(/\D/g, '');
+    // Check if it's 10 digits (Indian phone number format)
+    return cleaned.length === 10;
+  };
+
+  const validateEmail = (email: string): boolean => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return false;
+    
+    // Basic email regex validation
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (!emailRegex.test(trimmedEmail)) return false;
+    
+    // Additional validation: email should not start or end with special characters
+    if (trimmedEmail.startsWith('.') || trimmedEmail.startsWith('@') || 
+        trimmedEmail.endsWith('.') || trimmedEmail.endsWith('@')) {
+      return false;
+    }
+    
+    // Check for consecutive dots or @ symbols
+    if (trimmedEmail.includes('..') || trimmedEmail.includes('@@')) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  const validateGSTNumber = (gst: string): boolean => {
+    if (!gst || !gst.trim()) return true; // GST is optional
+    const trimmedGst = gst.trim().toUpperCase();
+    // GSTIN format: 15 characters
+    // Format: 22AAAAA0000A1Z5 (2 digits state code + 10 chars PAN + 1 digit entity + 1 letter 'Z' + 1 digit checksum)
+    const gstRegex = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}\d{1}[A-Z]{1}\d{1}$/;
+    return gstRegex.test(trimmedGst);
+  };
+
+  const validatePANNumber = (pan: string): boolean => {
+    if (!pan || !pan.trim()) return true; // PAN is optional
+    const trimmedPan = pan.trim().toUpperCase();
+    // PAN format: 10 characters
+    // Format: BAGPJ4703G (5 letters + 4 digits + 1 letter)
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    return panRegex.test(trimmedPan);
+  };
+
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -243,8 +328,8 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={navigateToJoinAs}
+        <TouchableOpacity
+          onPress={handleGoBack}
           style={styles.backButton}
         >
           <MaterialCommunityIcons name="arrow-left" size={24} color={theme.textPrimary} />
@@ -277,34 +362,63 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
               placeholderTextColor={theme.textSecondary}
               value={companyName}
               onChangeText={setCompanyName}
-              onFocus={hideUI}
             />
             <TextInput
               style={styles.input}
               placeholder={t('dealerSignup.gstNumberPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={gstNumber}
-              onChangeText={setGstNumber}
-              onFocus={hideUI}
+              onChangeText={(text: string) => {
+                // Convert to uppercase, allow alphanumeric, and limit to 15 characters
+                const upperText = text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+                setGstNumber(upperText);
+              }}
+              maxLength={15}
+              autoCapitalize="characters"
             />
             <TextInput
               style={styles.input}
               placeholder={t('dealerSignup.panNumberPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={panNumber}
-              onChangeText={setPanNumber}
-              onFocus={hideUI}
+              onChangeText={(text: string) => {
+                // Convert to uppercase and limit to 10 characters
+                const upperText = text.toUpperCase().slice(0, 10);
+                setPanNumber(upperText);
+              }}
+              maxLength={10}
+              autoCapitalize="characters"
             />
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder={t('dealerSignup.businessAddressPlaceholder')}
-              placeholderTextColor={theme.textSecondary}
-              value={businessAddress}
-              onChangeText={setBusinessAddress}
-              multiline
-              numberOfLines={3}
-              onFocus={hideUI}
-            />
+            <View style={styles.addressContainer}>
+              {businessAddress ? (
+                <View style={styles.addressDisplayContainer}>
+                  <AutoText style={[styles.addressDisplayText, { color: theme.textPrimary }]} numberOfLines={3}>
+                    {businessAddress}
+                  </AutoText>
+                  <TouchableOpacity
+                    style={styles.addressEditButton}
+                    onPress={() => setShowAddressModal(true)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialCommunityIcons name="pencil" size={18} color={theme.primary} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.addressButton}
+                  onPress={() => setShowAddressModal(true)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.addressButtonContent}>
+                    <MaterialCommunityIcons name="map-marker" size={20} color={theme.primary} />
+                    <AutoText style={[styles.addressButtonText, { color: theme.textSecondary }]}>
+                      {t('dealerSignup.businessAddressPlaceholder')}
+                    </AutoText>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textSecondary} />
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Contact Person Details */}
@@ -316,16 +430,19 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
               placeholderTextColor={theme.textSecondary}
               value={contactPersonName}
               onChangeText={setContactPersonName}
-              onFocus={hideUI}
             />
             <TextInput
               style={styles.input}
               placeholder={t('dealerSignup.contactNumberPlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={contactNumber}
-              onChangeText={setContactNumber}
+              onChangeText={(text: string) => {
+                // Only allow digits and limit to 10 digits
+                const digitsOnly = text.replace(/\D/g, '').slice(0, 10);
+                setContactNumber(digitsOnly);
+              }}
               keyboardType="phone-pad"
-              onFocus={hideUI}
+              maxLength={10}
             />
             <TextInput
               style={styles.input}
@@ -335,9 +452,10 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
               onChangeText={setContactEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              onFocus={hideUI}
+              autoCorrect={false}
             />
           </View>
+
 
           {/* Rejection Reason Display */}
           {profileData?.shop?.approval_status === 'rejected' && profileData?.shop?.rejection_reason && (
@@ -366,23 +484,126 @@ const DealerSignupScreen = ({ navigation: routeNavigation }: any) => {
           <GreenButton
             title={t('common.next')}
             onPress={async () => {
-              // Pass form data to DocumentUpload screen
-              navigation.navigate('DocumentUpload', {
+              // Validate required fields
+              const trimmedCompanyName = companyName.trim();
+              if (!trimmedCompanyName) {
+                Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterCompanyName') || 'Please enter company name');
+                return;
+              }
+
+              const trimmedContactName = contactPersonName.trim();
+              if (!trimmedContactName) {
+                Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterContactPersonName') || 'Please enter contact person name');
+                return;
+              }
+
+              // Validate contact person name is not a default username
+              const defaultNamePattern = /^[Uu]ser_\d+$/;
+              if (defaultNamePattern.test(trimmedContactName)) {
+                Alert.alert(
+                  t('auth.defaultUsernameTitle') || 'Please Change Your Name / Change to Shop Name',
+                  t('auth.defaultUsernameMessage') || 'You are using a default username. Please enter your actual name to continue.',
+                  [{ text: t('common.ok') || 'OK' }]
+                );
+                return;
+              }
+
+              // Validate phone number
+              if (!contactNumber.trim()) {
+                Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterContactNumber') || 'Please enter contact number');
+                return;
+              }
+              if (!validatePhoneNumber(contactNumber)) {
+                Alert.alert(t('common.error') || 'Error', t('auth.invalidPhoneNumberMessage') || 'Please enter a valid 10-digit phone number');
+                return;
+              }
+
+              // Validate email
+              if (!contactEmail.trim()) {
+                Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterEmailAddress') || 'Please enter email address');
+                return;
+              }
+              if (!validateEmail(contactEmail)) {
+                Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterValidEmail') || 'Please enter a valid email address');
+                return;
+              }
+
+              // Validate business address
+              if (!businessAddress.trim()) {
+                Alert.alert(t('common.error') || 'Error', t('signup.pleaseSelectBusinessAddress') || 'Please select business address');
+                return;
+              }
+
+              // Validate GST number (optional but must be valid format if provided)
+              if (gstNumber.trim() && !validateGSTNumber(gstNumber)) {
+                Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterValidGstin') || 'Please enter a valid GSTIN (Format: 22AAAAA0000A1Z5 - 15 characters)');
+                return;
+              }
+
+              // Validate PAN number (optional but must be valid format if provided)
+              if (panNumber.trim() && !validatePANNumber(panNumber)) {
+                Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterValidPan') || 'Please enter a valid PAN number (Format: BAGPJ4703G - 10 characters)');
+                return;
+              }
+
+              // Pass form data and source to DocumentUpload screen
+              const source = route?.params?.source || null;
+              (navigation as any).navigate('DocumentUpload', {
                 signupData: {
-                  companyName,
-                  gstNumber,
-                  panNumber,
+                  companyName: trimmedCompanyName,
+                  gstNumber: gstNumber.trim().toUpperCase(),
+                  panNumber: panNumber.trim().toUpperCase(),
                   businessAddress,
-                  contactPersonName,
-                  contactNumber,
-                  contactEmail,
+                  contactPersonName: trimmedContactName,
+                  contactNumber: contactNumber.replace(/\D/g, ''), // Store only digits
+                  contactEmail: contactEmail.trim(),
+                  latitude,
+                  longitude,
+                  pincode,
+                  placeId,
+                  state,
+                  place,
+                  location,
+                  houseName,
+                  nearbyLocation,
                 },
+                source: source, // Pass source from route params
               });
             }}
             disabled={isSubmitting}
           />
         </Animated.View>
       </KeyboardAvoidingView>
+
+      {/* Address Map Modal */}
+      <SignupAddressModal
+        visible={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        onAddressSelect={(addressData) => {
+          // Build full address string with house name and nearby location
+          let fullAddress = addressData.address;
+          if (addressData.houseName) {
+            fullAddress = `${addressData.houseName}, ${fullAddress}`;
+          }
+          if (addressData.nearbyLocation) {
+            fullAddress = `${fullAddress}, ${addressData.nearbyLocation}`;
+          }
+
+          setBusinessAddress(fullAddress);
+          setHouseName(addressData.houseName || '');
+          setNearbyLocation(addressData.nearbyLocation || '');
+          setLatitude(addressData.latitude);
+          setLongitude(addressData.longitude);
+          if (addressData.pincode) setPincode(addressData.pincode);
+          if (addressData.state) setState(addressData.state);
+          if (addressData.place) setPlace(addressData.place);
+          if (addressData.location) setLocation(addressData.location);
+          if (addressData.place_id) setPlaceId(addressData.place_id);
+        }}
+        initialAddress={businessAddress}
+        initialLatitude={latitude || undefined}
+        initialLongitude={longitude || undefined}
+      />
     </View>
   );
 };
@@ -448,6 +669,46 @@ const getStyles = (theme: any, themeName?: string) =>
       height: '80@vs',
       textAlignVertical: 'top',
       paddingTop: '14@vs',
+    },
+    addressContainer: {
+      marginBottom: '14@vs',
+    },
+    addressButton: {
+      backgroundColor: theme.background,
+      borderRadius: '14@ms',
+      borderWidth: 1,
+      borderColor: theme.border,
+      padding: '14@s',
+    },
+    addressButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '12@s',
+    },
+    addressButtonText: {
+      flex: 1,
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      lineHeight: '20@vs',
+    },
+    addressDisplayContainer: {
+      backgroundColor: theme.background,
+      borderRadius: '14@ms',
+      borderWidth: 1,
+      borderColor: theme.border,
+      padding: '14@s',
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: '12@s',
+    },
+    addressDisplayText: {
+      flex: 1,
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      lineHeight: '20@vs',
+    },
+    addressEditButton: {
+      padding: '4@s',
     },
     bottomButtonContainer: {
       position: 'absolute',

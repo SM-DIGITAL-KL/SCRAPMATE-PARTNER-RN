@@ -50,11 +50,27 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
     }, [userData?.id, refetchProfile])
   );
   
-  // Get approval status from profile - support both shop (B2B/B2C) and delivery/delivery_boy (Delivery)
+  // Check if user with type 'R' has completed business signup (for SR conversion)
+  const hasCompletedBusinessSignup = React.useMemo(() => {
+    if (!profileData || !userData) return false;
+    const shop = profileData.shop;
+    if (!shop || !shop.id) return false;
+
+    // Check if user has business signup fields (indicating they've submitted SR conversion request)
+    const hasCompanyName = shop.company_name && shop.company_name.trim() !== '';
+    const hasGstNumber = shop.gst_number && shop.gst_number.trim() !== '';
+    const hasPanNumber = shop.pan_number && shop.pan_number.trim() !== '';
+    
+    // If user type is 'R' and has business fields, they've completed business signup for SR conversion
+    return userData.user_type === 'R' && (hasCompanyName || hasGstNumber || hasPanNumber);
+  }, [profileData, userData]);
+
+  // Get approval status from profile - support both shop (B2B/B2C/SR) and delivery/delivery_boy (Delivery)
+  // For users with type 'R' who have completed business signup, show SR approval status
   const approvalStatus = profileData?.shop?.approval_status || profileData?.delivery?.approval_status || profileData?.delivery_boy?.approval_status || 'pending';
   const rejectionReason = profileData?.shop?.rejection_reason || profileData?.delivery?.rejection_reason || profileData?.delivery_boy?.rejection_reason || null;
   
-  // Get timestamps from profile - support both shop (B2B/B2C) and delivery/delivery_boy (Delivery)
+  // Get timestamps from profile - support both shop (B2B/B2C/SR) and delivery/delivery_boy (Delivery)
   const applicationSubmittedAt = profileData?.shop?.application_submitted_at || profileData?.delivery?.application_submitted_at || profileData?.delivery_boy?.application_submitted_at || null;
   const documentsVerifiedAt = profileData?.shop?.documents_verified_at || profileData?.delivery?.documents_verified_at || profileData?.delivery_boy?.documents_verified_at || null;
   const reviewInitiatedAt = profileData?.shop?.review_initiated_at || profileData?.delivery?.review_initiated_at || profileData?.delivery_boy?.review_initiated_at || null;
@@ -139,10 +155,18 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
                 navigation.replace('DealerDashboard');
               }, 1000);
             }
-          } else if (userType === 'R' || userType === 'SR') {
-            // B2C user - sync to @b2c_approval_status
-            await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
-            console.log('✅ ApprovalWorkflowScreen: Synced @b2c_approval_status to AsyncStorage:', approvalStatus);
+          } else if (userType === 'R') {
+            // B2C user - check if they've completed business signup for SR conversion
+            if (hasCompletedBusinessSignup) {
+              // User has submitted SR conversion request - sync to both B2C and B2B status
+              await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
+              await AsyncStorage.setItem('@b2b_status', approvalStatus);
+              console.log('✅ ApprovalWorkflowScreen: Synced SR approval status to AsyncStorage (both B2C and B2B):', approvalStatus);
+            } else {
+              // Regular B2C approval status
+              await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
+              console.log('✅ ApprovalWorkflowScreen: Synced @b2c_approval_status to AsyncStorage:', approvalStatus);
+            }
             
             // Handle rejected status - navigate to signup screen
             if (!fromProfile && approvalStatus === 'rejected') {
@@ -161,6 +185,11 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
                 navigation.replace('Dashboard');
               }, 1000);
             }
+          } else if (userType === 'SR') {
+            // SR user (Shop + Recycler) - sync to both B2C and B2B status
+            await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
+            await AsyncStorage.setItem('@b2b_status', approvalStatus);
+            console.log('✅ ApprovalWorkflowScreen: Synced SR approval status to AsyncStorage (both B2C and B2B):', approvalStatus);
           } else if (userType === 'D') {
             // Delivery/Door Step user - sync to @delivery_approval_status
             await AsyncStorage.setItem('@delivery_approval_status', approvalStatus);
@@ -191,7 +220,7 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
     };
     
     syncApprovalStatus();
-  }, [approvalStatus, userData?.id, userData?.user_type, fromProfile, navigation]);
+  }, [approvalStatus, userData?.id, userData?.user_type, fromProfile, navigation, hasCompletedBusinessSignup]);
 
   // Auto-navigate to dashboard after 3 seconds if status is pending (only if NOT from profile)
   React.useEffect(() => {
@@ -221,12 +250,24 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
   // Build updates array dynamically based on available timestamps
   const updates = [];
   
+  // Get user-type specific description for application submitted
+  const getApplicationSubmittedDesc = () => {
+    const userType = userData?.user_type;
+    if (userType === 'SR') {
+      return t('approvalWorkflow.applicationSubmittedDescSR') || 'Your application for Scrap wholesaler & Shop has been submitted successfully.';
+    } else if (userType === 'R') {
+      return t('approvalWorkflow.applicationSubmittedDescR') || 'Your application for Shop has been submitted successfully.';
+    } else {
+      return t('approvalWorkflow.applicationSubmittedDesc') || 'Your application has been submitted successfully.';
+    }
+  };
+  
   // Application Submitted - always show if timestamp exists
   if (applicationSubmittedAt) {
     updates.push({
       id: '1',
       title: t('approvalWorkflow.applicationSubmitted'),
-      description: t('approvalWorkflow.applicationSubmittedDesc'),
+      description: getApplicationSubmittedDesc(),
       time: formatTimestamp(applicationSubmittedAt) || 'N/A',
       icon: 'check-circle',
       completed: true,
@@ -282,7 +323,7 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
     updates.push({
       id: '1',
       title: t('approvalWorkflow.applicationSubmitted'),
-      description: t('approvalWorkflow.applicationSubmittedDesc'),
+      description: getApplicationSubmittedDesc(),
       time: 'Pending',
       icon: 'check-circle',
       completed: false,
@@ -309,6 +350,8 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+     
+       
         {/* Application Status */}
         <View style={styles.statusCard}>
           <MaterialCommunityIcons 
@@ -321,14 +364,34 @@ const ApprovalWorkflowScreen = ({ navigation, route }: any) => {
               ? t('approvalWorkflow.applicationApproved') || 'Application Approved'
               : status === 'Rejected'
               ? t('approvalWorkflow.applicationRejected') || 'Application Rejected'
-              : t('approvalWorkflow.applicationPending')}
+              : (() => {
+                  // Show different pending titles based on user type
+                  const userType = userData?.user_type;
+                  if (userType === 'SR') {
+                    return t('approvalWorkflow.applicationPendingSR') || 'Application Pending - Scrap Wholesaler & Shop';
+                  } else if (userType === 'R') {
+                    return t('approvalWorkflow.applicationPendingR') || 'Application Pending - Shop';
+                  } else {
+                    return t('approvalWorkflow.applicationPending') || 'Application Pending';
+                  }
+                })()}
           </AutoText>
           <AutoText style={styles.statusDescription} numberOfLines={4}>
             {status === 'Approved'
               ? t('approvalWorkflow.applicationApprovedDesc') || 'Your application has been approved. You can now access all features.'
               : status === 'Rejected'
               ? t('approvalWorkflow.applicationRejectedDesc') || 'Your application has been rejected. Please contact support for more information.'
-              : t('approvalWorkflow.applicationPendingDesc')}
+              : (() => {
+                  // Show different pending messages based on user type
+                  const userType = userData?.user_type;
+                  if (userType === 'SR') {
+                    return t('approvalWorkflow.applicationPendingDescSR') || 'Your application is pending approval for Scrap wholesaler & Shop. We will review your documents and get back to you soon.';
+                  } else if (userType === 'R') {
+                    return t('approvalWorkflow.applicationPendingDescR') || 'Your application is pending approval for Shop. We will review your documents and get back to you soon.';
+                  } else {
+                    return t('approvalWorkflow.applicationPendingDesc') || 'Your application is pending approval. We will review your documents and get back to you soon.';
+                  }
+                })()}
           </AutoText>
           
           {/* Rejection Reason */}
@@ -455,6 +518,42 @@ const getStyles = (theme: any) =>
       paddingHorizontal: '18@s',
       paddingTop: '18@vs',
       paddingBottom: '24@vs',
+    },
+    dualStatusContainer: {
+      flexDirection: 'row',
+      gap: '12@s',
+      marginBottom: '18@vs',
+    },
+    individualStatusCard: {
+      flex: 1,
+      backgroundColor: theme.card,
+      borderRadius: '14@ms',
+      padding: '14@s',
+      borderWidth: 1,
+      borderColor: theme.border,
+      alignItems: 'center',
+    },
+    individualStatusHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '8@s',
+      marginBottom: '12@vs',
+    },
+    individualStatusTitle: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '13@s',
+      color: theme.textPrimary,
+    },
+    individualStatusPill: {
+      paddingVertical: '6@vs',
+      paddingHorizontal: '12@s',
+      borderRadius: '12@ms',
+      minWidth: '80@s',
+      alignItems: 'center',
+    },
+    individualStatusPillText: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '12@s',
     },
     statusCard: {
       backgroundColor: theme.card,

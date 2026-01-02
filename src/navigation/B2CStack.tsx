@@ -10,7 +10,10 @@ import AssignPartnerScreen from '../screens/B2C/AssignPartnerScreen';
 import UserProfileScreen from '../screens/B2C/UserProfileScreen';
 import EditProfileScreen from '../screens/B2C/EditProfileScreen';
 import AddCategoryScreen from '../screens/B2C/AddCategoryScreen';
-import MyOrdersScreen from '../screens/B2C/MyOrdersScreen';
+import B2CMyOrdersScreen from '../screens/B2C/B2CMyOrdersScreen';
+import ActivePickupsListScreen from '../screens/B2C/ActivePickupsListScreen';
+import ActiveBuyRequestsListScreen from '../screens/B2C/ActiveBuyRequestsListScreen';
+import PickupStatusScreen from '../screens/B2C/PickupStatusScreen';
 import SelectLanguageScreen from '../screens/B2C/SelectLanguageScreen';
 import PrivacyPolicyScreen from '../screens/Common/PrivacyPolicyScreen';
 import TermsScreen from '../screens/Common/TermsScreen';
@@ -19,6 +22,9 @@ import DocumentUploadScreen from '../screens/B2B/DocumentUploadScreen';
 import ApprovalWorkflowScreen from '../screens/B2B/ApprovalWorkflowScreen';
 import SubscriptionPlansScreen from '../screens/B2B/SubscriptionPlansScreen';
 import B2CSignupScreen from '../screens/B2C/B2CSignupScreen';
+import SubcategoryRequestsScreen from '../screens/B2C/SubcategoryRequestsScreen';
+import ParticipateBulkRequestScreen from '../screens/B2C/ParticipateBulkRequestScreen';
+import BulkRequestTrackingScreen from '../screens/B2C/BulkRequestTrackingScreen';
 import { useTheme } from '../components/ThemeProvider';
 import { getUserData } from '../services/auth/authService';
 
@@ -32,6 +38,9 @@ export type B2CStackParamList = {
   EditProfile: undefined;
   AddCategory: undefined;
   MyOrders: undefined;
+  ActivePickupsList: undefined;
+  ActiveBuyRequestsList: undefined;
+  PickupStatus: undefined;
   SelectLanguage: undefined;
   PrivacyPolicy: undefined;
   Terms: undefined;
@@ -40,6 +49,9 @@ export type B2CStackParamList = {
   ApprovalWorkflow: { fromProfile?: boolean } | undefined;
   SubscriptionPlans: undefined;
   B2CSignup: undefined;
+  SubcategoryRequests: undefined;
+  ParticipateBulkRequest: { request: any };
+  BulkRequestTracking: { bulkRequest: any; orderId?: string | number };
 };
 
 const Stack = createNativeStackNavigator<B2CStackParamList>();
@@ -152,7 +164,10 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="AddCategory" component={AddCategoryScreen} />
-      <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
+      <Stack.Screen name="MyOrders" component={B2CMyOrdersScreen} />
+      <Stack.Screen name="ActivePickupsList" component={ActivePickupsListScreen} />
+      <Stack.Screen name="ActiveBuyRequestsList" component={ActiveBuyRequestsListScreen} />
+      <Stack.Screen name="PickupStatus" component={PickupStatusScreen} />
       <Stack.Screen name="SelectLanguage" component={SelectLanguageScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
@@ -161,6 +176,9 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="ApprovalWorkflow" component={ApprovalWorkflowScreen} />
       <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
       <Stack.Screen name="B2CSignup" component={B2CSignupScreen} />
+      <Stack.Screen name="SubcategoryRequests" component={SubcategoryRequestsScreen} />
+      <Stack.Screen name="ParticipateBulkRequest" component={ParticipateBulkRequestScreen} />
+      <Stack.Screen name="BulkRequestTracking" component={BulkRequestTrackingScreen} />
     </Stack.Navigator>
   );
 });
