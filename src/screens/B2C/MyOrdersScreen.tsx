@@ -15,11 +15,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useProfile } from '../../hooks/useProfile';
 import { useBulkScrapRequestsByBuyer, useBulkSellRequestsBySeller } from '../../hooks/useOrders';
 import { SectionCard } from '../../components/SectionCard';
+import { useUserMode } from '../../context/UserModeContext';
 
 const MyOrdersScreen = ({ navigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { mode } = useUserMode();
   const [userData, setUserData] = useState<any>(null);
   const queryClient = useQueryClient();
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
@@ -33,7 +35,11 @@ const MyOrdersScreen = ({ navigation }: any) => {
   }, []);
 
   const userType = userData?.user_type as 'R' | 'S' | 'SR' | 'D' | undefined;
-  const isB2BUser = userData?.user_type === 'S';
+  // For SR users, check the current mode (B2C or B2B)
+  // For S users, always B2B
+  // For R users, always B2C
+  const isB2BUser = userData?.user_type === 'S' || (userData?.user_type === 'SR' && mode === 'b2b');
+  const isB2CMode = userData?.user_type === 'SR' && mode === 'b2c';
 
   // Fetch profile data to check subscription status
   const { data: profileData } = useProfile(userData?.id, !!userData?.id);
@@ -68,13 +74,13 @@ const MyOrdersScreen = ({ navigation }: any) => {
     gcTime: 5 * 60 * 1000,
   });
 
-  // Fetch completed bulk buy requests for B2B users
+  // Fetch completed bulk buy requests for B2B users (S or SR in B2B mode)
   const { data: bulkBuyRequests, isLoading: loadingBulkBuy, refetch: refetchBulkBuy, isRefetching: isRefetchingBulkBuy } = useBulkScrapRequestsByBuyer(
     isB2BUser ? userData?.id : undefined,
     isB2BUser && !!userData?.id
   );
 
-  // Fetch completed bulk sell requests for B2B users
+  // Fetch completed bulk sell requests for B2B users (S or SR in B2B mode)
   const { data: bulkSellRequests, isLoading: loadingBulkSell, refetch: refetchBulkSell, isRefetching: isRefetchingBulkSell } = useBulkSellRequestsBySeller(
     isB2BUser ? userData?.id : undefined,
     isB2BUser && !!userData?.id
@@ -147,14 +153,14 @@ const MyOrdersScreen = ({ navigation }: any) => {
     });
   }, [completedPickups]);
 
-  // Filter completed pickups for B2B users (only show orders from bulk buy or bulk sell requests)
-  // Exclude regular B2C orders from customer_app - those should only show in B2C profile settings
+  // Filter completed pickups based on user type and mode:
+  // - For B2B users (S or SR in B2B mode): Show only orders from bulk buy/sell (have bulk_request_id)
+  // - For B2C users (R or SR in B2C mode): Show only customer_app orders (no bulk_request_id)
   const completedBulkOrders = React.useMemo(() => {
     if (!completedPickups || !isB2BUser) return [];
     // Filter orders that are from bulk requests (have bulk_request_id)
     // Exclude regular B2C orders from customer_app (which don't have bulk_request_id)
-    // For B2B users (S or SR), we only want to show orders from bulk buy or bulk sell requests
-    // Regular B2C orders from customer_app should NOT appear here - they should only show in B2C profile settings
+    // For B2B users (S or SR in B2B mode), we only want to show orders from bulk buy or bulk sell requests
     return sortedOrders.filter((order: any) => {
       // Only show orders that have a valid bulk_request_id (from bulk buy or bulk sell requests)
       // This explicitly excludes regular B2C orders from customer_app
@@ -172,6 +178,28 @@ const MyOrdersScreen = ({ navigation }: any) => {
       return true;
     });
   }, [completedPickups, sortedOrders, isB2BUser]);
+
+  // Filter completed pickups for B2C users (R or SR in B2C mode): Show only customer_app orders (no bulk_request_id)
+  const completedB2COrders = React.useMemo(() => {
+    if (!completedPickups || (!isB2CMode && userData?.user_type !== 'R')) return [];
+    // For B2C users (R or SR in B2C mode), show only customer_app orders (no bulk_request_id)
+    // Exclude bulk buy/sell orders - those should only show in B2B profile settings
+    return sortedOrders.filter((order: any) => {
+      // Only show orders that do NOT have a bulk_request_id (regular customer_app orders)
+      const bulkRequestId = order.bulk_request_id;
+      const hasBulkRequestId = bulkRequestId !== null && 
+                               bulkRequestId !== undefined && 
+                               bulkRequestId !== '' &&
+                               (typeof bulkRequestId === 'number' || typeof bulkRequestId === 'string');
+      
+      // If order has bulk_request_id, it's a bulk buy/sell order - exclude it from B2C view
+      if (hasBulkRequestId) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [completedPickups, sortedOrders, isB2CMode, userData?.user_type]);
 
   // Debug log to check if orders accepted by others are being returned
   useEffect(() => {
@@ -592,7 +620,7 @@ const MyOrdersScreen = ({ navigation }: any) => {
               </View>
             )}
           </>
-        ) : !sortedOrders || sortedOrders.length === 0 ? (
+        ) : !completedB2COrders || completedB2COrders.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons
               name="check-circle-outline"
@@ -607,7 +635,7 @@ const MyOrdersScreen = ({ navigation }: any) => {
             </AutoText>
           </View>
         ) : (
-          sortedOrders.map((order, index) => {
+          completedB2COrders.map((order, index) => {
             const totalAmount = calculateTotalAmount(order);
             const orderNumber = order.order_number || order.order_id;
             const isAcceptedByOther = order.status === 6 || order.accepted_by_other || false;

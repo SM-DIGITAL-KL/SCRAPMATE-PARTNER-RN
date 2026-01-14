@@ -319,5 +319,49 @@ class LocationModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             // Permission not granted
         }
     }
+    
+    @ReactMethod
+    fun requestBackgroundLocationPermission(promise: Promise) {
+        val activity = reactApplicationContext.currentActivity
+        if (activity == null) {
+            promise.reject("NO_ACTIVITY", "No current activity")
+            return
+        }
+        
+        // Check if foreground location permissions are granted first
+        val fineLocationGranted = ActivityCompat.checkSelfPermission(
+            reactApplicationContext,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        val coarseLocationGranted = ActivityCompat.checkSelfPermission(
+            reactApplicationContext,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        if (!fineLocationGranted && !coarseLocationGranted) {
+            promise.reject("FOREGROUND_PERMISSION_REQUIRED", "Foreground location permission must be granted first")
+            return
+        }
+        
+        // Check if background location is already granted
+        val backgroundLocationGranted = ActivityCompat.checkSelfPermission(
+            reactApplicationContext,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        if (backgroundLocationGranted) {
+            promise.resolve(true)
+            return
+        }
+        
+        // Request background location permission
+        // Note: This should only be called after showing the prominent disclosure
+        val permissions = arrayOf(
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        )
+        ActivityCompat.requestPermissions(activity as android.app.Activity, permissions, 101)
+        promise.resolve(false)
+    }
 }
 

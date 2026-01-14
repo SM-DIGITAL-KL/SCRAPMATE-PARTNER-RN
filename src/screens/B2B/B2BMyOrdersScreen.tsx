@@ -217,9 +217,9 @@ const B2BMyOrdersScreen = ({ navigation }: any) => {
                       activeOpacity={0.7}
                     >
                       <View style={styles.bulkRequestHeader}>
-                        <View style={[styles.statusChip, { backgroundColor: theme.success + '20' }]}>
-                          <MaterialCommunityIcons name="check-circle" size={14} color={theme.success} />
-                          <AutoText style={[styles.statusText, { color: theme.success }]} numberOfLines={1}>
+                        <View style={[styles.statusChip, { backgroundColor: (theme.success || theme.primary || '#4CAF50') + '20' }]}>
+                          <MaterialCommunityIcons name="check-circle" size={14} color={theme.success || theme.primary || '#4CAF50'} />
+                          <AutoText style={[styles.statusText, { color: theme.success || theme.primary || '#4CAF50' }]} numberOfLines={1}>
                             {t('dashboard.statusCompleted') || 'Completed'}
                           </AutoText>
                         </View>
@@ -329,9 +329,9 @@ const B2BMyOrdersScreen = ({ navigation }: any) => {
                       activeOpacity={0.7}
                     >
                       <View style={styles.bulkRequestHeader}>
-                        <View style={[styles.statusChip, { backgroundColor: theme.success + '20' }]}>
-                          <MaterialCommunityIcons name="check-circle" size={14} color={theme.success} />
-                          <AutoText style={[styles.statusText, { color: theme.success }]} numberOfLines={1}>
+                        <View style={[styles.statusChip, { backgroundColor: (theme.success || theme.primary || '#4CAF50') + '20' }]}>
+                          <MaterialCommunityIcons name="check-circle" size={14} color={theme.success || theme.primary || '#4CAF50'} />
+                          <AutoText style={[styles.statusText, { color: theme.success || theme.primary || '#4CAF50' }]} numberOfLines={1}>
                             {t('dashboard.statusCompleted') || 'Completed'}
                           </AutoText>
                         </View>
@@ -436,17 +436,32 @@ const B2BMyOrdersScreen = ({ navigation }: any) => {
                     return sum + (parseFloat(item.actual_amount || item.amount || 0));
                   }, 0);
 
+                  // For orders from bulk requests, navigate to BulkRequestDetails instead of OrderDetails
+                  const handleOrderPress = () => {
+                    if (order.bulk_request_id) {
+                      // Navigate to bulk request details using the bulk_request_id
+                      // Convert to string to ensure consistent format
+                      const requestId = String(order.bulk_request_id);
+                      console.log('🔄 Navigating to BulkRequestDetails with requestId:', requestId, 'from order:', order.id);
+                      navigation.navigate('BulkRequestDetails', { requestId });
+                    } else {
+                      // Fallback to OrderDetails if no bulk_request_id (shouldn't happen for bulk orders)
+                      console.warn('⚠️ Order has no bulk_request_id:', order.id);
+                      navigation.navigate('OrderDetails', { orderId: order.id || order.order_id });
+                    }
+                  };
+
                   return (
                     <TouchableOpacity
                       key={order.id || order.order_id || index}
                       style={styles.orderCard}
-                      onPress={() => navigation.navigate('OrderDetails', { orderId: order.id || order.order_id })}
+                      onPress={handleOrderPress}
                       activeOpacity={0.7}
                     >
                       <View style={styles.orderHeader}>
-                        <View style={[styles.statusChip, { backgroundColor: theme.success + '20' }]}>
-                          <MaterialCommunityIcons name="check-circle" size={14} color={theme.success} />
-                          <AutoText style={[styles.statusText, { color: theme.success }]} numberOfLines={1}>
+                        <View style={[styles.statusChip, { backgroundColor: (theme.success || theme.primary || '#4CAF50') + '20' }]}>
+                          <MaterialCommunityIcons name="check-circle" size={14} color={theme.success || theme.primary || '#4CAF50'} />
+                          <AutoText style={[styles.statusText, { color: theme.success || theme.primary || '#4CAF50' }]} numberOfLines={1}>
                             {t('orders.status.completed') || 'Completed'}
                           </AutoText>
                         </View>
@@ -608,7 +623,7 @@ const getStyles = (theme: any, themeName?: string) =>
     statusText: {
       fontFamily: 'Poppins-Medium',
       fontSize: '11@s',
-      color: theme.success,
+      color: theme.success || theme.primary || '#4CAF50',
     },
     orderNumber: {
       fontFamily: 'Poppins-Regular',
@@ -660,5 +675,6 @@ const getStyles = (theme: any, themeName?: string) =>
   });
 
 export default B2BMyOrdersScreen;
+
 
 

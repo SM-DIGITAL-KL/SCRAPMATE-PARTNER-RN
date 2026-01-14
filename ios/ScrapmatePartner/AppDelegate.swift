@@ -2,6 +2,11 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import FirebaseCore
+import UserNotifications
+
+// FirebaseMessaging will be handled by React Native Firebase module
+// We only need FirebaseCore for initialization
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -14,6 +19,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // Initialize Firebase
+    FirebaseApp.configure()
+    
+    // Configure push notifications
+    // Note: Firebase Messaging is handled by React Native Firebase module
+    UNUserNotificationCenter.current().delegate = self
+    let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+    UNUserNotificationCenter.current().requestAuthorization(
+      options: authOptions,
+      completionHandler: { _, _ in }
+    )
+    application.registerForRemoteNotifications()
+    
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -163,7 +181,66 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     return false
   }
+  
+  // MARK: - Remote Notifications
+  
+  func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    // Pass device token to React Native Firebase module
+    // The React Native Firebase module will handle this automatically
+    let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+    print("✅ Device token (APNS) registered: \(tokenString)")
+    
+    // Notify React Native that APNS token is ready
+    // This helps ensure FCM token is only requested after APNS token is available
+    NotificationCenter.default.post(
+      name: NSNotification.Name("APNSTokenRegistered"),
+      object: nil,
+      userInfo: ["deviceToken": tokenString]
+    )
+  }
+  
+  func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    print("❌ Failed to register for remote notifications: \(error.localizedDescription)")
+    
+    // Notify React Native of the error
+    NotificationCenter.default.post(
+      name: NSNotification.Name("APNSTokenRegistrationFailed"),
+      object: nil,
+      userInfo: ["error": error.localizedDescription]
+    )
+  }
 }
+
+// MARK: - UNUserNotificationCenterDelegate
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+  // Receive displayed notifications for iOS 10 devices.
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              willPresent notification: UNNotification,
+                              withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    let userInfo = notification.request.content.userInfo
+    print("Notification received in foreground: \(userInfo)")
+    
+    // Show notification even when app is in foreground
+    if #available(iOS 14.0, *) {
+      completionHandler([[.banner, .badge, .sound]])
+    } else {
+      completionHandler([[.alert, .badge, .sound]])
+    }
+  }
+  
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              didReceive response: UNNotificationResponse,
+                              withCompletionHandler completionHandler: @escaping () -> Void) {
+    let userInfo = response.notification.request.content.userInfo
+    print("Notification tapped: \(userInfo)")
+    completionHandler()
+  }
+}
+
+// MARK: - FCM Token Handling
+// Note: FCM token is handled by React Native Firebase module
+// The token will be available in JavaScript via messaging().getToken()
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
   override func sourceURL(for bridge: RCTBridge) -> URL? {

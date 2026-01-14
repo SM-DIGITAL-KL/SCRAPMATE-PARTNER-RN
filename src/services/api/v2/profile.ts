@@ -355,19 +355,85 @@ export const uploadProfileImage = async (
 /**
  * Upload Aadhar card
  */
+// Helper function to get MIME type from file URI or provided type
+const getMimeTypeFromUri = (uri: string, providedType?: string): string => {
+  // If fileType is provided and valid, use it
+  if (providedType && providedType !== 'application/octet-stream') {
+    return providedType;
+  }
+  
+  // Otherwise, determine from file extension
+  const uriLower = uri.toLowerCase();
+  // Remove query parameters if present
+  const uriWithoutQuery = uriLower.split('?')[0];
+  
+  if (uriWithoutQuery.endsWith('.pdf')) {
+    return 'application/pdf';
+  } else if (uriWithoutQuery.endsWith('.jpg') || uriWithoutQuery.endsWith('.jpeg')) {
+    return 'image/jpeg';
+  } else if (uriWithoutQuery.endsWith('.png')) {
+    return 'image/png';
+  } else if (uriWithoutQuery.endsWith('.gif')) {
+    return 'image/gif';
+  } else if (uriWithoutQuery.endsWith('.webp')) {
+    return 'image/webp';
+  } else if (uriWithoutQuery.endsWith('.bmp')) {
+    return 'image/bmp';
+  } else if (uriWithoutQuery.endsWith('.tiff') || uriWithoutQuery.endsWith('.tif')) {
+    return 'image/tiff';
+  }
+  // Default to PDF for backward compatibility
+  return 'application/pdf';
+};
+
+// Helper function to get file extension from URI
+const getFileExtension = (uri: string, providedType?: string): string => {
+  // If we have a provided type, extract extension from it
+  if (providedType) {
+    if (providedType === 'application/pdf') return 'pdf';
+    if (providedType.startsWith('image/')) {
+      const typeMap: { [key: string]: string } = {
+        'image/jpeg': 'jpg',
+        'image/jpg': 'jpg',
+        'image/png': 'png',
+        'image/gif': 'gif',
+        'image/webp': 'webp',
+        'image/bmp': 'bmp',
+        'image/tiff': 'tiff',
+        'image/tif': 'tif',
+      };
+      return typeMap[providedType] || 'jpg';
+    }
+  }
+  
+  // Otherwise, try to get from URI
+  const uriLower = uri.toLowerCase();
+  // Remove query parameters if present
+  const uriWithoutQuery = uriLower.split('?')[0];
+  const lastDot = uriWithoutQuery.lastIndexOf('.');
+  if (lastDot === -1) return 'pdf';
+  return uriWithoutQuery.substring(lastDot + 1);
+};
+
 export const uploadAadharCard = async (
   userId: string | number,
-  imageUri: string
+  imageUri: string,
+  fileType?: string
 ): Promise<{ image_url: string; profile: ProfileData }> => {
   const url = buildApiUrl(API_ROUTES.v2.profile.uploadAadhar(userId));
   const headers = getApiHeaders();
+
+  // Detect MIME type and file extension from URI or provided type
+  const mimeType = getMimeTypeFromUri(imageUri, fileType);
+  const fileExtension = getFileExtension(imageUri, fileType);
+  const fileName = `aadhar.${fileExtension}`;
 
   // Create FormData for multipart/form-data upload
   const formData = new FormData();
   formData.append('file', {
     uri: imageUri,
-    type: 'application/pdf',
-    name: 'aadhar.pdf',
+    type: mimeType,
+    name: fileName,
   } as any);
 
   // Remove Content-Type header to let fetch set it with boundary
@@ -398,17 +464,23 @@ export const uploadAadharCard = async (
  */
 export const uploadDrivingLicense = async (
   userId: string | number,
-  imageUri: string
+  imageUri: string,
+  fileType?: string
 ): Promise<{ image_url: string; profile: ProfileData }> => {
   const url = buildApiUrl(API_ROUTES.v2.profile.uploadDrivingLicense(userId));
   const headers = getApiHeaders();
+
+  // Detect MIME type and file extension from URI or provided type
+  const mimeType = getMimeTypeFromUri(imageUri, fileType);
+  const fileExtension = getFileExtension(imageUri, fileType);
+  const fileName = `driving-license.${fileExtension}`;
 
   // Create FormData for multipart/form-data upload
   const formData = new FormData();
   formData.append('file', {
     uri: imageUri,
-    type: 'application/pdf',
-    name: 'driving-license.pdf',
+    type: mimeType,
+    name: fileName,
   } as any);
 
   // Remove Content-Type header to let fetch set it with boundary

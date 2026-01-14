@@ -256,7 +256,7 @@ const BulkRequestTrackingScreen = ({ route, navigation }: any) => {
     
     return bulkRequest?.latitude && bulkRequest?.longitude
       ? { latitude: bulkRequest.latitude, longitude: bulkRequest.longitude }
-      : { latitude: 9.1530, longitude: 76.7356 };
+      : undefined;
   }, [bulkRequestBuyerLocation, bulkRequest]);
 
   // Calculate distance

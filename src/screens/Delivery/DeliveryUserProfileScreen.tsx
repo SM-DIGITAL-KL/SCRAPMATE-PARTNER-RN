@@ -7,6 +7,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../components/ThemeProvider';
 import { AutoText } from '../../components/AutoText';
+import { GreenButton } from '../../components/GreenButton';
 import { ScaledSheet } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n/config';
@@ -287,7 +288,7 @@ const DeliveryUserProfileScreen = ({ route }: any) => {
                       style={styles.upgradeGradient}
                     >
                       <AutoText style={styles.upgradeText} numberOfLines={2}>
-                        {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
+                        {t('dashboard.activatePremiumToAcceptOrders') || 'Activate Premium\nto Accept Orders'}
                       </AutoText>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -332,7 +333,7 @@ const DeliveryUserProfileScreen = ({ route }: any) => {
                       style={styles.upgradeGradient}
                     >
                       <AutoText style={styles.upgradeText} numberOfLines={2}>
-                        {t('userProfile.upgradeToPremium') || 'Upgrade to Premium'}
+                        {t('dashboard.activatePremiumToAcceptOrders') || 'Activate Premium\nto Accept Orders'}
                       </AutoText>
                     </LinearGradient>
                   </TouchableOpacity>

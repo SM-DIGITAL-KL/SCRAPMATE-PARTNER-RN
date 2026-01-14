@@ -21,6 +21,7 @@ import { useUserMode } from '../../context/UserModeContext';
 import { useTranslation } from 'react-i18next';
 import { isLoggedIn, getUserData } from '../../services/auth/authService';
 import { DeviceEventEmitter, CommonActions } from 'react-native';
+import { GreenButton } from '../../components/GreenButton';
 
 const JoinAsScreen = () => {
     const navigation = useNavigation();
@@ -162,22 +163,30 @@ const JoinAsScreen = () => {
 
                         {/* Bottom CTA button */}
                         <View style={styles.buttonWrapper}>
-                            <TouchableOpacity
-                                activeOpacity={0.9}
-                                style={styles.buttonTouchable}
-                                onPress={handleContinue}
-                            >
-                                <LinearGradient
-                                    colors={buttonGradientColors}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.button}
+                            {Platform.OS === 'ios' ? (
+                                <GreenButton
+                                    title={selectedOption ? t('joinAs.continue') : (t('joinAs.login') || 'Login')}
+                                    onPress={handleContinue}
+                                    style={styles.iosButton}
+                                />
+                            ) : (
+                                <TouchableOpacity
+                                    activeOpacity={0.9}
+                                    style={styles.buttonTouchable}
+                                    onPress={handleContinue}
                                 >
-                                    <Text style={styles.buttonText}>
-                                        {selectedOption ? t('joinAs.continue') : (t('joinAs.login') || 'Login')}
-                                    </Text>
-                                </LinearGradient>
-                            </TouchableOpacity>
+                                    <LinearGradient
+                                        colors={buttonGradientColors}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.button}
+                                    >
+                                        <Text style={styles.buttonText}>
+                                            {selectedOption ? t('joinAs.continue') : (t('joinAs.login') || 'Login')}
+                                        </Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            )}
 
                             <View style={styles.alreadyAccountWrapper}>
                                 <Text style={styles.alreadyAccountText}>{t('joinAs.alreadyHaveAccount')}</Text>
@@ -323,7 +332,13 @@ const getStyles = (theme: any, isDark: boolean, themeName: string) =>
         buttonWrapper: {
             paddingTop: '8@vs',
             paddingHorizontal: '8@s',
+            paddingBottom: Platform.OS === 'ios' ? '20@vs' : '8@vs',
             alignItems: 'center',
+        },
+        iosButton: {
+            width: "100%",
+            maxWidth: '320@s',
+            alignSelf: "center",
         },
         buttonTouchable: {
             width: "100%",

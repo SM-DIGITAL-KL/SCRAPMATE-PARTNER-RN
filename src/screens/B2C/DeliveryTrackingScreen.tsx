@@ -22,7 +22,7 @@ import { BulkScrapRequest, getBulkScrapRequests, getAcceptedBulkScrapRequests } 
 import { getLocationByOrder } from '../../services/api/v2/location';
 import { getProfile } from '../../services/api/v2/profile';
 import { BulkRequestMapView } from '../../components/BulkRequestMapView';
-import { getActivePickup } from '../../services/api/v2/orders';
+import { getActivePickup, getCompletedPickups } from '../../services/api/v2/orders';
 import { REDIS_CONFIG } from '../../config/redisConfig';
 
 
@@ -175,8 +175,23 @@ const DeliveryTrackingScreen = ({ route, navigation }: any) => {
   const addressFetchedRef = useRef(false);
   const addressFailedRef = useRef(false);
 
-  // Use order data if provided, otherwise use default coordinates
-  const orderData = order as ActivePickup | null;
+  // Use order data if provided, otherwise fetch it
+  const [orderData, setOrderData] = useState<ActivePickup | null>(order as ActivePickup | null);
+  const [loadingOrderData, setLoadingOrderData] = useState(false);
+
+  // Update orderData when order prop changes (e.g., when navigating with order data)
+  useEffect(() => {
+    if (order) {
+      console.log('📦 [DeliveryTracking] Order prop updated:', {
+        order_id: order.order_id,
+        order_number: order.order_number,
+        latitude: order.latitude,
+        longitude: order.longitude,
+        status: order.status
+      });
+      setOrderData(order);
+    }
+  }, [order]);
 
   // Load user data
   useEffect(() => {
@@ -186,6 +201,121 @@ const DeliveryTrackingScreen = ({ route, navigation }: any) => {
     };
     loadUserData();
   }, []);
+
+  // Fetch order data if not provided or if provided order doesn't have latitude/longitude
+  useEffect(() => {
+    const fetchOrderData = async () => {
+      // Check if we need to fetch:
+      // 1. Order is not provided, OR
+      // 2. Order is provided but doesn't have latitude/longitude
+      const needsFetch = !order || !order.latitude || !order.longitude;
+      
+      if (!needsFetch) {
+        console.log('✅ [DeliveryTracking] Using provided order data with location:', {
+          order_id: order.order_id,
+          order_number: order.order_number,
+          latitude: order.latitude,
+          longitude: order.longitude
+        });
+        return;
+      }
+
+      // If no orderId, can't fetch
+      if (!orderId || !userData?.id || !userData?.user_type) {
+        if (order && (!order.latitude || !order.longitude)) {
+          console.warn('⚠️ [DeliveryTracking] Order provided but missing location, and no orderId to fetch:', {
+            order_id: order.order_id,
+            order_number: order.order_number,
+            hasLatitude: !!order.latitude,
+            hasLongitude: !!order.longitude
+          });
+        }
+        return;
+      }
+
+      setLoadingOrderData(true);
+      try {
+        console.log('🔄 [DeliveryTracking] Fetching order data for orderId:', orderId, {
+          orderProvided: !!order,
+          hasLocation: order ? (!!order.latitude && !!order.longitude) : false
+        });
+        
+        // Try to get from completed pickups first (for completed orders)
+        const completedPickups = await getCompletedPickups(
+          userData.id,
+          userData.user_type as 'R' | 'S' | 'SR' | 'D'
+        );
+        
+        // Find order by order_number or order_id
+        const foundOrder = completedPickups.find((o: ActivePickup) => 
+          String(o.order_number) === String(orderId) || 
+          String(o.order_id) === String(orderId) ||
+          String(o.order_no) === String(orderId)
+        );
+
+        if (foundOrder) {
+          console.log('✅ [DeliveryTracking] Found order in completed pickups:', {
+            order_id: foundOrder.order_id,
+            order_number: foundOrder.order_number,
+            latitude: foundOrder.latitude,
+            longitude: foundOrder.longitude,
+            status: foundOrder.status
+          });
+          setOrderData(foundOrder);
+        } else {
+          // If not found in completed, try active pickup
+          try {
+            const activePickup = await getActivePickup(
+              userData.id,
+              userData.user_type as 'R' | 'S' | 'SR' | 'D'
+            );
+            
+            if (activePickup && (
+              String(activePickup.order_number) === String(orderId) ||
+              String(activePickup.order_id) === String(orderId) ||
+              String(activePickup.order_no) === String(orderId)
+            )) {
+              console.log('✅ [DeliveryTracking] Found order in active pickup:', {
+                order_id: activePickup.order_id,
+                order_number: activePickup.order_number,
+                latitude: activePickup.latitude,
+                longitude: activePickup.longitude
+              });
+              setOrderData(activePickup);
+            } else {
+              console.warn('⚠️ [DeliveryTracking] Order not found in completed or active pickups:', orderId);
+              // If order was provided but missing location, still use it (might be a data issue)
+              if (order) {
+                console.warn('⚠️ [DeliveryTracking] Using provided order data even though location is missing');
+                setOrderData(order);
+              }
+            }
+          } catch (error) {
+            console.error('❌ [DeliveryTracking] Error fetching active pickup:', error);
+            // If order was provided, still use it even if fetch fails
+            if (order) {
+              setOrderData(order);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ [DeliveryTracking] Error fetching order data:', error);
+        // If order was provided, still use it even if fetch fails
+        if (order) {
+          setOrderData(order);
+        }
+      } finally {
+        setLoadingOrderData(false);
+      }
+    };
+
+    if (userData?.id && userData?.user_type && orderId) {
+      fetchOrderData();
+    } else if (order) {
+      // If order is provided but userData not loaded yet, set it directly
+      setOrderData(order);
+    }
+  }, [orderId, order, userData?.id, userData?.user_type]);
 
   // Fetch profile data to check subscription status
   const { data: profileData } = useProfile(userData?.id, !!userData?.id);
@@ -486,6 +616,8 @@ const DeliveryTrackingScreen = ({ route, navigation }: any) => {
         customerPhone: (orderData as any).customerPhone,
         customer: (orderData as any).customer,
         address: orderData.address,
+        latitude: orderData.latitude,
+        longitude: orderData.longitude,
         customerdetails: (orderData as any).customerdetails,
         allKeys: Object.keys(orderData),
       });
@@ -494,21 +626,125 @@ const DeliveryTrackingScreen = ({ route, navigation }: any) => {
     }
   }, [orderData]);
 
+  // State to store geocoded coordinates when address is available but lat/lng are missing
+  const [geocodedDestination, setGeocodedDestination] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Geocode address to get coordinates when latitude/longitude are missing
+  // NOTE: Only geocode for active orders, not completed orders, as geocoding generic addresses
+  // (like "Kerala, 691558") will give inaccurate results (center of state/pincode, not actual location)
+  useEffect(() => {
+    const geocodeAddress = async () => {
+      // Don't geocode if:
+      // 1. Order is completed (status 5) - use original coordinates only
+      // 2. Order data doesn't exist
+      // 3. Address doesn't exist
+      // 4. Latitude/longitude already exist
+      // 5. Already geocoding or already geocoded
+      const isCompleted = orderData?.status === 5;
+      if (isCompleted || !orderData?.address || (orderData.latitude && orderData.longitude) || isGeocoding || geocodedDestination) {
+        if (isCompleted && !orderData.latitude && !orderData.longitude) {
+          console.warn('⚠️ [DeliveryTracking] Completed order missing coordinates - geocoding disabled to prevent inaccurate location');
+        }
+        return;
+      }
+
+      setIsGeocoding(true);
+      try {
+        console.log('🔄 [DeliveryTracking] Geocoding address to get coordinates:', orderData.address);
+        
+        // Use OpenStreetMap Nominatim API for forward geocoding (address to coordinates)
+        const encodedAddress = encodeURIComponent(orderData.address);
+        const geocodeUrl = `https://nominatim.openstreetmap.org/search?q=${encodedAddress}&format=json&limit=1`;
+        
+        const response = await fetch(geocodeUrl, {
+          headers: {
+            'User-Agent': 'ScrapmatePartner/1.0' // Required by Nominatim
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Geocoding failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+          
+          if (!isNaN(lat) && !isNaN(lon)) {
+            console.log('✅ [DeliveryTracking] Geocoding successful:', {
+              address: orderData.address,
+              latitude: lat,
+              longitude: lon
+            });
+            setGeocodedDestination({ latitude: lat, longitude: lon });
+          } else {
+            console.warn('⚠️ [DeliveryTracking] Invalid coordinates from geocoding:', data[0]);
+          }
+        } else {
+          console.warn('⚠️ [DeliveryTracking] No results from geocoding for address:', orderData.address);
+        }
+      } catch (error) {
+        console.error('❌ [DeliveryTracking] Error geocoding address:', error);
+      } finally {
+        setIsGeocoding(false);
+      }
+    };
+
+    geocodeAddress();
+  }, [orderData?.address, orderData?.latitude, orderData?.longitude, orderData?.status, isGeocoding, geocodedDestination]);
+
   // Determine destination: For bulk request orders, use buyer location; otherwise use order destination
   const destination = useMemo(() => {
     // If this is a bulk request order and we have buyer location, use that
     if (bulkRequestBuyerLocation) {
+      console.log('📍 [DeliveryTracking] Using bulk request buyer location:', {
+        latitude: bulkRequestBuyerLocation.latitude,
+        longitude: bulkRequestBuyerLocation.longitude
+      });
       return {
         latitude: bulkRequestBuyerLocation.latitude,
         longitude: bulkRequestBuyerLocation.longitude
       };
     }
     
-    // Otherwise use order destination
-    return orderData?.latitude && orderData?.longitude
-      ? { latitude: orderData.latitude, longitude: orderData.longitude }
-      : { latitude: 9.1530, longitude: 76.7356 };
-  }, [bulkRequestBuyerLocation, orderData]);
+    // Otherwise use order destination (from order data or geocoded)
+    if (orderData?.latitude && orderData?.longitude) {
+      console.log('📍 [DeliveryTracking] Using order destination from order data:', {
+        latitude: orderData.latitude,
+        longitude: orderData.longitude,
+        order_id: orderData.order_id,
+        order_number: orderData.order_number,
+        status: orderData.status
+      });
+      return { latitude: orderData.latitude, longitude: orderData.longitude };
+    } else if (geocodedDestination) {
+      console.log('📍 [DeliveryTracking] Using geocoded destination from address:', {
+        latitude: geocodedDestination.latitude,
+        longitude: geocodedDestination.longitude,
+        address: orderData?.address,
+        order_id: orderData?.order_id,
+        order_number: orderData?.order_number
+      });
+      return geocodedDestination;
+    } else {
+      console.warn('⚠️ [DeliveryTracking] No destination available:', {
+        hasOrderData: !!orderData,
+        orderDataLatitude: orderData?.latitude,
+        orderDataLongitude: orderData?.longitude,
+        hasGeocodedDestination: !!geocodedDestination,
+        isGeocoding: isGeocoding,
+        address: orderData?.address,
+        order_id: orderData?.order_id,
+        order_number: orderData?.order_number,
+        status: orderData?.status,
+        hasBulkRequestBuyerLocation: !!bulkRequestBuyerLocation
+      });
+      return undefined;
+    }
+  }, [bulkRequestBuyerLocation, orderData, geocodedDestination, isGeocoding]);
 
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [estimatedTime, setEstimatedTime] = useState<number | null>(null);
@@ -1089,9 +1325,10 @@ const DeliveryTrackingScreen = ({ route, navigation }: any) => {
               const allLatitudes = markers.map(m => m.latitude).filter(lat => lat !== undefined);
               const allLongitudes = markers.map(m => m.longitude).filter(lng => lng !== undefined);
               
+              // Use actual bulk request location or calculate from markers
               let initialRegion = {
-                latitude: bulkRequest.latitude || 9.1530,
-                longitude: bulkRequest.longitude || 76.7356,
+                latitude: bulkRequest.latitude || (allLatitudes.length > 0 ? (Math.min(...allLatitudes) + Math.max(...allLatitudes)) / 2 : 0),
+                longitude: bulkRequest.longitude || (allLongitudes.length > 0 ? (Math.min(...allLongitudes) + Math.max(...allLongitudes)) / 2 : 0),
                 latitudeDelta: 0.1,
                 longitudeDelta: 0.1
               };

@@ -13,40 +13,28 @@ import LinearGradient from 'react-native-linear-gradient';
 import { getUserData } from '../../services/auth/authService';
 import { useProfile } from '../../hooks/useProfile';
 import { useUserMode } from '../../context/UserModeContext';
-import PayUWebView, { PayUPaymentResponse } from '../../components/PayUWebView';
-import { getSubscriptionPackages, saveUserSubscription, generatePayUHash, SubscriptionPackage, checkSubscriptionExpiry } from '../../services/api/v2/subscriptionPackages';
-import { buildApiUrl } from '../../services/api/apiConfig';
-import UPIPaymentService from '../../services/upi/UPIPaymentService';
-import { Platform } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
-import ViewShot from 'react-native-view-shot';
+import InstamojoWebView, { InstamojoPaymentResponse } from '../../components/InstamojoWebView';
+import { getSubscriptionPackages, saveUserSubscription, SubscriptionPackage, checkSubscriptionExpiry } from '../../services/api/v2/subscriptionPackages';
+import { createInstamojoPaymentRequest } from '../../services/api/v2/instamojo';
+import { API_BASE_URL } from '../../services/api/apiConfig';
 
 // Using SubscriptionPackage from API service
 
 const SubscriptionPlansScreen = ({ navigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { mode } = useUserMode();
   const [userData, setUserData] = useState<any>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [plans, setPlans] = useState<SubscriptionPackage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPayUWebView, setShowPayUWebView] = useState(false);
-  const [payUFormUrl, setPayUFormUrl] = useState('');
-  const [payUPaymentData, setPayUPaymentData] = useState<any>(null);
+  const [showInstamojoWebView, setShowInstamojoWebView] = useState(false);
+  const [instamojoPaymentUrl, setInstamojoPaymentUrl] = useState('');
   const [currentPlan, setCurrentPlan] = useState<SubscriptionPackage | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'payu' | 'upi'>('payu');
-  const [showPaymentMethodSelector, setShowPaymentMethodSelector] = useState(false);
-  const [showUPIVerificationModal, setShowUPIVerificationModal] = useState(false);
-  const [upiTransactionRef, setUpiTransactionRef] = useState('');
-  const [pendingUPITransactionId, setPendingUPITransactionId] = useState<string | null>(null);
-  const [pendingUPIPlan, setPendingUPIPlan] = useState<SubscriptionPackage | null>(null);
-  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
-  const [qrCodeFilePath, setQrCodeFilePath] = useState<string | null>(null);
-  const [currentUPIIntentUrl, setCurrentUPIIntentUrl] = useState<string | null>(null);
-  const qrCodeViewRef = useRef<any>(null);
+  const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState<string>('');
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
 
   // Load user data and fetch profile
@@ -119,50 +107,6 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
     checkExpiry();
   }, [profileData, userData?.id, refetchProfile]);
 
-  // Setup UPI payment callback listener
-  useEffect(() => {
-    // Set callback to handle UPI payment responses
-    UPIPaymentService.setPaymentCallback((result) => {
-      console.log('📱 UPI Payment Callback Received:', result);
-      
-      if (result.status === 'success') {
-        // Close QR code modal
-        setShowQRCodeModal(false);
-        setQrCodeFilePath(null);
-        setCurrentUPIIntentUrl(null);
-        
-        // Show verification modal immediately - keep it open until user cancels or verifies
-        // Don't show success alert, just open verification modal
-        if (pendingUPITransactionId) {
-          setShowUPIVerificationModal(true);
-          setUpiTransactionRef(result.transactionId || pendingUPITransactionId);
-        }
-      } else {
-        // Payment failed
-        Alert.alert(
-          'Payment Failed',
-          result.message || 'Payment could not be completed. Please try again.',
-          [{ text: 'OK' }]
-        );
-      }
-    });
-
-    // Cleanup on unmount
-    return () => {
-      UPIPaymentService.setPaymentCallback(null);
-    };
-  }, [pendingUPITransactionId]);
-
-  // Check for payment callback when screen comes into focus
-  // This helps catch callbacks that might have been missed
-  useFocusEffect(
-    React.useCallback(() => {
-      // When screen comes into focus, check if there's a pending payment callback
-      // This is useful when returning from UPI app after QR payment
-      console.log('🔍 Screen focused, checking for payment callback...');
-      UPIPaymentService.checkForPaymentCallback();
-    }, [])
-  );
 
   // Fetch subscription packages from API
   useFocusEffect(
@@ -174,7 +118,8 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
           // Default to 'b2c' if mode is not available
           // API expects lowercase values
           const userType: 'b2b' | 'b2c' = mode === 'b2b' ? 'b2b' : 'b2c';
-          const response = await getSubscriptionPackages(userType);
+          const language = i18n.language || 'en';
+          const response = await getSubscriptionPackages(userType, language);
           
           if (response.status === 'success' && response.data) {
             setPlans(response.data);
@@ -195,7 +140,7 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
       if (userData?.id) {
         fetchPackages();
       }
-    }, [userData?.id, mode])
+    }, [userData?.id, mode, i18n.language])
   );
 
   const handleSelectPlan = (planId: string) => {
@@ -209,47 +154,67 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
   // Check if plans should be disabled (B2B users)
   const isB2BUser = mode === 'b2b';
 
-  // Handle PayU WebView payment response
-  const handlePayUResponse = async (response: PayUPaymentResponse) => {
-    console.log('📱 PayU Payment Response:', response);
+  // Handle Instamojo WebView payment response
+  const handleInstamojoResponse = async (response: InstamojoPaymentResponse) => {
+    console.log('📱 Instamojo Payment Response:', response);
     
-    setShowPayUWebView(false);
+    // Close WebView
+    setShowInstamojoWebView(false);
     
-    if (!currentPlan || !userData?.id) {
-      Alert.alert('Error', 'Payment data not found. Please try again.');
+    const planToUse = currentPlan || plans.find(p => p.id === selectedPlan);
+    
+    if (!planToUse || !userData?.id) {
+      Alert.alert(t('subscriptionPlans.error'), t('subscriptionPlans.userInfoNotFound'));
+      setCurrentPlan(null);
+      setInstamojoPaymentUrl('');
+      setPaymentRequestId(null);
+      setRedirectUrl('');
       return;
     }
 
-    if (response.status === 'success' && response.txnid) {
+    if (response.status === 'success' && response.paymentId) {
       // Payment successful - save subscription
-      const transactionId = response.txnid;
+      const transactionId = response.paymentId;
+      const requestId = response.paymentRequestId || paymentRequestId || null;
+      
+      // Calculate total amount (base + GST for B2C)
+      const baseAmount = planToUse.price;
+      const gstRate = 0.18; // 18% GST
+      const gstAmount = mode === 'b2c' ? baseAmount * gstRate : 0;
+      const totalAmount = baseAmount + gstAmount;
       
       console.log('✅ Payment successful, saving subscription:', {
         userId: userData.id,
-        packageId: currentPlan.id,
+        packageId: planToUse.id,
         transactionId,
+        paymentRequestId: requestId,
+        baseAmount,
+        gstAmount,
+        totalAmount,
       });
 
       try {
-        // Save subscription with transaction details
+        // Save subscription with transaction details (use total amount including GST)
         const saveResult = await saveUserSubscription(
           userData.id,
-          currentPlan.id,
+          planToUse.id,
           {
             transactionId: transactionId,
+            paymentRequestId: requestId,
             responseCode: '00',
             approvalRefNo: transactionId,
-            amount: response.amount || currentPlan.price.toString(),
+            amount: response.amount || totalAmount.toString(),
+            paymentMethod: 'Instamojo',
           }
         );
 
         if (saveResult.status === 'success') {
           Alert.alert(
-            'Payment Submitted',
-            `Payment verification submitted successfully!\nTransaction ID: ${transactionId}\n\nOur admin team will review your subscription request and notify you soon. You can check your subscription status in your profile.`,
+            t('subscriptionPlans.paymentSubmitted'),
+            t('subscriptionPlans.paymentSubmittedMessage', { transactionId }),
             [
               {
-                text: 'OK',
+                text: t('common.ok'),
                 onPress: () => {
                   navigation.goBack();
                 },
@@ -258,51 +223,55 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
           );
         } else {
           Alert.alert(
-            'Subscription Error',
-            saveResult.msg || 'Payment was successful but subscription activation failed. Please contact support with Transaction ID: ' + transactionId
+            t('subscriptionPlans.subscriptionError'),
+            saveResult.msg || t('subscriptionPlans.paymentSuccessSubscriptionFailed', { transactionId })
           );
         }
       } catch (saveError: any) {
         console.error('Error saving subscription:', saveError);
         Alert.alert(
-          'Subscription Error',
-          `Payment was successful but subscription activation failed.\n\nTransaction ID: ${transactionId}\n\nError: ${saveError.message || 'Unknown error'}\n\nPlease contact support with the Transaction ID.`
+          t('subscriptionPlans.subscriptionError'),
+          t('subscriptionPlans.paymentSuccessSubscriptionFailed', { transactionId })
         );
       }
     } else if (response.status === 'cancelled') {
-      console.log('⚠️ PayU Payment Cancelled');
-      Alert.alert('Payment Cancelled', 'Payment was cancelled. Please try again to subscribe.');
+      console.log('⚠️ Instamojo Payment Cancelled');
+      Alert.alert(t('subscriptionPlans.paymentCancelled'), t('subscriptionPlans.paymentCancelledMessage'));
     } else {
-      console.error('❌ PayU Payment Failed:', response);
-      Alert.alert('Payment Failed', response.message || response.error || 'Payment failed. Please try again.');
+      console.error('❌ Instamojo Payment Failed:', response);
+      Alert.alert(t('subscriptionPlans.paymentFailed'), response.message || response.error || t('subscriptionPlans.paymentFailedMessage'));
     }
     
     // Reset state
     setCurrentPlan(null);
-    setPayUPaymentData(null);
-    setPayUFormUrl('');
+    setInstamojoPaymentUrl('');
+    setPaymentRequestId(null);
+    setRedirectUrl('');
   };
 
   const handleSubscribe = async (plan: SubscriptionPackage) => {
     // For percentage-based plans, no upfront payment is required
     if (plan.isPercentageBased && plan.pricePercentage !== undefined) {
       Alert.alert(
-        'Subscribe to Plan',
-        `You will be charged ${plan.pricePercentage.toFixed(1)}% of each order value when you accept orders. No upfront payment required.`,
+        t('subscriptionPlans.subscribeToPlan'),
+        t('subscriptionPlans.percentageChargeMessage', { percentage: plan.pricePercentage.toFixed(1) }),
         [
           {
-            text: 'Cancel',
+            text: t('common.cancel'),
             style: 'cancel',
           },
           {
-            text: 'Subscribe',
+            text: t('subscriptionPlans.subscribe'),
             onPress: async () => {
               // For percentage-based plans, we can activate subscription without payment
               // The actual charge happens when orders are accepted
               Alert.alert(
-                'Subscription Activated',
-                `Your ${plan.name} subscription is now active. You will be charged ${plan.pricePercentage?.toFixed(1) || '0.5'}% of each order value when accepting orders.`,
-                [{ text: 'OK', onPress: () => navigation.goBack() }]
+                t('subscriptionPlans.subscriptionActivated'),
+                t('subscriptionPlans.percentageActivatedMessage', { 
+                  planName: plan.name,
+                  percentage: plan.pricePercentage?.toFixed(1) || '0.5'
+                }),
+                [{ text: t('common.ok'), onPress: () => navigation.goBack() }]
               );
             },
           },
@@ -311,363 +280,97 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
       return;
     }
 
-    // For fixed-price plans, proceed with payment
-    const priceText = plan.isPercentageBased && plan.pricePercentage !== undefined
-      ? `${plan.pricePercentage.toFixed(1)}% per order`
-      : `₹${plan.price.toLocaleString('en-IN')}/${plan.duration}`;
-    
-    // Check if UPI is available and plan has UPI ID
-    const isUPIAvailable = Platform.OS === 'android' && UPIPaymentService.isAvailable() && plan.upiId;
-    
-    // Show payment method selector if both methods are available
-    if (isUPIAvailable) {
-      Alert.alert(
-        'Select Payment Method',
-        `Choose how you want to pay for ${plan.name} (${priceText})`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Pay via UPI',
-            onPress: () => {
-              setCurrentPlan(plan);
-              handleUPIPayment(plan);
-            },
-          },
-          {
-            text: 'Pay via PayU',
-            onPress: () => {
-              setCurrentPlan(plan);
-              handlePayUPayment(plan);
-            },
-          },
-        ]
-      );
-      return;
-    }
-    
-    // If only PayU is available, proceed directly
-    setCurrentPlan(plan);
-    handlePayUPayment(plan);
+    // For fixed-price plans, proceed with Instamojo payment
+    // For B2C subscription, use Instamojo Android SDK
+    handleInstamojoPayment(plan);
   };
 
-  const handleUPIPayment = async (plan: SubscriptionPackage) => {
+  const handleInstamojoPayment = async (plan: SubscriptionPackage) => {
     if (isProcessingPayment) return;
     
     setIsProcessingPayment(true);
     try {
       if (!userData?.id) {
-        Alert.alert('Error', 'User information not found. Please try again.');
+        Alert.alert(t('subscriptionPlans.error'), t('subscriptionPlans.userInfoNotFound'));
         setIsProcessingPayment(false);
         return;
       }
 
-      if (!plan.upiId) {
-        Alert.alert('Error', 'UPI ID not configured for this plan. Please use PayU payment.');
-        setIsProcessingPayment(false);
-        return;
-      }
+      // Get user profile data for buyer information
+      const shop = profileData?.shop as any;
+      const buyerName = userData.name || shop?.shopname || 'User';
+      const buyerEmail = userData.email || shop?.email || '';
+      const buyerPhone = String(userData.mob_num || shop?.contact || '').replace(/\D/g, '');
 
-      // Generate unique transaction ID
-      const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-      const transactionId = `TXN${userData.id}_${plan.id}_${Date.now()}_${randomSuffix}`;
-      
-      // User details
-      const userName = userData.name || 'User';
-      const transactionNote = `Subscription payment for ${plan.name}`;
-      
-      console.log('💳 Initiating UPI payment:', {
-        transactionId,
-        amount: plan.price,
-        upiId: plan.upiId,
-        merchantName: plan.merchantName || 'Scrapmate Partner',
-      });
-
-      // Generate UPI intent URL for QR code
-      // Transaction ID will come from the UPI callback response
-      const upiResult = await UPIPaymentService.generateQRCodeForDisplay({
-        upiId: plan.upiId,
-        merchantName: plan.merchantName || 'Scrapmate Partner',
-        amount: plan.price.toString(),
-      });
-
-      console.log('📱 UPI Payment Result:', upiResult);
-
-      // Handle UPI payment result
-      if (upiResult.status === 'qr_generated' && upiResult.upiIntentUrl) {
-        // Generate PNG QR code from intent URL
-        setCurrentUPIIntentUrl(upiResult.upiIntentUrl);
-        setPendingUPITransactionId(transactionId);
-        setPendingUPIPlan(plan);
-        setShowQRCodeModal(true);
-        setIsProcessingPayment(false);
-        
-        // Generate PNG QR code after a short delay to ensure modal is rendered
-        setTimeout(() => {
-          generateQRCodePNG(upiResult.upiIntentUrl!);
-        }, 100);
-      } else if (upiResult.status === 'app_launched') {
-        // UPI app opened - show instruction to user
+      if (!buyerEmail || !buyerPhone) {
         Alert.alert(
-          'Complete Payment',
-          'Please complete the payment in your UPI app. After payment, you will need to verify the transaction.',
-          [
-            {
-              text: 'I have paid',
-              onPress: () => {
-                // Show verification modal
-                setPendingUPITransactionId(transactionId);
-                setPendingUPIPlan(plan);
-                setUpiTransactionRef(transactionId);
-                setShowUPIVerificationModal(true);
-                setIsProcessingPayment(false);
-              },
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel',
-              onPress: () => {
-                setIsProcessingPayment(false);
-              },
-            },
-          ]
+          t('subscriptionPlans.incompleteProfile'),
+          t('subscriptionPlans.incompleteProfileMessage')
         );
-      } else if (upiResult.status === 'success') {
-        // Payment completed successfully
-        try {
-          const saveResult = await saveUserSubscription(
-            userData.id,
-            plan.id,
-            {
-              transactionId: upiResult.transactionId || transactionId,
-              responseCode: upiResult.responseCode || '00',
-              approvalRefNo: upiResult.approvalRefNo || transactionId,
-              amount: plan.price.toString(),
-            }
-          );
-
-          if (saveResult.status === 'success') {
-            Alert.alert(
-              'Payment Submitted',
-              `Payment verification submitted successfully!\nTransaction ID: ${upiResult.transactionId || transactionId}\n\nOur admin team will review your subscription request and notify you soon. You can check your subscription status in your profile.`,
-              [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    navigation.goBack();
-                  },
-                },
-              ]
-            );
-          } else {
-            throw new Error(saveResult.msg || 'Failed to save subscription');
-          }
-        } catch (error: any) {
-          console.error('Error saving subscription:', error);
-          Alert.alert(
-            'Subscription Error',
-            error.message || 'Payment was successful but subscription activation failed. Please contact support.'
-          );
-        } finally {
           setIsProcessingPayment(false);
-        }
-      } else if (upiResult.status === 'cancelled') {
-        Alert.alert('Payment Cancelled', 'Payment was cancelled. Please try again to subscribe.');
-        setIsProcessingPayment(false);
-      } else {
-        Alert.alert(
-          'Payment Failed',
-          upiResult.message || 'Payment failed. Please try again or use PayU payment method.'
-        );
-        setIsProcessingPayment(false);
-      }
-    } catch (error: any) {
-      console.error('Error processing UPI payment:', error);
-      Alert.alert(
-        'Payment Error',
-        error.message || 'Failed to process UPI payment. Please try again or use PayU payment method.'
-      );
-      setIsProcessingPayment(false);
-    }
-  };
-
-  // Generate PNG QR code from UPI intent URL and automatically open in UPI apps
-  const generateQRCodePNG = async (intentUrl: string) => {
-    try {
-      if (!qrCodeViewRef.current) {
-        console.warn('QR code view ref not ready, retrying...');
-        setTimeout(() => generateQRCodePNG(intentUrl), 200);
         return;
       }
 
-      // Wait a bit for the QR code to render
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
+      // Create redirect URL - use v2 API endpoint for payment callback
+      const redirectUrlValue = `${API_BASE_URL}/v2/instamojo/payment-redirect`;
+      setRedirectUrl(redirectUrlValue);
 
-      // Capture the QR code view as PNG (returns file URI)
-      const pngFileUri = await qrCodeViewRef.current.capture();
-      
-      // Convert file URI to path
-      const filePath = pngFileUri.replace('file://', '');
-      setQrCodeFilePath(filePath);
-      
-      // Automatically open QR code in UPI apps after 2 seconds (shows only UPI apps)
-      // Use filePath directly instead of state variable to avoid stale closure issue
-      setTimeout(async () => {
-        try {
-          console.log('Opening QR code in UPI apps:', filePath);
-          // Use QR code image file - native module will filter to show only UPI apps
-          await UPIPaymentService.openQRCodeInApps(filePath);
-          
-          // Close QR code modal and show verification modal - keep it open until user cancels or verifies
-          setShowQRCodeModal(false);
-          // Don't auto-close verification modal - keep it open for user to verify
-          setShowUPIVerificationModal(true);
-          setUpiTransactionRef(pendingUPITransactionId || '');
-        } catch (error: any) {
-          console.error('Error opening QR code in UPI apps:', error);
-          Alert.alert('UPI App Error', error.message || 'Failed to open QR code in UPI apps. Please try scanning the QR code manually.');
-        }
-      }, 2000);
-    } catch (error: any) {
-      console.error('Error generating QR code PNG:', error);
-      Alert.alert('Error', 'Failed to generate QR code. Please try again.');
-      setShowQRCodeModal(false);
-      setIsProcessingPayment(false);
-    }
-  };
+      // Calculate GST (18%) for B2C users
+      const baseAmount = plan.price;
+      const gstRate = 0.18; // 18% GST
+      const gstAmount = mode === 'b2c' ? baseAmount * gstRate : 0;
+      const totalAmount = baseAmount + gstAmount;
 
-  const handlePayUPayment = async (plan: SubscriptionPackage) => {
-    // PayU is currently not available
-    Alert.alert(
-      'Payment Method Unavailable',
-      'PayU payment is currently not available. Please use UPI payment method.',
-      [{ text: 'OK' }]
-    );
-    return;
-    
-    // Keep existing PayU code for future use (preserved but not executed)
-    if (false) { // This block will never execute but preserves the code
-    if (isProcessingPayment) return;
-    
-    setIsProcessingPayment(true);
-    try {
-      if (!userData?.id) {
-        Alert.alert('Error', 'User information not found. Please try again.');
-        setIsProcessingPayment(false);
-        return;
-      }
-
-      // Generate unique transaction ID
-      const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-      const transactionId = `TXN${userData.id}_${plan.id}_${Date.now()}_${randomSuffix}`;
-      
-      // PayU merchant credentials (should be stored in environment variables or config)
-      const PAYU_KEY = 'eO7BjK'; // Test key - replace with production key
-      const PAYU_SALT = 'BrOTecyan06WRQwHkkFw2XAXRBpR0jKi'; // Test salt - replace with production salt
-      const PAYU_ENVIRONMENT = '1'; // "1" for Stage, "0" for production
-      
-      // User details
-      const firstName = userData.name?.split(' ')[0] || 'User';
-      const email = userData.email || `${userData.mob_num}@scrapmate.com`;
-      const phone = String(userData.mob_num || '');
-      
-      // Product info
-      const productInfo = `Subscription payment for ${plan.name}`;
-      
-      // Generate PayU payment hash
-      console.log('💳 Generating PayU hash:', {
-        transactionId,
-        amount: plan.price,
-      });
-      
-      const hashResult = await generatePayUHash({
-        key: PAYU_KEY,
-        txnid: transactionId,
-        amount: plan.price.toString(),
-        productinfo: productInfo,
-        firstname: firstName,
-        email: email,
-        salt: PAYU_SALT,
-        udf1: `Package: ${plan.id}`,
-        udf2: `User: ${userData.id}`,
-      });
-      
-      if (hashResult.status !== 'success' || !hashResult.data?.hash) {
-        throw new Error('Failed to generate payment hash');
-      }
-      
-      // Build PayU payment parameters for WebView
-      // Use v2 API routes - buildApiUrl handles route construction
-      // Build URLs directly using buildApiUrl to avoid double slashes
-      const surl = buildApiUrl('/v2/payu-success');
-      const furl = buildApiUrl('/v2/payu-failure');
-      
-      // Build form URL with query parameters
-      const formParams = new URLSearchParams({
-        key: PAYU_KEY,
-        txnid: transactionId,
-        amount: plan.price.toString(),
-        productinfo: productInfo,
-        firstname: firstName,
-        email: email,
-        phone: phone,
-        surl: surl,
-        furl: furl,
-        hash: hashResult.data.hash,
-        udf1: `Package: ${plan.id}`,
-        udf2: `User: ${userData.id}`,
-        udf3: plan.name,
-      });
-      
-      const formUrl = `${buildApiUrl('/v2/payu-form')}?${formParams.toString()}`;
-      
-      console.log('🔗 PayU URLs:', {
-        formUrl,
-        surl,
-        furl,
-      });
-      
-      // Set payment data for WebView
-      setPayUPaymentData({
-        key: PAYU_KEY,
-        txnid: transactionId,
-        amount: plan.price.toString(),
-        productinfo: productInfo,
-        firstname: firstName,
-        email: email,
-        phone: phone,
-        surl: surl,
-        furl: furl,
-        hash: hashResult.data.hash,
-        udf1: `Package: ${plan.id}`,
-        udf2: `User: ${userData.id}`,
-        udf3: plan.name,
-      });
-      
-      setPayUFormUrl(formUrl);
-      
-      console.log('💳 Opening PayU WebView:', {
+      // Create payment request via API
+      console.log('💳 Creating Instamojo payment request:', {
         userId: userData.id,
         packageId: plan.id,
-        amount: plan.price,
-        transactionId,
-        formUrl,
+        baseAmount: baseAmount,
+        gstAmount: gstAmount,
+        totalAmount: totalAmount,
+        purpose: plan.name || 'B2C Subscription Payment',
+        buyerName,
+        buyerEmail,
+        buyerPhone,
       });
-      
-      setShowPayUWebView(true);
+
+      // Create payment request via API with total amount (base + GST for B2C)
+      const paymentRequest = await createInstamojoPaymentRequest({
+        purpose: plan.name || 'B2C Subscription Payment',
+        amount: totalAmount.toString(),
+        buyer_name: buyerName,
+        email: buyerEmail,
+        phone: buyerPhone,
+        redirect_url: redirectUrlValue,
+        send_email: false,
+        send_sms: false,
+        allow_repeated_payments: false,
+      });
+
+      if (!paymentRequest.data?.longurl) {
+        throw new Error('Failed to get payment URL from Instamojo');
+      }
+
+      console.log('✅ Instamojo payment request created:', {
+        payment_request_id: paymentRequest.data.payment_request_id,
+        longurl: paymentRequest.data.longurl,
+      });
+
+      setPaymentRequestId(paymentRequest.data.payment_request_id);
+      setInstamojoPaymentUrl(paymentRequest.data.longurl);
+      setCurrentPlan(plan);
+      setShowInstamojoWebView(true);
       setIsProcessingPayment(false);
     } catch (error: any) {
-      console.error('Error processing PayU payment:', error);
+      console.error('Error processing Instamojo payment:', error);
       Alert.alert(
-        'Payment Error',
-        error.message || 'Failed to process payment. Please try again.'
+        t('subscriptionPlans.paymentError'),
+        error.message || t('subscriptionPlans.paymentRequestFailed')
       );
       setIsProcessingPayment(false);
     }
-    }
   };
+
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -686,7 +389,7 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
           <MaterialCommunityIcons name="arrow-left" size={24} color={theme.textPrimary} />
         </TouchableOpacity>
         <AutoText style={styles.headerTitle} numberOfLines={1}>
-          Subscription Plans
+          {t('subscriptionPlans.title')}
         </AutoText>
         <View style={styles.headerSpacer} />
       </View>
@@ -697,9 +400,9 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
       >
         {/* Plans Header */}
         <View style={styles.plansHeader}>
-          <AutoText style={styles.plansTitle}>Choose Your Plan</AutoText>
+          <AutoText style={styles.plansTitle}>{t('subscriptionPlans.chooseYourPlan')}</AutoText>
           <AutoText style={styles.plansSubtitle}>
-            Select a subscription plan to get unlimited orders
+            {t('subscriptionPlans.selectPlanSubtitle')}
           </AutoText>
           {/* Subscription Status Banner */}
           {profileData && (() => {
@@ -762,15 +465,15 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
                   <MaterialCommunityIcons name="alert-circle" size={20} color="#F44336" />
                   <View style={{ flex: 1 }}>
                     <AutoText style={[styles.statusText, styles.statusTextRejected]}>
-                      Last Payment Rejected
+                      {t('subscriptionPlans.lastPaymentRejected')}
                     </AutoText>
                     {rejectionReason ? (
                       <AutoText style={[styles.statusText, styles.statusTextRejected, { marginTop: 4, fontSize: 12 }]}>
-                        Reason: {rejectionReason}
+                        {t('subscriptionPlans.rejectionReason', { reason: rejectionReason })}
                       </AutoText>
                     ) : (
                       <AutoText style={[styles.statusText, styles.statusTextRejected, { marginTop: 4, fontSize: 12 }]}>
-                        Your payment was rejected. Please contact support for more details.
+                        {t('subscriptionPlans.rejectionMessage')}
                       </AutoText>
                     )}
                   </View>
@@ -781,7 +484,7 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
                 <View style={styles.statusBanner}>
                   <MaterialCommunityIcons name="clock-outline" size={20} color="#FF9800" />
                   <AutoText style={styles.statusText}>
-                    Your subscription payment is pending admin approval. We will notify you once it's approved.
+                    {t('subscriptionPlans.paymentPending')}
                   </AutoText>
                 </View>
               );
@@ -797,10 +500,10 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
                   <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
                   <View style={{ flex: 1 }}>
                     <AutoText style={[styles.statusText, styles.statusTextApproved]}>
-                      Current Plan: {currentPlanName}
+                      {t('subscriptionPlans.currentPlan', { planName: currentPlanName })}
                     </AutoText>
                     <AutoText style={[styles.statusText, styles.statusTextApproved, { marginTop: 4, fontSize: 12 }]}>
-                      Valid until: {formattedDate}
+                      {t('subscriptionPlans.validUntil', { date: formattedDate })}
                     </AutoText>
                   </View>
                 </View>
@@ -813,7 +516,7 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
         {/* Loading State */}
         {loading && (
           <View style={styles.loadingContainer}>
-            <AutoText style={styles.loadingText}>Loading packages...</AutoText>
+            <AutoText style={styles.loadingText}>{t('subscriptionPlans.loadingPackages')}</AutoText>
           </View>
         )}
 
@@ -821,7 +524,7 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
         {!loading && plans.length === 0 && (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="package-variant" size={48} color={theme.textSecondary} />
-            <AutoText style={styles.emptyText}>No subscription packages available</AutoText>
+            <AutoText style={styles.emptyText}>{t('subscriptionPlans.noPackagesAvailable')}</AutoText>
           </View>
         )}
 
@@ -834,6 +537,12 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
           const isSubscribed = shop?.is_subscribed && approvedInvoice;
           const isMonthlyPlan = plan.id?.toLowerCase().includes('monthly') || plan.name?.toLowerCase().includes('monthly');
           const shouldDisablePlan = !isB2BUser && isSubscribed && isMonthlyPlan;
+          
+          // Calculate GST for B2C users
+          const baseAmount = plan.price;
+          const gstRate = 0.18; // 18% GST
+          const gstAmount = mode === 'b2c' && !plan.isPercentageBased ? baseAmount * gstRate : 0;
+          const totalAmount = baseAmount + gstAmount;
           
           return (
           <SectionCard
@@ -848,7 +557,7 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
           >
             {plan.popular && (
               <View style={styles.popularBadge}>
-                <AutoText style={styles.popularBadgeText}>Most Popular</AutoText>
+                <AutoText style={styles.popularBadgeText}>{t('subscriptionPlans.mostPopular')}</AutoText>
               </View>
             )}
             
@@ -865,19 +574,30 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
                       <>
                         <AutoText style={styles.priceAmount}>{plan.pricePercentage.toFixed(1)}%</AutoText>
                         <AutoText style={styles.priceDuration}>
-                          {plan.duration === 'order' ? ' of order value' : `/${plan.duration}`}
+                          {plan.duration === 'order' ? t('subscriptionPlans.ofOrderValue') : plan.duration === 'month' ? t('subscriptionPlans.perMonth') : plan.duration === 'year' ? t('subscriptionPlans.perYear') : `/${plan.duration}`}
                         </AutoText>
                       </>
                     ) : (
                       <>
                         <AutoText style={styles.priceSymbol}>₹</AutoText>
-                        <AutoText style={styles.priceAmount}>{plan.price.toLocaleString('en-IN')}</AutoText>
+                        <AutoText style={styles.priceAmount}>{totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</AutoText>
                         <AutoText style={styles.priceDuration}>
-                          {plan.duration === 'order' ? ' + GST per order' : `/${plan.duration} + GST`}
+                          {plan.duration === 'order' ? t('subscriptionPlans.perOrder') : plan.duration === 'month' ? t('subscriptionPlans.perMonth') : plan.duration === 'year' ? t('subscriptionPlans.perYear') : `/${plan.duration}`}
                         </AutoText>
                       </>
                     )}
                   </View>
+                  {/* Show GST breakdown for B2C users */}
+                  {mode === 'b2c' && !plan.isPercentageBased && gstAmount > 0 && (
+                    <View style={styles.gstBreakdown}>
+                      <AutoText style={styles.gstBreakdownText}>
+                        {t('subscriptionPlans.gstBreakdown', { 
+                          baseAmount: baseAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+                          gstAmount: gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })
+                        })}
+                      </AutoText>
+                    </View>
+                  )}
                 </View>
                 <View style={[
                   styles.radioButton,
@@ -909,23 +629,26 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
               {isB2BUser ? (
                 <View style={[styles.disabledButton, { backgroundColor: theme.border, opacity: 0.6 }]}>
                   <AutoText style={[styles.disabledButtonText, { color: theme.textSecondary }]}>
-                    Automatic - Charges apply per order
+                    {t('subscriptionPlans.automaticCharges')}
                   </AutoText>
                 </View>
               ) : shouldDisablePlan ? (
                 <View style={[styles.disabledButton, { backgroundColor: theme.border, opacity: 0.6 }]}>
                   <AutoText style={[styles.disabledButtonText, { color: theme.textSecondary }]}>
-                    Already Subscribed
+                    {t('subscriptionPlans.alreadySubscribed')}
                   </AutoText>
                 </View>
               ) : (
                 <GreenButton
                   title={
                     isProcessingPayment 
-                      ? 'Processing...' 
+                      ? t('subscriptionPlans.processing')
                       : plan.isPercentageBased && plan.pricePercentage !== undefined
-                        ? `Subscribe - ${plan.pricePercentage.toFixed(1)}% per order`
-                        : `Subscribe - ₹${plan.price.toLocaleString('en-IN')}${plan.duration === 'order' ? ' + GST per order' : `/${plan.duration} + GST`}`
+                        ? t('subscriptionPlans.subscribePercentage', { percentage: plan.pricePercentage.toFixed(1) })
+                        : t('subscriptionPlans.subscribeAmount', { 
+                            amount: totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+                            duration: plan.duration === 'order' ? t('subscriptionPlans.perOrder') : plan.duration === 'month' ? t('subscriptionPlans.perMonth') : plan.duration === 'year' ? t('subscriptionPlans.perYear') : `/${plan.duration}`
+                          })
                   }
                   onPress={() => handleSubscribe(plan)}
                   disabled={isProcessingPayment}
@@ -942,221 +665,29 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
             <MaterialCommunityIcons name="information" size={20} color={theme.primary} />
             <AutoText style={styles.infoText} numberOfLines={0}>
               {isB2BUser 
-                ? 'B2B subscription is automatic. You will be charged based on your plan when accepting orders. No upfront payment required.'
-                : 'All plans include unlimited orders. Cancel anytime from your account settings.'
+                ? t('subscriptionPlans.b2bInfo')
+                : t('subscriptionPlans.b2cInfo')
               }
             </AutoText>
           </View>
         </SectionCard>
       </ScrollView>
 
-      {/* PayU WebView Modal */}
-      {showPayUWebView && payUPaymentData && payUFormUrl && (
-        <PayUWebView
-          visible={showPayUWebView}
+      {/* Instamojo WebView Modal */}
+      {showInstamojoWebView && instamojoPaymentUrl && currentPlan && (
+        <InstamojoWebView
+          visible={showInstamojoWebView}
           onClose={() => {
-            setShowPayUWebView(false);
+            setShowInstamojoWebView(false);
             setCurrentPlan(null);
-            setPayUPaymentData(null);
-            setPayUFormUrl('');
+            setInstamojoPaymentUrl('');
+            setPaymentRequestId(null);
           }}
-          onPaymentResponse={handlePayUResponse}
-          paymentData={payUPaymentData}
-          formUrl={payUFormUrl}
+          onPaymentResponse={handleInstamojoResponse}
+          paymentUrl={instamojoPaymentUrl}
+          redirectUrl={redirectUrl}
         />
       )}
-
-      {/* UPI QR Code Modal */}
-      <Modal
-        visible={showQRCodeModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => {
-          setShowQRCodeModal(false);
-          setQrCodeFilePath(null);
-          setCurrentUPIIntentUrl(null);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
-            <View style={styles.modalHeader}>
-              <AutoText style={styles.modalTitle}>Scan QR Code to Pay</AutoText>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowQRCodeModal(false);
-                  setQrCodeFilePath(null);
-                  setCurrentUPIIntentUrl(null);
-                }}
-                style={styles.closeButton}
-              >
-                <MaterialCommunityIcons name="close" size={24} color={theme.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <AutoText style={styles.modalDescription}>
-              Opening UPI app to scan QR code...
-            </AutoText>
-
-            <View style={styles.qrCodeContainer}>
-              {currentUPIIntentUrl ? (
-                <ViewShot
-                  ref={qrCodeViewRef}
-                  options={{ format: 'png', quality: 1.0, result: 'tmpfile' }}
-                  style={styles.qrCodeView}
-                >
-                  <QRCode
-                    value={currentUPIIntentUrl}
-                    size={250}
-                    color="black"
-                    backgroundColor="white"
-                  />
-                </ViewShot>
-              ) : (
-                <ActivityIndicator size="large" color={theme.primary} />
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.cancelButtonModal, { borderColor: theme.border, marginTop: '20@vs' }]}
-              onPress={() => {
-                setShowQRCodeModal(false);
-                setQrCodeFilePath(null);
-                setCurrentUPIIntentUrl(null);
-                setIsProcessingPayment(false);
-              }}
-            >
-              <AutoText style={[styles.cancelButtonText, { color: theme.textSecondary }]}>
-                Cancel
-              </AutoText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* UPI Verification Modal */}
-      <Modal
-        visible={showUPIVerificationModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => {
-          // Prevent closing by back button - user must use Cancel or Verify buttons
-          // Modal will only close when user explicitly clicks Cancel or Verify
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <AutoText style={styles.modalTitle}>Verify UPI Payment</AutoText>
-              {/* Remove close button - user must use Cancel or Verify buttons */}
-            </View>
-            
-            <AutoText style={styles.modalDescription}>
-              Enter the UPI transaction reference number from your payment app (if available), or use the transaction ID below.
-            </AutoText>
-
-            <View style={styles.inputContainer}>
-              <AutoText style={styles.inputLabel}>Transaction Reference</AutoText>
-              <TextInput
-                style={[styles.textInput, { color: theme.textPrimary, borderColor: theme.border }]}
-                value={upiTransactionRef}
-                onChangeText={setUpiTransactionRef}
-                placeholder="Enter transaction reference"
-                placeholderTextColor={theme.textSecondary}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {pendingUPITransactionId && (
-                <AutoText style={styles.hintText}>
-                  Default: {pendingUPITransactionId}
-                </AutoText>
-              )}
-            </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
-                onPress={() => {
-                  Alert.alert(
-                    'Payment Pending',
-                    'Your payment is pending verification. Please contact support with transaction ID: ' + (pendingUPITransactionId || 'N/A'),
-                    [{ text: 'OK', onPress: () => {
-                      setShowUPIVerificationModal(false);
-                      setUpiTransactionRef('');
-                      setPendingUPITransactionId(null);
-                      setPendingUPIPlan(null);
-                    }}]
-                  );
-                }}
-              >
-                <AutoText style={[styles.modalButtonText, { color: theme.textSecondary }]}>
-                  Verify Later
-                </AutoText>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.modalButton, styles.verifyButton, { backgroundColor: theme.primary }]}
-                onPress={async () => {
-                  if (!pendingUPIPlan || !userData?.id || !pendingUPITransactionId) {
-                    Alert.alert('Error', 'Payment data not found. Please try again.');
-                    return;
-                  }
-
-                  const transactionRef = upiTransactionRef.trim() || pendingUPITransactionId;
-                  
-                  try {
-                    setIsProcessingPayment(true);
-                    const saveResult = await saveUserSubscription(
-                      userData.id,
-                      pendingUPIPlan.id,
-                      {
-                        transactionId: transactionRef,
-                        responseCode: '00',
-                        approvalRefNo: transactionRef,
-                        amount: pendingUPIPlan.price.toString(),
-                        paymentMethod: 'UPI',
-                      }
-                    );
-
-                    if (saveResult.status === 'success') {
-                      Alert.alert(
-                        'Payment Submitted',
-                        `Payment verification submitted successfully!\nTransaction ID: ${transactionRef}\n\nOur admin team will review your subscription request and notify you soon. You can check your subscription status in your profile.`,
-                        [
-                          {
-                            text: 'OK',
-                            onPress: () => {
-                              setShowUPIVerificationModal(false);
-                              setUpiTransactionRef('');
-                              setPendingUPITransactionId(null);
-                              setPendingUPIPlan(null);
-                              navigation.goBack();
-                            },
-                          },
-                        ]
-                      );
-                    } else {
-                      throw new Error(saveResult.msg || 'Failed to save subscription');
-                    }
-                  } catch (error: any) {
-                    console.error('Error saving subscription:', error);
-                    Alert.alert(
-                      'Verification Error',
-                      error.message || 'Failed to verify payment. Please contact support with transaction ID: ' + transactionRef
-                    );
-                  } finally {
-                    setIsProcessingPayment(false);
-                  }
-                }}
-                disabled={isProcessingPayment}
-              >
-                <AutoText style={[styles.modalButtonText, { color: '#FFFFFF' }]}>
-                  {isProcessingPayment ? 'Verifying...' : 'Verify Payment'}
-                </AutoText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -1311,6 +842,15 @@ const getStyles = (theme: any, themeName?: string) =>
       fontSize: '12@s',
       color: theme.textSecondary,
       marginLeft: '4@s',
+    },
+    gstBreakdown: {
+      marginTop: '4@vs',
+    },
+    gstBreakdownText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '11@s',
+      color: theme.textSecondary,
+      fontStyle: 'italic',
     },
     radioButton: {
       width: '24@s',

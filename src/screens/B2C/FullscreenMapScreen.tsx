@@ -16,6 +16,7 @@ interface FullscreenMapScreenProps {
       orderId?: string;
       requestId?: string;
       customer_phone?: string;
+      isCompleted?: boolean; // If true, disable location tracking
     };
   };
   navigation: any;
@@ -26,11 +27,53 @@ const FullscreenMapScreen: React.FC<FullscreenMapScreenProps> = ({ route, naviga
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
-  const { destination, orderId, customer_phone } = route.params || { 
-    destination: { latitude: 9.1530, longitude: 76.7356 },
+  const { destination, orderId, customer_phone, isCompleted = false } = route.params || { 
+    destination: null,
     orderId: undefined,
-    customer_phone: undefined
+    customer_phone: undefined,
+    isCompleted: false
   };
+  
+  // Validate destination - if not provided or invalid, show error
+  if (!destination || !destination.latitude || !destination.longitude) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={isDark ? theme.background : '#FFFFFF'}
+        />
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={theme.textPrimary}
+            />
+          </TouchableOpacity>
+          <AutoText style={styles.headerTitle}>
+            {t('dashboard.map') || 'Map'}
+          </AutoText>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.errorContainer}>
+          <MaterialCommunityIcons
+            name="map-marker-off"
+            size={64}
+            color={theme.textSecondary}
+          />
+          <AutoText style={styles.errorText}>
+            {t('dashboard.noLocationAvailable') || 'Location not available'}
+          </AutoText>
+          <AutoText style={styles.errorSubtext}>
+            {t('dashboard.locationNotAvailableForOrder') || 'Location data is not available for this order'}
+          </AutoText>
+        </View>
+      </View>
+    );
+  }
   
   // Log destination to verify it matches small map
   useEffect(() => {
@@ -123,7 +166,8 @@ const FullscreenMapScreen: React.FC<FullscreenMapScreenProps> = ({ route, naviga
           style={styles.map}
           destination={destination}
           routeProfile="driving"
-          onLocationUpdate={async (location) => {
+          disableLocationTracking={isCompleted}
+          onLocationUpdate={isCompleted ? undefined : async (location) => {
             try {
               setCurrentLocation({
                 latitude: location.latitude,
@@ -303,6 +347,32 @@ const getStyles = (theme: any, themeName?: string) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: '8@s',
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '20@s',
+    },
+    errorText: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '18@s',
+      color: theme.textPrimary,
+      marginTop: '16@vs',
+      textAlign: 'center',
+    },
+    errorSubtext: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textSecondary,
+      marginTop: '8@vs',
+      textAlign: 'center',
+    },
+    backButton: {
+      width: '40@s',
+      height: '40@s',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     distanceText: {
       fontFamily: 'Poppins-SemiBold',

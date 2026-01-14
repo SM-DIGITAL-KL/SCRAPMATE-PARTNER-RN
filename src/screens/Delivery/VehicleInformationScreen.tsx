@@ -234,7 +234,7 @@ const VehicleInformationScreen = ({ navigation }: any) => {
 
       if (type === 'aadhar') {
         setUploadingAadhar(true);
-        uploadAadharMutation.mutate(fileUri, {
+        uploadAadharMutation.mutate({ fileUri, fileType: 'application/pdf' }, {
           onSuccess: (result) => {
             setAadharCard(result.image_url);
             setUploadingAadhar(false);
@@ -248,7 +248,7 @@ const VehicleInformationScreen = ({ navigation }: any) => {
         });
       } else if (type === 'drivingLicense') {
         setUploadingDrivingLicense(true);
-        uploadDrivingLicenseMutation.mutate(fileUri, {
+        uploadDrivingLicenseMutation.mutate({ fileUri, fileType: 'application/pdf' }, {
           onSuccess: (result) => {
             setDrivingLicense(result.image_url);
             setUploadingDrivingLicense(false);

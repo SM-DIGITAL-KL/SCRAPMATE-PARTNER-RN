@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Platform, PermissionsAndroid, Alert, UIManager } from 'react-native';
 import { requireNativeComponent, NativeModules, findNodeHandle } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 const { NativeMapViewModule } = NativeModules;
 
@@ -21,6 +22,7 @@ export const getAddressFromCoordinates = async (
   country?: string;
   countryCode?: string;
 }> => {
+  // Try native module first (Android)
   if (Platform.OS === 'android' && NativeMapViewModule) {
     try {
       const address = await NativeMapViewModule.getAddressFromCoordinates(latitude, longitude);
@@ -34,9 +36,50 @@ export const getAddressFromCoordinates = async (
       }
       throw error;
     }
-  } else {
-    throw new Error('Address lookup not available on this platform');
   }
+  
+  // For iOS, use Nominatim API directly
+  if (Platform.OS === 'ios') {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'ScrapmatePartner/1.0',
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Nominatim API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const address = data.address || {};
+      
+      return {
+        formattedAddress: data.display_name,
+        address: data.display_name,
+        houseNumber: address.house_number,
+        road: address.road,
+        neighborhood: address.neighbourhood || address.suburb,
+        suburb: address.suburb,
+        city: address.city || address.town || address.village,
+        state: address.state,
+        postcode: address.postcode,
+        country: address.country,
+        countryCode: address.country_code?.toUpperCase(),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (!errorMessage.includes('failed to connect') && !errorMessage.includes('timeout')) {
+        console.warn('Address lookup error (iOS):', error);
+      }
+      throw error;
+    }
+  }
+  
+  throw new Error('Address lookup not available on this platform');
 };
 
 // Convenience function to get current location with address
@@ -59,6 +102,7 @@ export const getCurrentLocationWithAddress = async (): Promise<{
     countryCode?: string;
   };
 }> => {
+  // Try native module first (Android)
   if (Platform.OS === 'android' && NativeMapViewModule) {
     try {
       // Get current location
@@ -83,9 +127,49 @@ export const getCurrentLocationWithAddress = async (): Promise<{
       console.error('Error getting location with address:', error);
       throw error;
     }
-  } else {
-    throw new Error('Location lookup not available on this platform');
   }
+  
+  // For iOS, use Geolocation API
+  if (Platform.OS === 'ios') {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy || 0,
+            timestamp: position.timestamp,
+          };
+          
+          // Get address from coordinates
+          try {
+            const address = await getAddressFromCoordinates(
+              location.latitude,
+              location.longitude
+            );
+            resolve({
+              ...location,
+              address,
+            });
+          } catch (addressError) {
+            // If address lookup fails, still return location
+            console.warn('Address lookup failed:', addressError);
+            resolve(location);
+          }
+        },
+        (error) => {
+          reject(new Error(`Geolocation error: ${error.message}`));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 10000,
+        }
+      );
+    });
+  }
+  
+  throw new Error('Location lookup not available on this platform');
 };
 
 interface NativeMapViewProps {
@@ -101,11 +185,177 @@ interface LocationData {
   timestamp: number;
 }
 
-const NativeMapViewComponent = requireNativeComponent<NativeMapViewProps>('NativeMapView', {
+const NativeMapViewComponent = Platform.OS === 'android' 
+  ? requireNativeComponent<NativeMapViewProps>('NativeMapView', {
   nativeOnly: {
     // Event handlers are handled automatically by React Native bridge
   }
-});
+    })
+  : null;
+
+// Generate HTML for iOS Leaflet map
+const getIOSMapHTML = (): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            html, body { 
+                width: 100%; 
+                height: 100%; 
+                overflow: hidden; 
+                background-color: #f0f0f0;
+            }
+            #map { 
+                width: 100vw; 
+                height: 100vh; 
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script>
+            (function() {
+                var map = null;
+                var marker = null;
+                var routeLayer = null;
+                
+                function initMap() {
+                    try {
+                        if (typeof L === 'undefined') {
+                            console.error('Leaflet not loaded');
+                            return;
+                        }
+                        
+                        map = L.map('map', {
+                            zoomControl: true,
+                            scrollWheelZoom: false,
+                            doubleClickZoom: false,
+                            boxZoom: false,
+                            keyboard: false,
+                            dragging: true,
+                            touchZoom: true
+                        });
+                        
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors',
+                            maxZoom: 19
+                        }).addTo(map);
+                        
+                        map.setView([20.5937, 78.9629], 13);
+                        
+                        // Fix for "Incomplete map until resize" issue
+                        setTimeout(function() {
+                            if (map) {
+                                map.invalidateSize(true);
+                                if (window.ReactNativeWebView) {
+                                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'mapReady' }));
+                                }
+                            }
+                        }, 100);
+                        
+                        window.map = map;
+                        window.marker = marker;
+                        window.updateLocation = function(lat, lng) {
+                            if (map && lat && lng) {
+                                if (!marker) {
+                                    var icon = L.divIcon({
+                                        className: 'current-location-marker',
+                                        html: '<div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #2196F3; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4);"><svg style="width: 18px; height: 18px; fill: white;" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>',
+                                        iconSize: [32, 32],
+                                        iconAnchor: [16, 16]
+                                    });
+                                    marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+                                } else {
+                                    marker.setLatLng([lat, lng]);
+                                }
+                                map.setView([lat, lng], map.getZoom());
+                                // Notify React Native of location update
+                                if (window.ReactNativeWebView) {
+                                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                                        type: 'locationUpdate',
+                                        latitude: lat,
+                                        longitude: lng,
+                                        accuracy: 0,
+                                        timestamp: Date.now()
+                                    }));
+                                }
+                            }
+                        };
+                        
+                        // Watch location using browser geolocation API
+                        if (navigator.geolocation) {
+                            navigator.geolocation.watchPosition(
+                                function(position) {
+                                    if (window.updateLocation) {
+                                        window.updateLocation(position.coords.latitude, position.coords.longitude);
+                                    }
+                                },
+                                function(error) {
+                                    console.error('Geolocation error:', error);
+                                },
+                                {
+                                    enableHighAccuracy: true,
+                                    timeout: 15000,
+                                    maximumAge: 10000
+                                }
+                            );
+                        }
+                        window.drawRoute = function(fromLat, fromLng, toLat, toLng, profile) {
+                            if (!map || !fromLat || !fromLng || !toLat || !toLng) return;
+                            
+                            if (routeLayer) {
+                                map.removeLayer(routeLayer);
+                            }
+                            
+                            var osrmUrl = 'https://router.project-osrm.org/route/v1/' + profile + '/' + 
+                                          fromLng + ',' + fromLat + ';' + toLng + ',' + toLat + 
+                                          '?overview=full&geometries=geojson';
+                            
+                            fetch(osrmUrl)
+                                .then(function(response) { return response.json(); })
+                                .then(function(data) {
+                                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                                        var coordinates = data.routes[0].geometry.coordinates;
+                                        var latLngs = coordinates.map(function(coord) {
+                                            return [coord[1], coord[0]];
+                                        });
+                                        
+                                        routeLayer = L.polyline(latLngs, {
+                                            color: '#2196F3',
+                                            weight: 4,
+                                            opacity: 0.7
+                                        }).addTo(map);
+                                        
+                                        var bounds = L.latLngBounds(latLngs);
+                                        map.fitBounds(bounds, { padding: [50, 50] });
+                                    }
+                                })
+                                .catch(function(error) {
+                                    console.error('Route error:', error);
+                                });
+                        };
+                    } catch (e) {
+                        console.error('Map initialization error:', e);
+                    }
+                }
+                
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initMap);
+                } else {
+                    initMap();
+                }
+            })();
+        </script>
+    </body>
+    </html>
+  `;
+};
 
 export const NativeMapView: React.FC<{
   style?: any;
@@ -113,12 +363,14 @@ export const NativeMapView: React.FC<{
   onMapReady?: () => void;
   destination?: { latitude: number; longitude: number };
   routeProfile?: 'driving' | 'cycling' | 'walking';
+  disableLocationTracking?: boolean; // If true, don't request location permission or track location
 }> = ({ 
   style, 
   onLocationUpdate, 
   onMapReady,
   destination,
-  routeProfile = 'driving'
+  routeProfile = 'driving',
+  disableLocationTracking = false
 }) => {
   const mapRef = useRef<any>(null);
   const [hasPermission, setHasPermission] = useState(false);
@@ -176,17 +428,24 @@ export const NativeMapView: React.FC<{
         console.warn(err);
       }
     } else {
-      // iOS - permission is requested in native code
+      // iOS - permission is handled by the WebView's geolocation API
+      // The WebView will request permission when geolocation is accessed
       if (isMountedRef.current) {
-        setHasPermission(true);
+        setHasPermission(true); // Assume permission will be requested by WebView
       }
-      // Permission will be requested automatically by the native module
     }
   }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
-    requestLocationPermission();
+    // Only request location permission if location tracking is not disabled
+    if (!disableLocationTracking) {
+      requestLocationPermission();
+    } else {
+      // If location tracking is disabled, just set hasPermission to false
+      // This prevents any location-related operations
+      setHasPermission(false);
+    }
     
     // Cleanup on unmount
     return () => {
@@ -200,11 +459,11 @@ export const NativeMapView: React.FC<{
       // Don't clear mapRef here as it might be needed during unmount
       // It will be cleared naturally when component unmounts
     };
-  }, [requestLocationPermission, clearAllTimeouts]);
+  }, [requestLocationPermission, clearAllTimeouts, disableLocationTracking]);
 
-  // Fetch location once when permission is granted
+  // Fetch location once when permission is granted (only if location tracking is enabled)
   useEffect(() => {
-    if (hasPermission && Platform.OS === 'android' && isMountedRef.current) {
+    if (!disableLocationTracking && hasPermission && Platform.OS === 'android' && isMountedRef.current) {
       // Small delay to ensure map is ready
       const timeoutId = setTimeout(() => {
         if (isMountedRef.current && mapRef.current) {
@@ -222,7 +481,7 @@ export const NativeMapView: React.FC<{
         }
       };
     }
-  }, [hasPermission]);
+  }, [hasPermission, disableLocationTracking]);
 
   // Fetch location once (no continuous polling)
   const fetchLocationOnce = async () => {
@@ -282,6 +541,11 @@ export const NativeMapView: React.FC<{
   const MIN_LOCATION_CHANGE_METERS = 20; // Only update if moved 20+ meters
 
   const handleLocationUpdate = (event: any) => {
+    // Don't handle location updates if location tracking is disabled
+    if (disableLocationTracking) {
+      return;
+    }
+    
     // Check if component is still mounted
     if (!mapRef.current) {
       return;
@@ -355,23 +619,28 @@ export const NativeMapView: React.FC<{
     console.log('🗺️ Map ready - handleMapReady called');
     onMapReady?.();
     
-    // Fetch location once when map is ready
-    if (hasPermission && Platform.OS === 'android' && isMountedRef.current && mapRef.current) {
-      console.log('📍 Map ready with permission - fetching location...');
-      const timeoutId = setTimeout(() => {
-        if (isMountedRef.current && mapRef.current) {
-          fetchLocationOnce();
+    // Only fetch location if location tracking is enabled
+    if (!disableLocationTracking) {
+      // Fetch location once when map is ready
+      if (hasPermission && Platform.OS === 'android' && isMountedRef.current && mapRef.current) {
+        console.log('📍 Map ready with permission - fetching location...');
+        const timeoutId = setTimeout(() => {
+          if (isMountedRef.current && mapRef.current) {
+            fetchLocationOnce();
+          }
+        }, 500);
+        if (timeoutId) {
+          timeoutRefs.current.push(timeoutId);
         }
-      }, 500);
-      if (timeoutId) {
-        timeoutRefs.current.push(timeoutId);
+      } else if (currentLocation && isMountedRef.current && mapRef.current) {
+        // If we already have location, center on it
+        console.log('📍 Map ready with existing location - centering...');
+        centerOnCurrentLocation();
+      } else {
+        console.log('⚠️ Map ready but no permission or location yet');
       }
-    } else if (currentLocation && isMountedRef.current && mapRef.current) {
-      // If we already have location, center on it
-      console.log('📍 Map ready with existing location - centering...');
-      centerOnCurrentLocation();
     } else {
-      console.log('⚠️ Map ready but no permission or location yet');
+      console.log('📍 Map ready - location tracking disabled, showing destination only');
     }
   };
 
@@ -470,7 +739,14 @@ export const NativeMapView: React.FC<{
   };
 
   // Draw route when destination and current location are available (throttled)
+  // Skip route drawing if location tracking is disabled (e.g., for completed orders)
   useEffect(() => {
+    // Don't draw route if location tracking is disabled
+    if (disableLocationTracking) {
+      console.log('📍 Route drawing disabled - location tracking is disabled');
+      return;
+    }
+    
     if (destination && currentLocation && hasPermission && mapRef.current) {
       const now = Date.now();
       const lastLocation = lastRouteLocationRef.current;
@@ -523,16 +799,107 @@ export const NativeMapView: React.FC<{
         };
       }
     }
-  }, [destination, currentLocation, hasPermission, routeProfile]);
+  }, [destination, currentLocation, hasPermission, routeProfile, disableLocationTracking]);
+
+  // iOS: Use WebView with Leaflet
+  if (Platform.OS === 'ios') {
+    const webViewRef = useRef<WebView>(null);
+    const [mapReady, setMapReady] = useState(false);
+    const iosLocationWatchIdRef = useRef<number | null>(null);
+
+    // Request location permission for iOS
+    useEffect(() => {
+      if (!disableLocationTracking) {
+        requestLocationPermission();
+      }
+    }, [disableLocationTracking, requestLocationPermission]);
+
+    // Handle location updates from WebView
+    useEffect(() => {
+      if (currentLocation && mapReady && webViewRef.current) {
+        webViewRef.current.injectJavaScript(`
+          if (window.updateLocation) {
+            window.updateLocation(${currentLocation.latitude}, ${currentLocation.longitude});
+          }
+        `);
+      }
+    }, [currentLocation, mapReady]);
+
+    // Handle route drawing for iOS
+    useEffect(() => {
+      if (destination && currentLocation && mapReady && webViewRef.current && !disableLocationTracking) {
+        webViewRef.current.injectJavaScript(`
+          if (window.drawRoute) {
+            window.drawRoute(
+              ${currentLocation.latitude}, 
+              ${currentLocation.longitude}, 
+              ${destination.latitude}, 
+              ${destination.longitude}, 
+              '${routeProfile}'
+            );
+          }
+        `);
+      }
+    }, [destination, currentLocation, mapReady, routeProfile, disableLocationTracking]);
+
+    // Cleanup location watch on unmount
+    useEffect(() => {
+      return () => {
+        if (iosLocationWatchIdRef.current !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.clearWatch(iosLocationWatchIdRef.current);
+        }
+      };
+    }, []);
 
   return (
     <View style={[styles.container, style]}>
+        <WebView
+          ref={webViewRef}
+          source={{ html: getIOSMapHTML() }}
+          style={{ flex: 1 }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          geolocationEnabled={true}
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data.type === 'mapReady') {
+                setMapReady(true);
+                handleMapReady();
+              } else if (data.type === 'locationUpdate') {
+                const location: LocationData = {
+                  latitude: data.latitude,
+                  longitude: data.longitude,
+                  accuracy: data.accuracy || 0,
+                  timestamp: data.timestamp || Date.now(),
+                };
+                setCurrentLocation(location);
+                onLocationUpdate?.(location);
+              }
+            } catch (error) {
+              console.warn('Error parsing WebView message:', error);
+            }
+          }}
+          onError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            console.warn('WebView error: ', nativeEvent);
+          }}
+        />
+      </View>
+    );
+  }
+
+  // Android: Use native component
+  return (
+    <View style={[styles.container, style]}>
+      {NativeMapViewComponent && (
       <NativeMapViewComponent
         ref={mapRef}
         style={styles.map}
         onLocationUpdate={handleLocationUpdate}
         onMapReady={handleMapReady}
       />
+      )}
     </View>
   );
 };
@@ -590,7 +957,14 @@ export const NativeMapViewFullscreen: React.FC<{
 
   useEffect(() => {
     isMountedRef.current = true;
-    requestLocationPermission();
+    // Only request location permission if location tracking is not disabled
+    if (!disableLocationTracking) {
+      requestLocationPermission();
+    } else {
+      // If location tracking is disabled, just set hasPermission to false
+      // This prevents any location-related operations
+      setHasPermission(false);
+    }
     
     return () => {
       isMountedRef.current = false;
@@ -600,7 +974,7 @@ export const NativeMapViewFullscreen: React.FC<{
         console.warn('Error clearing timeouts (fullscreen):', e);
       }
     };
-  }, [requestLocationPermission, clearAllTimeouts]);
+  }, [requestLocationPermission, clearAllTimeouts, disableLocationTracking]);
 
   useEffect(() => {
     if (hasPermission && Platform.OS === 'android' && isMountedRef.current) {
@@ -851,6 +1225,12 @@ export const NativeMapViewFullscreen: React.FC<{
   };
 
   useEffect(() => {
+    // Don't draw route if location tracking is disabled
+    if (disableLocationTracking) {
+      console.log('📍 Fullscreen route drawing disabled - location tracking is disabled');
+      return;
+    }
+    
     if (destination && currentLocation && hasPermission && mapRef.current) {
       const now = Date.now();
       const lastLocation = lastRouteLocationRef.current;
@@ -896,7 +1276,7 @@ export const NativeMapViewFullscreen: React.FC<{
         };
       }
     }
-  }, [destination, currentLocation, hasPermission, routeProfile]);
+  }, [destination, currentLocation, hasPermission, routeProfile, disableLocationTracking]);
 
   return (
     <View style={[styles.container, style]}>

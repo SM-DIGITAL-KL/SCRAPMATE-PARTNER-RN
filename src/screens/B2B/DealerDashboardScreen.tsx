@@ -22,6 +22,9 @@ import { CategoryBadge } from '../../components/CategoryBadge';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/api/queryKeys';
 import { getSubscriptionPackages, SubscriptionPackage } from '../../services/api/v2/subscriptionPackages';
+import LocationDisclosureModal from '../../components/LocationDisclosureModal';
+import { hasShownDisclosure, requestLocationPermissionsWithDisclosure } from '../../utils/locationPermission';
+
 
 const DealerDashboardScreen = () => {
   const { theme, isDark, themeName } = useTheme();
@@ -47,6 +50,8 @@ const DealerDashboardScreen = () => {
   const [showSubscriptionPlansModal, setShowSubscriptionPlansModal] = useState(false);
   const [b2bSubscriptionPlans, setB2bSubscriptionPlans] = useState<SubscriptionPackage[]>([]);
   const [loadingSubscriptionPlans, setLoadingSubscriptionPlans] = useState(false);
+  const [showLocationDisclosure, setShowLocationDisclosure] = useState(false);
+  const [disclosureAccepted, setDisclosureAccepted] = useState(false);
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
 
   // React Query hooks for categories
@@ -178,16 +183,56 @@ const DealerDashboardScreen = () => {
     }
   }, [modalVisible, userData?.id, selectedCategory?.id, refetchUserSubcategories, refetchUserCategories]);
 
-  // Load user data and fetch profile
+  // Load user data and check location disclosure
   useFocusEffect(
     React.useCallback(() => {
       const loadUserData = async () => {
         const data = await getUserData();
         setUserData(data);
+        
+        // Check if location disclosure needs to be shown (only on Android)
+        if (Platform.OS === 'android' && data?.id) {
+          const disclosureShown = await hasShownDisclosure();
+          if (!disclosureShown) {
+            // Small delay to ensure dashboard is fully loaded
+            setTimeout(() => {
+              setShowLocationDisclosure(true);
+            }, 1000);
+          }
+        }
       };
       loadUserData();
     }, [])
   );
+
+  // Handle location disclosure acceptance
+  const handleLocationDisclosureAccept = async () => {
+    setDisclosureAccepted(true);
+    setShowLocationDisclosure(false);
+    
+    // Request location permissions with disclosure
+    try {
+      const result = await requestLocationPermissionsWithDisclosure(async () => {
+        return true; // User accepted the disclosure
+      });
+      
+      if (result.foregroundGranted) {
+        console.log('✅ Location permissions granted');
+        if (result.backgroundGranted) {
+          console.log('✅ Background location permission granted');
+        } else {
+          console.log('⚠️ Background location permission not granted');
+        }
+      }
+    } catch (error) {
+      console.error('Error requesting location permissions:', error);
+    }
+  };
+
+  const handleLocationDisclosureDecline = () => {
+    setShowLocationDisclosure(false);
+    // User declined - they can still use the app, but location features may be limited
+  };
 
   // Fetch profile data with refetch capability
   const { data: profileData, refetch: refetchProfile } = useProfile(userData?.id, !!userData?.id);
@@ -243,10 +288,11 @@ const DealerDashboardScreen = () => {
     return bulkSellRequests.filter((req: any) => req.status === 'active');
   }, [bulkSellRequests, userData?.user_type]);
 
-  // Show all requests regardless of status (active, order_full_filled, pickup_started, arrived, completed, cancelled, etc.)
+  // Show all requests except completed ones (filter out completed status)
   const allMyBulkBuyRequests = React.useMemo(() => {
     if (!myBulkBuyRequests) return [];
-    return myBulkBuyRequests; // Return all requests, no status filter
+    // Filter out completed requests - they should not show in dashboard
+    return myBulkBuyRequests.filter((req: any) => req.status !== 'completed');
   }, [myBulkBuyRequests]);
 
   // Get first request for display (most recent)
@@ -669,14 +715,52 @@ const DealerDashboardScreen = () => {
           
           // If rejected, navigate to signup screen
           if (approvalStatus === 'rejected') {
-            console.log('✅ B2B approval status is rejected - navigating to DealerSignup');
-            // Small delay to ensure navigation is ready
-            setTimeout(() => {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'DealerSignup' }],
-              });
-            }, 500);
+            console.log('✅ B2B approval status is rejected - navigating to signup screen');
+            // Check if company info already exists - if so, go directly to DocumentUpload
+            const shop = profileData?.shop;
+            const hasCompanyInfo = shop?.company_name && shop?.company_name.trim() !== '';
+            
+            if (hasCompanyInfo) {
+              // Company info exists - navigate to DocumentUpload with existing signup data
+              console.log('✅ Company info exists - navigating to DocumentUpload');
+              setTimeout(() => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{
+                    name: 'DocumentUpload',
+                    params: {
+                      signupData: {
+                        companyName: shop.company_name || '',
+                        gstNumber: shop.gst_number || '',
+                        panNumber: shop.pan_number || '',
+                        businessAddress: shop.address || '',
+                        contactPersonName: shop.contact_person_name || '',
+                        contactNumber: shop.contact || '',
+                        contactEmail: shop.contact_email || '',
+                        latitude: shop.latitude || null,
+                        longitude: shop.longitude || null,
+                        pincode: shop.pincode || '',
+                        placeId: shop.place_id || '',
+                        state: shop.state || '',
+                        place: shop.place || '',
+                        location: shop.location || '',
+                        houseName: shop.house_name || '',
+                        nearbyLocation: shop.nearby_location || '',
+                      },
+                    },
+                  }],
+                });
+              }, 500);
+            } else {
+              // No company info - navigate to DealerSignup
+              console.log('✅ No company info - navigating to DealerSignup');
+              setTimeout(() => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'DealerSignup' }],
+                });
+              }, 500);
+            }
           }
           // If B2B is approved, add B2C to allowed dashboards
           else if (approvalStatus === 'approved') {
@@ -883,6 +967,7 @@ const DealerDashboardScreen = () => {
   };
 
   return (
+    <>
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
@@ -2424,8 +2509,18 @@ const DealerDashboardScreen = () => {
         </View>
       </Modal>
     </View>
+    
+    {/* Location Disclosure Modal */}
+    <LocationDisclosureModal
+      visible={showLocationDisclosure}
+      onAccept={handleLocationDisclosureAccept}
+      onDecline={handleLocationDisclosureDecline}
+    />
+  </>
   );
 };
+
+export default DealerDashboardScreen;
 
 const getStyles = (theme: any, themeName?: string) =>
   ScaledSheet.create({
@@ -3201,5 +3296,4 @@ const getStyles = (theme: any, themeName?: string) =>
     },
   });
 
-export default DealerDashboardScreen;
 

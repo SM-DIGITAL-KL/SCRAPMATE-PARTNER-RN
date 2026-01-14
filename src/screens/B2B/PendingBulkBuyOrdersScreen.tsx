@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -25,6 +26,7 @@ const PendingBulkBuyOrdersScreen = ({ navigation, route }: any) => {
   const [userData, setUserData] = useState<any>(null);
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
@@ -46,6 +48,13 @@ const PendingBulkBuyOrdersScreen = ({ navigation, route }: any) => {
       // Fetch orders with isSubmitted=false to exclude submitted orders
       const orders = await getPendingBulkBuyOrders(userData.id, false);
       
+      // Log all orders with their statuses for debugging
+      console.log('📋 Raw orders from API:', orders.map((o: any) => ({
+        id: o.id,
+        status: o.status,
+        transaction_id: o.transaction_id
+      })));
+      
       // Additional frontend filter to ensure submitted orders are removed (safety check)
       const filteredOrders = orders.filter((order: any) => {
         const status = order.status?.toLowerCase() || '';
@@ -55,6 +64,14 @@ const PendingBulkBuyOrdersScreen = ({ navigation, route }: any) => {
         }
         return !isSubmitted;
       });
+      
+      // Log status breakdown
+      const statusBreakdown: Record<string, number> = {};
+      filteredOrders.forEach((order: any) => {
+        const status = order.status || 'unknown';
+        statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
+      });
+      console.log('📊 Status breakdown:', statusBreakdown);
       
       setPendingOrders(filteredOrders);
       console.log(`📋 Loaded ${filteredOrders.length} pending orders (excluded ${orders.length - filteredOrders.length} submitted orders)`);
@@ -90,14 +107,25 @@ const PendingBulkBuyOrdersScreen = ({ navigation, route }: any) => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    // Handle null/undefined
+    if (!status) {
+      return '#FFA500'; // Default to pending color
+    }
+    
+    // Normalize to lowercase for comparison
+    const normalizedStatus = status.toLowerCase().trim();
+    
+    switch (normalizedStatus) {
       case 'pending_payment':
+      case 'pending':
         return '#FFA500';
       case 'payment_approved':
+      case 'approved':
         return '#4CAF50';
       case 'submitted':
         return '#2196F3';
       case 'cancelled':
+      case 'canceled':
         return '#F44336';
       default:
         return theme.textSecondary;
@@ -105,17 +133,30 @@ const PendingBulkBuyOrdersScreen = ({ navigation, route }: any) => {
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
+    // Handle null/undefined
+    if (!status) {
+      console.warn('⚠️ getStatusLabel called with null/undefined status');
+      return t('pendingOrders.pendingPayment') || 'Pending Payment Approval';
+    }
+    
+    // Normalize to lowercase for comparison
+    const normalizedStatus = status.toLowerCase().trim();
+    
+    switch (normalizedStatus) {
       case 'pending_payment':
+      case 'pending':
         return t('pendingOrders.pendingPayment') || 'Pending Payment Approval';
       case 'payment_approved':
+      case 'approved':
         return t('pendingOrders.paymentApproved') || 'Payment Approved';
       case 'submitted':
         return t('pendingOrders.submitted') || 'Submitted';
       case 'cancelled':
+      case 'canceled':
         return t('pendingOrders.cancelled') || 'Cancelled';
       default:
-        return status;
+        console.warn('⚠️ Unknown status value:', status);
+        return status || 'Pending';
     }
   };
 
@@ -308,16 +349,41 @@ const PendingBulkBuyOrdersScreen = ({ navigation, route }: any) => {
           </AutoText>
         </View>
       ) : (
-        <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {pendingOrders.map((order) => (
+        <ScrollView 
+          style={styles.scrollContent} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true);
+                await fetchPendingOrders();
+                setRefreshing(false);
+              }}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
+            />
+          }
+        >
+          {pendingOrders.map((order) => {
+            // Log status for debugging
+            if (order.status) {
+              console.log(`📋 Order ${order.id} status:`, {
+                raw: order.status,
+                normalized: order.status?.toLowerCase(),
+                label: getStatusLabel(order.status),
+                color: getStatusColor(order.status)
+              });
+            }
+            return (
             <View key={order.id} style={styles.orderCard}>
               <View style={styles.orderHeader}>
                 <AutoText style={styles.orderId}>
                   {t('pendingOrders.orderId') || 'Order ID'}: {order.id}
                 </AutoText>
-                <View style={[styles.statusBadge, { borderColor: getStatusColor(order.status) }]}>
-                  <AutoText style={[styles.statusText, { color: getStatusColor(order.status) }]}>
-                    {getStatusLabel(order.status)}
+                <View style={[styles.statusBadge, { borderColor: getStatusColor(order.status || 'pending_payment') }]}>
+                  <AutoText style={[styles.statusText, { color: getStatusColor(order.status || 'pending_payment') }]}>
+                    {getStatusLabel(order.status || 'pending_payment')}
                   </AutoText>
                 </View>
               </View>
@@ -374,7 +440,8 @@ const PendingBulkBuyOrdersScreen = ({ navigation, route }: any) => {
                 </AutoText>
               </TouchableOpacity>
             </View>
-          ))}
+            );
+          })}
         </ScrollView>
       )}
 

@@ -195,12 +195,43 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   // Handle OTP input change
-  const handleOtpChange = (value: string, index: number) => {
+  const handleOtpChange = async (value: string, index: number) => {
     // Only allow digits
     if (value && !/^\d+$/.test(value)) {
       return;
     }
 
+    // Detect paste: if value length > 1, user pasted multiple characters
+    if (value.length > 1) {
+      // Extract only digits from pasted value
+      const pastedDigits = value.replace(/\D/g, '').slice(0, 6);
+      
+      if (pastedDigits.length > 0) {
+        // Fill all OTP boxes with pasted digits
+        const newOtp = ['', '', '', '', '', ''];
+        for (let i = 0; i < pastedDigits.length && i < 6; i++) {
+          newOtp[i] = pastedDigits[i];
+        }
+        setOtp(newOtp);
+        
+        // If we have a complete 6-digit OTP, auto-verify
+        if (pastedDigits.length === 6) {
+          // Focus on last input to show it's complete
+          otpInputRefs.current[5]?.focus();
+          // Auto-verify after a short delay
+          setTimeout(() => {
+            handleVerifyOtp(pastedDigits);
+          }, 300);
+        } else {
+          // Focus on the next empty input
+          const nextEmptyIndex = Math.min(pastedDigits.length, 5);
+          otpInputRefs.current[nextEmptyIndex]?.focus();
+        }
+        return;
+      }
+    }
+
+    // Normal single character input
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
@@ -637,9 +668,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         handleOtpKeyPress(nativeEvent.key, index)
                       }
                       keyboardType="number-pad"
-                      maxLength={1}
+                      maxLength={6}
                       selectTextOnFocus
                       editable={!isLoading}
+                      contextMenuHidden={false}
                     />
                   ))}
                 </View>

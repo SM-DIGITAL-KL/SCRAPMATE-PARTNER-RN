@@ -7,6 +7,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../components/ThemeProvider';
 import { AutoText } from '../../components/AutoText';
+import { GreenButton } from '../../components/GreenButton';
 import { ScaledSheet } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n/config';
@@ -385,12 +386,12 @@ const UserProfileScreen = ({ navigation, route }: any) => {
         } else {
           // User hasn't completed business signup - navigate to business signup screen
           console.log('✅ UserProfileScreen: User type R without completed business signup - navigating to Business signup screen');
-          navigation.navigate('DealerSignup');
+          navigation.navigate('DealerSignup', { fromB2CProfile: true });
         }
       } else {
         // For other user types, navigate to Business signup screen
         console.log('✅ UserProfileScreen: Navigating to Business signup screen');
-        navigation.navigate('DealerSignup');
+        navigation.navigate('DealerSignup', { fromB2CProfile: true });
       }
     } else if (item.action === 'ApprovalStatus') {
       navigation.navigate('ApprovalWorkflow', { fromProfile: true });
@@ -513,25 +514,37 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                       );
                     }
                     return (
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => navigation.navigate('SubscriptionPlans')}
-                        style={styles.upgradeButton}
-                      >
-                        <LinearGradient
-                          colors={isDark 
-                            ? [theme.primary, theme.secondary, theme.accent]
-                            : [theme.primary, theme.secondary, theme.accent]
-                          }
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.upgradeGradient}
+                      Platform.OS === 'ios' ? (
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => navigation.navigate('SubscriptionPlans')}
+                          style={styles.upgradeButtonIOS}
                         >
-                          <AutoText style={[styles.upgradeText, { color: premiumButtonTextColor }]} numberOfLines={2}>
-                            {t('userProfile.upgradeToPremium') || 'Activate Premium\nto Accept Orders'}
+                          <AutoText style={styles.upgradeTextIOS} numberOfLines={2}>
+                            {t('dashboard.activatePremiumToAcceptOrders') || 'Activate Premium\nto Accept Orders'}
                           </AutoText>
-                        </LinearGradient>
-                      </TouchableOpacity>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => navigation.navigate('SubscriptionPlans')}
+                          style={styles.upgradeButton}
+                        >
+                          <LinearGradient
+                            colors={isDark 
+                              ? [theme.primary, theme.secondary, theme.accent]
+                              : [theme.primary, theme.secondary, theme.accent]
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.upgradeGradient}
+                          >
+                            <AutoText style={[styles.upgradeText, { color: premiumButtonTextColor }]} numberOfLines={2}>
+                              {t('dashboard.activatePremiumToAcceptOrders') || 'Activate Premium\nto Accept Orders'}
+                            </AutoText>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      )
                     );
                   })()}
                 </View>
@@ -604,25 +617,37 @@ const UserProfileScreen = ({ navigation, route }: any) => {
                       );
                     }
                     return (
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => navigation.navigate('SubscriptionPlans')}
-                        style={styles.upgradeButton}
-                      >
-                        <LinearGradient
-                          colors={isDark 
-                            ? [theme.primary, theme.secondary, theme.accent]
-                            : [theme.primary, theme.secondary, theme.accent]
-                          }
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.upgradeGradient}
+                      Platform.OS === 'ios' ? (
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => navigation.navigate('SubscriptionPlans')}
+                          style={styles.upgradeButtonIOS}
                         >
-                          <AutoText style={[styles.upgradeText, { color: premiumButtonTextColor }]} numberOfLines={2}>
-                            {t('userProfile.upgradeToPremium') || 'Activate Premium\nto Accept Orders'}
+                          <AutoText style={styles.upgradeTextIOS} numberOfLines={2}>
+                            {t('dashboard.activatePremiumToAcceptOrders') || 'Activate Premium\nto Accept Orders'}
                           </AutoText>
-                        </LinearGradient>
-                      </TouchableOpacity>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => navigation.navigate('SubscriptionPlans')}
+                          style={styles.upgradeButton}
+                        >
+                          <LinearGradient
+                            colors={isDark 
+                              ? [theme.primary, theme.secondary, theme.accent]
+                              : [theme.primary, theme.secondary, theme.accent]
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.upgradeGradient}
+                          >
+                            <AutoText style={[styles.upgradeText, { color: premiumButtonTextColor }]} numberOfLines={2}>
+                              {t('dashboard.activatePremiumToAcceptOrders') || 'Activate Premium\nto Accept Orders'}
+                            </AutoText>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      )
                     );
                   })()}
                 </View>
@@ -1090,6 +1115,20 @@ const getStyles = (theme: any, isEnglish: boolean, isDark: boolean, themeName?: 
       borderRadius: '8@ms',
       overflow: 'hidden',
     },
+    upgradeButtonIOS: {
+      marginTop: '8@vs',
+      paddingVertical: '10@vs',
+      paddingHorizontal: '16@s',
+      borderRadius: '10@ms',
+      backgroundColor: theme.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: '2@vs' },
+      shadowOpacity: 0.2,
+      shadowRadius: '4@ms',
+      elevation: 3,
+    },
     upgradeGradient: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1101,12 +1140,19 @@ const getStyles = (theme: any, isEnglish: boolean, isDark: boolean, themeName?: 
     },
     upgradeText: {
       fontFamily: 'Poppins-SemiBold',
-      fontSize: '12@s',
+      fontSize: '14.5@s',
       flexShrink: 1,
       textAlign: 'center',
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 8,
       lineHeight: '16@s',
+    },
+    upgradeTextIOS: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '12@s',
+      color: (isDark ? theme.background : theme.card) as any,
+      textAlign: 'center',
+      flexShrink: 1,
     },
     menuRow: {
       flexDirection: 'row',

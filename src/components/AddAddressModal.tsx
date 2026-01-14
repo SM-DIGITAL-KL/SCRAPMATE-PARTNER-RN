@@ -10,6 +10,7 @@ import {
   Modal,
   NativeModules,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from './ThemeProvider';
 import { AutoText } from './AutoText';
@@ -39,6 +40,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
   profile,
 }) => {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [currentAddress, setCurrentAddress] = useState<string>('Shop No 15, Katraj');
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -97,8 +99,11 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
       locationTimeoutRef.current = null;
     }
     
-    // If we don't have location yet, try to get it one more time
-    if (!currentLocation && Platform.OS === 'android' && NativeMapViewModule) {
+    // Clear loading state when user clicks Continue
+    setIsLocationLoading(false);
+    
+    // If we don't have location yet, try to get it one more time (for both iOS and Android)
+    if (!currentLocation && NativeMapViewModule) {
       try {
         console.log('📍 No location yet, fetching one more time...');
         const location = await NativeMapViewModule.getCurrentLocation();
@@ -269,7 +274,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
           activeOpacity={1}
           onPress={handleClose}
         />
-        <View style={styles.locationHistoryModalContent}>
+        <View style={[styles.locationHistoryModalContent, { paddingTop: Platform.OS === 'ios' ? insets.top : 0 }]}>
           <View style={styles.locationHistoryModalHeader}>
             <TouchableOpacity onPress={handleClose}>
               <MaterialCommunityIcons
@@ -295,14 +300,60 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                   onMapReady={async () => {
                     console.log('🗺️ Map ready in modal');
                 
-                    // Set a timeout fallback - if location not received after 15 seconds, 
-                    // allow user to continue anyway (they can manually enter address)
+                    // Try to get current location immediately if available (for iOS simulator)
+                    if (Platform.OS === 'ios' && NativeMapViewModule) {
+                      try {
+                        const location = await NativeMapViewModule.getCurrentLocation();
+                        if (location && !locationFetchedRef.current) {
+                          console.log('📍 Got location immediately on map ready:', location);
+                          locationFetchedRef.current = true;
+                          setIsLocationLoading(false);
+                          
+                          setCurrentLocation({
+                            latitude: location.latitude,
+                            longitude: location.longitude
+                          });
+                          
+                          // Try to get address
+                          try {
+                            const address = await getAddressFromCoordinates(location.latitude, location.longitude);
+                            const addressText = address.address || address.formattedAddress || 'Shop No 15, Katraj';
+                            setCurrentAddress(addressText);
+                            
+                            const details: any = {};
+                            if (address.postcode) details.pincode = address.postcode;
+                            if (address.state) details.state = address.state;
+                            if (address.city) details.city = address.city;
+                            if (address.city) details.place = address.city;
+                            
+                            const locationParts = [];
+                            if (address.city) locationParts.push(address.city);
+                            if (address.state) locationParts.push(address.state);
+                            if (address.country) locationParts.push(address.country);
+                            if (locationParts.length > 0) {
+                              details.location = locationParts.join(', ');
+                            }
+                            
+                            setAddressDetails(details);
+                          } catch (error) {
+                            console.warn('Failed to get address on map ready:', error);
+                          }
+                          
+                          return; // Don't set timeout if we got location
+                        }
+                      } catch (error) {
+                        console.log('📍 No location available yet on map ready, will wait for updates');
+                      }
+                    }
+                
+                    // Set a timeout fallback - if location not received after 5 seconds, 
+                    // clear loading state so user can click Continue (they can manually enter address)
                     locationTimeoutRef.current = setTimeout(() => {
                       if (!locationFetchedRef.current && !showAddressForm) {
-                        console.log('⏰ Location fetch timeout - user can still click Continue to enter address manually');
+                        console.log('⏰ Location fetch timeout - clearing loading state. User can click Continue to enter address manually');
                         setIsLocationLoading(false);
                       }
-                    }, 15000);
+                    }, 5000);
                   }}
                   onLocationUpdate={async (location: {
                     latitude: number;

@@ -16,6 +16,7 @@ interface MapWebViewProps {
   onMapReady?: () => void;
   destination?: { latitude: number; longitude: number };
   routeProfile?: 'driving' | 'cycling' | 'walking';
+  disableLocationTracking?: boolean; // If true, don't request location permission or track location
 }
 
 const getMapHtmlContent = (): string => {
@@ -645,7 +646,8 @@ export const MapWebView: React.FC<MapWebViewProps> = ({
   onLocationUpdate,
   onMapReady,
   destination,
-  routeProfile = 'driving'
+  routeProfile = 'driving',
+  disableLocationTracking = false
 }) => {
   const webViewRef = useRef<WebView>(null);
   const mapReadyRef = useRef(false);
@@ -655,7 +657,14 @@ export const MapWebView: React.FC<MapWebViewProps> = ({
   const locationUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Request location permission and get initial location (same as small map)
+  // Skip if location tracking is disabled
   useEffect(() => {
+    // Don't request location if tracking is disabled
+    if (disableLocationTracking) {
+      console.log('📍 MapWebView - Location tracking disabled, skipping location request and route drawing');
+      return;
+    }
+    
     let mounted = true;
     
     const requestLocation = async () => {
@@ -706,12 +715,15 @@ export const MapWebView: React.FC<MapWebViewProps> = ({
                   }
                   
                   // Draw route if destination is available and map is ready (only once)
-                  if (destination && mapReadyRef.current && !routeDrawnRef.current && mounted) {
+                  // Skip route drawing if location tracking is disabled
+                  if (!disableLocationTracking && destination && mapReadyRef.current && !routeDrawnRef.current && mounted) {
                     setTimeout(() => {
                       if (mounted) {
                         drawRouteToDestination(location.latitude, location.longitude);
                       }
                     }, 500);
+                  } else if (disableLocationTracking) {
+                    console.log('📍 MapWebView - Route drawing skipped (location tracking disabled)');
                   }
                   
                   onLocationUpdate?.(location);
@@ -771,10 +783,21 @@ export const MapWebView: React.FC<MapWebViewProps> = ({
     
     return () => {
       mounted = false;
+      // Clear location update interval on unmount
+      if (locationUpdateIntervalRef.current) {
+        clearInterval(locationUpdateIntervalRef.current);
+        locationUpdateIntervalRef.current = null;
+      }
     };
-  }, []); // Only run once on mount
+  }, [disableLocationTracking, destination]); // Re-run if disableLocationTracking or destination changes
 
   const drawRouteToDestination = useCallback((fromLat: number, fromLng: number) => {
+    // Don't draw route if location tracking is disabled
+    if (disableLocationTracking) {
+      console.log('📍 MapWebView - Route drawing disabled');
+      return;
+    }
+    
     if (destination && webViewRef.current) {
       const isUpdate = routeDrawnRef.current;
       console.log('🎯 Fullscreen Map - Destination:', destination);
@@ -791,7 +814,7 @@ export const MapWebView: React.FC<MapWebViewProps> = ({
         routeDrawnRef.current = true;
       }
     }
-  }, [destination, routeProfile]);
+  }, [destination, routeProfile, disableLocationTracking]);
 
   const handleMessage = useCallback((event: any) => {
     try {
@@ -802,12 +825,15 @@ export const MapWebView: React.FC<MapWebViewProps> = ({
         onMapReady?.();
         
         // Draw route if we have both current location and destination (only once)
-        if (destination && currentLocationRef.current && !routeDrawnRef.current) {
+        // Skip route drawing if location tracking is disabled
+        if (!disableLocationTracking && destination && currentLocationRef.current && !routeDrawnRef.current) {
           setTimeout(() => {
             if (!routeDrawnRef.current) {
               drawRouteToDestination(currentLocationRef.current!.latitude, currentLocationRef.current!.longitude);
             }
           }, 500);
+        } else if (disableLocationTracking) {
+          console.log('📍 MapWebView - Route drawing skipped (location tracking disabled)');
         }
       } else if (data.type === 'locationUpdate') {
         const location = {

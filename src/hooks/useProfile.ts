@@ -164,7 +164,8 @@ export const useUploadAadharCard = (userId: string | number) => {
   const queryClient = useQueryClient();
 
   return useApiMutation({
-    mutationFn: (fileUri: string) => uploadAadharCard(userId, fileUri),
+    mutationFn: ({ fileUri, fileType }: { fileUri: string; fileType?: string }) => 
+      uploadAadharCard(userId, fileUri, fileType),
     invalidateQueries: [
       profileQueryKeys.detail(userId),
       profileQueryKeys.current(),
@@ -194,7 +195,8 @@ export const useUploadDrivingLicense = (userId: string | number) => {
   const queryClient = useQueryClient();
 
   return useApiMutation({
-    mutationFn: (fileUri: string) => uploadDrivingLicense(userId, fileUri),
+    mutationFn: ({ fileUri, fileType }: { fileUri: string; fileType?: string }) => 
+      uploadDrivingLicense(userId, fileUri, fileType),
     invalidateQueries: [
       profileQueryKeys.detail(userId),
       profileQueryKeys.current(),

@@ -50,6 +50,14 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
   const addressFetchedRef = useRef(false);
   const addressFailedRef = useRef(false);
   
+  // Destination coordinates from order (declared early to avoid hoisting issues)
+  const destination = order.latitude && order.longitude 
+    ? { latitude: order.latitude, longitude: order.longitude }
+    : null;
+  
+  // Check if order is completed (status 5)
+  const isCompleted = order.status === 5;
+  
   // Calculate distance between two coordinates using Haversine formula
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371; // Radius of the Earth in km
@@ -249,10 +257,24 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
     }
   };
   
-  // Destination coordinates from order
-  const destination = order.latitude && order.longitude 
-    ? { latitude: order.latitude, longitude: order.longitude }
-    : null;
+  // Log destination for completed orders to debug static location issue
+  useEffect(() => {
+    if (isCompleted && destination) {
+      console.log('📍 Completed order destination:', {
+        latitude: destination.latitude,
+        longitude: destination.longitude,
+        order_id: order.order_id,
+        order_number: order.order_number
+      });
+    } else if (isCompleted && !destination) {
+      console.warn('⚠️ Completed order has no location data:', {
+        order_id: order.order_id,
+        order_number: order.order_number,
+        latitude: order.latitude,
+        longitude: order.longitude
+      });
+    }
+  }, [isCompleted, destination, order.order_id, order.order_number]);
   
   // Load user data
   useEffect(() => {
@@ -362,7 +384,9 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
               style={styles.map}
               destination={destination}
               routeProfile="driving"
-              onLocationUpdate={async (location) => {
+              disableLocationTracking={isCompleted}
+              onLocationUpdate={isCompleted ? undefined : async (location) => {
+                // Only track location for non-completed orders
                 const newLocation = {
                   latitude: location.latitude,
                   longitude: location.longitude
@@ -404,11 +428,22 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
             <View style={styles.mapFloatingButtons}>
               <TouchableOpacity 
                 style={styles.floatingButton}
-                onPress={() => navigation.navigate('FullscreenMap', { 
-                  destination, 
-                  orderId: order.order_number?.toString(),
-                  customer_phone: order.customer_phone || undefined
-                })}
+                onPress={() => {
+                  // Only navigate if destination is valid
+                  if (destination && destination.latitude && destination.longitude) {
+                    navigation.navigate('FullscreenMap', { 
+                      destination, 
+                      orderId: order.order_number?.toString(),
+                      customer_phone: order.customer_phone || undefined,
+                      isCompleted: isCompleted // Pass completion status to disable location tracking
+                    });
+                  } else {
+                    Alert.alert(
+                      t('common.error') || 'Error',
+                      t('dashboard.noLocationAvailable') || 'Location not available for this order'
+                    );
+                  }
+                }}
               >
                 <MaterialCommunityIcons
                   name="fullscreen"
@@ -417,7 +452,7 @@ const OrderDetailsScreen: React.FC<OrderDetailsScreenProps> = ({ route, navigati
                 />
               </TouchableOpacity>
             </View>
-            {calculatedDistance !== null && (
+            {!isCompleted && calculatedDistance !== null && (
               <View style={styles.distanceBar}>
                 <View style={styles.distanceInfo}>
                   <MaterialCommunityIcons

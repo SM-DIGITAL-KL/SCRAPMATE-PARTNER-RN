@@ -175,21 +175,22 @@ const PendingBulkBuyOrderDetailScreen = ({ navigation, route }: any) => {
     
     try {
       setRefreshing(true);
-      console.log('🔄 Refetching pending order data...');
+      console.log('🔄 Refetching pending order data...', { orderId: order.id, currentStatus: order.status });
       const pendingOrders = await getPendingBulkBuyOrders(userData.id);
       const updatedOrder = pendingOrders.find((o: any) => String(o.id) === String(order.id));
       
       if (updatedOrder) {
         console.log('✅ Updated order data received:', {
           id: updatedOrder.id,
-          payment_status: (updatedOrder as any).payment_status,
-          status: (updatedOrder as any).status
+          status: updatedOrder.status,
+          previousStatus: order.status,
+          statusChanged: updatedOrder.status !== order.status
         });
         setOrder(updatedOrder);
         // Update route params so navigation back also has updated data
         navigation.setParams({ order: updatedOrder });
       } else {
-        console.warn('⚠️ Updated order not found in refetch results');
+        console.warn('⚠️ Updated order not found in refetch results. Order may have been submitted or cancelled.');
       }
     } catch (error) {
       console.error('❌ Error refetching order:', error);
@@ -202,11 +203,12 @@ const PendingBulkBuyOrderDetailScreen = ({ navigation, route }: any) => {
   useFocusEffect(
     useCallback(() => {
       if (userData?.id && order?.id) {
-        // Small delay to ensure navigation is complete
+        // Small delay to ensure navigation is complete, then refetch
         const timer = setTimeout(() => {
+          console.log('🔄 Screen focused, refetching order and profile...');
           refetchOrder();
           refetchProfile();
-        }, 200);
+        }, 300);
         return () => clearTimeout(timer);
       }
     }, [userData?.id, order?.id, refetchProfile, refetchOrder])
@@ -932,8 +934,8 @@ const PendingBulkBuyOrderDetailScreen = ({ navigation, route }: any) => {
           </View>
           <View style={styles.statusRow}>
             <AutoText style={styles.statusLabel}>{t('pendingOrders.paymentStatus') || 'Payment Status'}:</AutoText>
-            <AutoText style={[styles.statusValue, { color: getStatusColor(order?.status || paymentStatus?.status || order?.payment_status || 'pending') }]}>
-              {getStatusLabel(order?.status || paymentStatus?.status || order?.payment_status || 'pending')}
+            <AutoText style={[styles.statusValue, { color: getStatusColor(order?.status || 'pending_payment') }]}>
+              {getStatusLabel(order?.status || 'pending_payment')}
             </AutoText>
           </View>
           {paymentStatus?.status === 'rejected' && paymentStatus?.invoice?.approval_notes && (

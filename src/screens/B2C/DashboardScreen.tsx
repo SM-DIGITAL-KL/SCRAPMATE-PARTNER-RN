@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Vibration, Platform, Animated, Image, ActivityIndicator, Modal, Alert, DeviceEventEmitter, AppState, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Vibration, Animated, Image, ActivityIndicator, Modal, Alert, DeviceEventEmitter, AppState, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -26,6 +26,9 @@ import { startPickup, cancelPickupRequest } from '../../services/api/v2/orders';
 import { PickupRequest } from '../../services/api/v2/orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/api/queryKeys';
+import LocationDisclosureModal from '../../components/LocationDisclosureModal';
+import { hasShownDisclosure, requestLocationPermissionsWithDisclosure } from '../../utils/locationPermission';
+import { Platform } from 'react-native';
 
 const DashboardScreen = () => {
   const { theme, isDark, themeName } = useTheme();
@@ -49,7 +52,9 @@ const DashboardScreen = () => {
   const [selectedBulkScrapRequestForCancel, setSelectedBulkScrapRequestForCancel] = useState<any | null>(null);
   const [selectedBulkScrapCancelReason, setSelectedBulkScrapCancelReason] = useState<string>('');
   const [customBulkScrapCancelReason, setCustomBulkScrapCancelReason] = useState<string>('');
-  const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
+  const [showLocationDisclosure, setShowLocationDisclosure] = useState(false);
+  const [disclosureAccepted, setDisclosureAccepted] = useState(false);
+  const styles = useMemo(() => getStyles(theme, themeName, isDark), [theme, themeName, isDark]);
 
   // Helper function to format scheduled date and time - same format as customer app
   const formatScheduledDateTime = (pickup: any): string => {
@@ -1323,16 +1328,56 @@ const DashboardScreen = () => {
     return mapped;
   }, [selectedCategory?.id, selectedCategory?.name, userSubcategoriesData]);
 
-  // Load user data and fetch profile
+  // Load user data and check location disclosure
   useFocusEffect(
     React.useCallback(() => {
       const loadUserData = async () => {
         const data = await getUserData();
         setUserData(data);
+        
+        // Check if location disclosure needs to be shown (only on Android)
+        if (Platform.OS === 'android' && data?.id) {
+          const disclosureShown = await hasShownDisclosure();
+          if (!disclosureShown) {
+            // Small delay to ensure dashboard is fully loaded
+            setTimeout(() => {
+              setShowLocationDisclosure(true);
+            }, 1000);
+          }
+        }
       };
       loadUserData();
     }, [])
   );
+
+  // Handle location disclosure acceptance
+  const handleLocationDisclosureAccept = async () => {
+    setDisclosureAccepted(true);
+    setShowLocationDisclosure(false);
+    
+    // Request location permissions with disclosure
+    try {
+      const result = await requestLocationPermissionsWithDisclosure(async () => {
+        return true; // User accepted the disclosure
+      });
+      
+      if (result.foregroundGranted) {
+        console.log('✅ Location permissions granted');
+        if (result.backgroundGranted) {
+          console.log('✅ Background location permission granted');
+        } else {
+          console.log('⚠️ Background location permission not granted');
+        }
+      }
+    } catch (error) {
+      console.error('Error requesting location permissions:', error);
+    }
+  };
+
+  const handleLocationDisclosureDecline = () => {
+    setShowLocationDisclosure(false);
+    // User declined - they can still use the app, but location features may be limited
+  };
 
   // Fetch profile data
   const { data: profileData, refetch: refetchProfile } = useProfile(userData?.id, !!userData?.id);
@@ -1862,6 +1907,7 @@ const DashboardScreen = () => {
   };
 
   return (
+    <>
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
@@ -1883,24 +1929,38 @@ const DashboardScreen = () => {
             <MaterialCommunityIcons name="bell-outline" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
           {shouldShowB2BButton && (
-            <TouchableOpacity
-              style={styles.switchButton}
-              activeOpacity={0.8}
-              onPress={handleSwitchMode}
-              disabled={isSwitchingMode}
-            >
-              <LinearGradient
-                colors={themeName === 'dark' ? ['#4A90E2', '#357ABD'] : [theme.primary, theme.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.switchButtonGradient}
+            Platform.OS === 'ios' ? (
+              <TouchableOpacity
+                style={styles.switchButtonIOS}
+                activeOpacity={0.7}
+                onPress={handleSwitchMode}
+                disabled={isSwitchingMode}
               >
-                <MaterialCommunityIcons name="office-building" size={16} color="#FFFFFF" />
-                <Text style={styles.switchButtonText}>
+                <MaterialCommunityIcons name="office-building" size={16} color={isDark ? theme.background : theme.card} />
+                <Text style={styles.switchButtonTextIOS}>
                   {isSwitchingMode ? '...' : 'B2B'}
                 </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.switchButton}
+                activeOpacity={0.8}
+                onPress={handleSwitchMode}
+                disabled={isSwitchingMode}
+              >
+                <LinearGradient
+                  colors={themeName === 'dark' ? ['#4A90E2', '#357ABD'] : [theme.primary, theme.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.switchButtonGradient}
+                >
+                  <MaterialCommunityIcons name="office-building" size={16} color="#FFFFFF" />
+                  <Text style={styles.switchButtonText}>
+                    {isSwitchingMode ? '...' : 'B2B'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )
           )}
           <TouchableOpacity
             style={styles.iconButton}
@@ -1958,14 +2018,10 @@ const DashboardScreen = () => {
                         if (isSubscribed) {
                           navigation.navigate('OrderDetails', { order });
                         } else {
-                          Alert.alert(
-                            t('dashboard.subscriptionRequired') || 'Subscription Required',
-                            t('dashboard.subscriptionRequiredMessage') || 'Please subscribe to view and accept customer requests.',
-                            [{ text: t('common.ok') || 'OK' }]
-                          );
+                          // Navigate to subscription screen when blurred area is clicked
+                          navigation.navigate('SubscriptionPlans');
                         }
                       }}
-                      disabled={!isSubscribed}
                     >
                       <SectionCard style={[index > 0 ? { marginTop: 12 } : undefined, !isSubscribed && styles.blurredCard]}>
                       <AutoText style={styles.detailText} numberOfLines={1}>
@@ -2050,8 +2106,13 @@ const DashboardScreen = () => {
                         </AutoText>
                         <View style={styles.actionButtonsRow}>
                           <TouchableOpacity
-                            style={[styles.cancelButton, (cancellingOrderId === (order.order_number || order.order_id || order.id) || acceptingOrderId === (order.order_number || order.order_id || order.id)) && styles.cancelButtonDisabled]}
+                            style={[styles.cancelButton, (cancellingOrderId === (order.order_number || order.order_id || order.id) || acceptingOrderId === (order.order_number || order.order_id || order.id) || !isSubscribed) && styles.cancelButtonDisabled]}
                             onPress={(e) => {
+                              if (!isSubscribed) {
+                                // Prevent cancel action when blurred
+                                e.stopPropagation();
+                                return;
+                              }
                               console.log('🔴 Cancel button pressed for order:', {
                                 order_number: order.order_number,
                                 order_id: order.order_id || order.id,
@@ -2065,7 +2126,7 @@ const DashboardScreen = () => {
                               }
                               handleCancelOrder(order);
                             }}
-                            disabled={cancellingOrderId === (order.order_number || order.order_id || order.id) || acceptingOrderId === (order.order_number || order.order_id || order.id)}
+                            disabled={cancellingOrderId === (order.order_number || order.order_id || order.id) || acceptingOrderId === (order.order_number || order.order_id || order.id) || !isSubscribed}
                             activeOpacity={0.7}
                           >
                             {cancellingOrderId === (order.order_number || order.order_id || order.id) ? (
@@ -2186,6 +2247,15 @@ const DashboardScreen = () => {
 
                 return (
                   <View key={`bulk-scrap-${request.id}-${index}`} style={{ position: 'relative' }}>
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPress={() => {
+                        if (!isSubscribed) {
+                          // Navigate to subscription screen when blurred area is clicked
+                          navigation.navigate('SubscriptionPlans');
+                        }
+                      }}
+                    >
                     <SectionCard style={[index > 0 ? { marginTop: 12 } : undefined, !isSubscribed && styles.blurredCard]}>
                     <AutoText style={styles.detailText} numberOfLines={1}>
                       {t('dashboard.requestFrom') || 'Request from'}: {request.buyer_name || `User #${request.buyer_id}`}
@@ -2300,8 +2370,13 @@ const DashboardScreen = () => {
                     <View style={styles.priceRow}>
                       <View style={styles.actionButtonsRow}>
                         <TouchableOpacity
-                          style={[styles.cancelButton, isProcessing && styles.cancelButtonDisabled]}
+                          style={[styles.cancelButton, (isProcessing || !isSubscribed) && styles.cancelButtonDisabled]}
                           onPress={(e) => {
+                            if (!isSubscribed) {
+                              // Prevent cancel action when blurred
+                              e.stopPropagation();
+                              return;
+                            }
                             e.stopPropagation();
                             if (Platform.OS === 'ios') {
                               Vibration.vibrate(10);
@@ -2310,7 +2385,7 @@ const DashboardScreen = () => {
                             }
                             handleRejectBulkScrapRequest(request);
                           }}
-                          disabled={isProcessing}
+                          disabled={isProcessing || !isSubscribed}
                           activeOpacity={0.7}
                         >
                           {isRejecting ? (
@@ -2361,7 +2436,8 @@ const DashboardScreen = () => {
                       </View>
                     </View>
                   </SectionCard>
-                </View>
+                  </TouchableOpacity>
+                  </View>
                 );
               })
             ) : (
@@ -2387,6 +2463,15 @@ const DashboardScreen = () => {
             </View>
           </SectionCard>
         ) : activeBuyRequest ? (
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {
+              if (!isSubscribed) {
+                // Navigate to subscription screen when blurred area is clicked
+                navigation.navigate('SubscriptionPlans');
+              }
+            }}
+          >
           <SectionCard>
             <View style={styles.activeHeader}>
               <View style={styles.activeHeaderLeft}>
@@ -2528,6 +2613,7 @@ const DashboardScreen = () => {
               </TouchableOpacity>
             )}
           </SectionCard>
+          </TouchableOpacity>
         ) : null}
 
         {loadingActivePickup ? (
@@ -2540,6 +2626,15 @@ const DashboardScreen = () => {
             </View>
           </SectionCard>
         ) : filteredActivePickup ? (
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {
+              if (!isSubscribed) {
+                // Navigate to subscription screen when blurred area is clicked
+                navigation.navigate('SubscriptionPlans');
+              }
+            }}
+          >
           <SectionCard style={!isSubscribed && styles.blurredCard}>
             <View style={styles.activeHeader}>
               <View style={styles.activeHeaderLeft}>
@@ -2550,18 +2645,14 @@ const DashboardScreen = () => {
                   <TouchableOpacity
                     onPress={() => {
                       if (!isSubscribed) {
-                        Alert.alert(
-                          t('dashboard.subscriptionRequired') || 'Subscription Required',
-                          t('dashboard.subscriptionRequiredMessage') || 'Please subscribe to view and accept customer requests.',
-                          [{ text: t('common.ok') || 'OK' }]
-                        );
+                        // Navigate to subscription screen when blurred area is clicked
+                        navigation.navigate('SubscriptionPlans');
                         return;
                       }
                       navigation.navigate('ActivePickupsList');
                     }}
                     style={styles.viewAllButton}
                     activeOpacity={isSubscribed ? 0.7 : 1}
-                    disabled={!isSubscribed}
                   >
                     <View style={styles.viewAllButtonContent}>
                       <MaterialCommunityIcons
@@ -2707,6 +2798,7 @@ const DashboardScreen = () => {
               disabled={!isSubscribed}
             />
           </SectionCard>
+          </TouchableOpacity>
         ) : null}
 
         <View style={styles.impactSection}>
@@ -3400,10 +3492,18 @@ const DashboardScreen = () => {
         </View>
       </Modal>
     </View>
+    
+    {/* Location Disclosure Modal */}
+    <LocationDisclosureModal
+      visible={showLocationDisclosure}
+      onAccept={handleLocationDisclosureAccept}
+      onDecline={handleLocationDisclosureDecline}
+    />
+  </>
   );
 };
 
-const getStyles = (theme: any, themeName?: string) =>
+const getStyles = (theme: any, themeName?: string, isDark?: boolean) =>
   ScaledSheet.create({
     container: {
       flex: 1,
@@ -3450,6 +3550,20 @@ const getStyles = (theme: any, themeName?: string) =>
       borderRadius: '8@ms',
       overflow: 'hidden',
     },
+    switchButtonIOS: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: '12@s',
+      paddingVertical: '10@vs',
+      borderRadius: '10@ms',
+      backgroundColor: theme.primary,
+      gap: '4@s',
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: '2@vs' },
+      shadowOpacity: 0.2,
+      shadowRadius: '4@ms',
+      elevation: 3,
+    },
     switchButtonGradient: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -3461,6 +3575,11 @@ const getStyles = (theme: any, themeName?: string) =>
       fontFamily: 'Poppins-SemiBold',
       fontSize: '12@s',
       color: '#FFFFFF',
+    },
+    switchButtonTextIOS: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '12@s',
+      color: isDark ? theme.background : theme.card,
     },
     scrollContent: {
       paddingHorizontal: '14@s',

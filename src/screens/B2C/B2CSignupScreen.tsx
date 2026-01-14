@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, CommonActions } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as DocumentPicker from '@react-native-documents/picker';
+import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
 import { useTheme } from '../../components/ThemeProvider';
 import { useTabBar } from '../../context/TabBarContext';
 import { GreenButton } from '../../components/GreenButton';
@@ -27,13 +28,14 @@ import { SectionCard } from '../../components/SectionCard';
 import { ScaledSheet } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
 import { getUserData } from '../../services/auth/authService';
-import { updateProfile, uploadAadharCard } from '../../services/api/v2/profile';
+import { updateProfile, uploadAadharCard, getProfile } from '../../services/api/v2/profile';
 import { useUpdateProfile, useUploadAadharCard, useUploadDrivingLicense, useProfile, profileQueryKeys } from '../../hooks/useProfile';
 import { useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter } from 'react-native';
 import { useLocationService, getAddressFromCoordinates } from '../../components/LocationView';
 import { SignupAddressModal } from '../../components/SignupAddressModal';
+import RNFS from 'react-native-fs';
 
 const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
   const { theme, isDark, themeName } = useTheme();
@@ -299,58 +301,129 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
     }, [setTabBarVisible, navigateToJoinAs])
   );
 
-  // Handle document upload
-  const handleDocumentUpload = async (type: 'aadhar' | 'drivingLicense') => {
+  // Helper function to get MIME type from file extension
+  const getMimeTypeFromUri = (uri: string, fileType?: string): string => {
+    // If fileType is provided and valid, use it
+    if (fileType && fileType !== 'application/octet-stream') {
+      return fileType;
+    }
+    
+    // Otherwise, determine from file extension
+    const uriLower = uri.toLowerCase();
+    if (uriLower.endsWith('.pdf')) {
+      return 'application/pdf';
+    } else if (uriLower.endsWith('.jpg') || uriLower.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    } else if (uriLower.endsWith('.png')) {
+      return 'image/png';
+    } else if (uriLower.endsWith('.gif')) {
+      return 'image/gif';
+    } else if (uriLower.endsWith('.webp')) {
+      return 'image/webp';
+    } else if (uriLower.endsWith('.bmp')) {
+      return 'image/bmp';
+    } else if (uriLower.endsWith('.tiff') || uriLower.endsWith('.tif')) {
+      return 'image/tiff';
+    }
+    
+    // Default to application/octet-stream if unknown
+    return 'application/octet-stream';
+  };
+
+  // Helper function to get file extension from URI
+  const getFileExtension = (uri: string): string => {
+    const uriLower = uri.toLowerCase();
+    const lastDot = uriLower.lastIndexOf('.');
+    if (lastDot === -1) return '';
+    return uriLower.substring(lastDot + 1);
+  };
+
+  // Show upload options (Gallery or File Upload)
+  const showUploadOptions = (type: 'aadhar' | 'drivingLicense') => {
+    Alert.alert(
+      type === 'aadhar' ? (t('signup.uploadAadhar') || 'Upload Aadhar Card') : (t('signup.uploadDrivingLicense') || 'Upload Driving License'),
+      t('signup.selectUploadOption') || 'Select upload option',
+      [
+        {
+          text: t('signup.fromGallery') || 'From Gallery',
+          onPress: () => handleGalleryUpload(type),
+        },
+        {
+          text: t('signup.fromFiles') || 'From Files',
+          onPress: () => handleFileUpload(type),
+        },
+        {
+          text: t('common.cancel') || 'Cancel',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Handle gallery upload (image picker)
+  const handleGalleryUpload = async (type: 'aadhar' | 'drivingLicense') => {
     try {
-      // Only allow PDF files for Aadhar card and driving license
-      const pickedFiles = await DocumentPicker.pick({
-        type: [DocumentPicker.types.pdf],
-        allowMultiSelection: false,
+      const options = {
+        mediaType: 'photo' as MediaType,
+        quality: 0.8,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      };
+
+      launchImageLibrary(options, async (response: ImagePickerResponse) => {
+        if (response.didCancel) {
+          return;
+        }
+
+        if (response.errorMessage) {
+          Alert.alert(t('common.error') || 'Error', response.errorMessage);
+          return;
+        }
+
+        const asset = response.assets?.[0];
+        if (!asset?.uri) {
+          return;
+        }
+
+        await processAndUploadFile(asset.uri, asset.type || 'image/jpeg', type);
       });
+    } catch (err: any) {
+      console.error('Error picking image from gallery:', err);
+      Alert.alert(t('common.error') || 'Error', err.message || t('signup.failedToPickDocument') || 'Failed to pick image');
+      if (type === 'aadhar') {
+        setUploadingAadhar(false);
+      } else if (type === 'drivingLicense') {
+        setUploadingDrivingLicense(false);
+      }
+    }
+  };
+
+  // Handle file upload (document picker)
+  const handleFileUpload = async (type: 'aadhar' | 'drivingLicense') => {
+    try {
+      // Allow images and PDF files
+      const pickedFiles = await DocumentPicker.pick({
+        type: [DocumentPicker.types.pdf, DocumentPicker.types.images],
+        allowMultiSelection: false,
+        mode: 'import',
+      });
+
+      if (!pickedFiles || pickedFiles.length === 0) {
+        return;
+      }
 
       const file = pickedFiles[0];
       const fileUri = file.uri;
       
-      // Validate file type - only PDF allowed
-      if (file.type !== 'application/pdf' && !fileUri.toLowerCase().endsWith('.pdf')) {
-        Alert.alert(t('common.error') || 'Error', t('signup.pleaseUploadPdfOnly') || 'Please upload a PDF file only');
+      if (!fileUri) {
+        Alert.alert(t('common.error') || 'Error', t('signup.failedToPickDocument') || 'Failed to access selected file');
         return;
       }
 
-      if (!userData?.id) {
-        Alert.alert(t('common.error') || 'Error', t('auth.userNotFound') || 'User not found');
-        return;
-      }
-
-      if (type === 'aadhar') {
-        setUploadingAadhar(true);
-        uploadAadharMutation.mutate(fileUri, {
-          onSuccess: (result) => {
-            setAadharCard(result.image_url);
-            setUploadingAadhar(false);
-            Alert.alert(t('common.success') || 'Success', t('signup.aadharUploaded') || 'Aadhar card uploaded successfully');
-          },
-          onError: (error: any) => {
-            console.error('Error uploading Aadhar card:', error);
-            setUploadingAadhar(false);
-            Alert.alert(t('common.error') || 'Error', error.message || t('signup.failedToUploadAadhar') || 'Failed to upload Aadhar card');
-          },
-        });
-      } else if (type === 'drivingLicense') {
-        setUploadingDrivingLicense(true);
-        uploadDrivingLicenseMutation.mutate(fileUri, {
-          onSuccess: (result) => {
-            setDrivingLicense(result.image_url);
-            setUploadingDrivingLicense(false);
-            Alert.alert(t('common.success') || 'Success', t('signup.drivingLicenseUploaded') || 'Driving license uploaded successfully');
-          },
-          onError: (error: any) => {
-            console.error('Error uploading driving license:', error);
-            setUploadingDrivingLicense(false);
-            Alert.alert(t('common.error') || 'Error', error.message || t('signup.failedToUploadDrivingLicense') || 'Failed to upload driving license');
-          },
-        });
-      }
+      // Get MIME type for upload
+      const mimeType = getMimeTypeFromUri(fileUri, file.type);
+      await processAndUploadFile(fileUri, mimeType, type);
     } catch (err: any) {
       if (DocumentPicker.isErrorWithCode?.(err) && err.code === DocumentPicker.errorCodes.OPERATION_CANCELED) {
         return;
@@ -363,6 +436,107 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
         setUploadingDrivingLicense(false);
       }
     }
+  };
+
+  // Process and upload file (common logic for both gallery and file upload)
+  const processAndUploadFile = async (fileUri: string, mimeType: string, type: 'aadhar' | 'drivingLicense') => {
+    try {
+      // Get file size
+      let fileSize = 0;
+      try {
+        // Use react-native-fs to get file size
+        const fileInfo = await RNFS.stat(fileUri);
+        fileSize = fileInfo.size;
+      } catch (sizeError) {
+        console.warn('Could not get file size:', sizeError);
+        // Continue without size check if we can't get it
+      }
+
+      // Validate file size (5MB = 5 * 1024 * 1024 bytes)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (fileSize > 0 && fileSize > maxSize) {
+        Alert.alert(
+          t('common.error') || 'Error',
+          t('signup.fileSizeTooLarge') || `File size is too large. Maximum size is 5MB. Your file is ${(fileSize / (1024 * 1024)).toFixed(2)}MB`
+        );
+        return;
+      }
+
+      // Validate file type - allow images and PDFs
+      const fileExtension = getFileExtension(fileUri);
+      const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'tif'];
+      const isValidFileType = allowedExtensions.includes(fileExtension.toLowerCase()) || 
+                              mimeType?.startsWith('image/') || 
+                              mimeType === 'application/pdf';
+
+      if (!isValidFileType) {
+        Alert.alert(
+          t('common.error') || 'Error',
+          t('signup.invalidFileType') || 'Please upload an image (JPG, PNG, GIF, etc.) or PDF file'
+        );
+        return;
+      }
+
+      if (!userData?.id) {
+        Alert.alert(t('common.error') || 'Error', t('auth.userNotFound') || 'User not found');
+        return;
+      }
+
+      // Get file extension for name
+      const fileExtensionForName = fileExtension || (mimeType.includes('pdf') ? 'pdf' : 'jpg');
+      const fileName = type === 'aadhar' ? `aadhar.${fileExtensionForName}` : `driving-license.${fileExtensionForName}`;
+
+      if (type === 'aadhar') {
+        setUploadingAadhar(true);
+        uploadAadharMutation.mutate({ fileUri, fileType: mimeType }, {
+          onSuccess: async (result) => {
+            setAadharCard(result.image_url);
+            setUploadingAadhar(false);
+            
+            // Invalidate profile cache to ensure fresh data on next fetch
+            await queryClient.invalidateQueries({ queryKey: profileQueryKeys.detail(userData?.id) });
+            
+            Alert.alert(t('common.success') || 'Success', t('signup.aadharUploaded') || 'Aadhar card uploaded successfully');
+          },
+          onError: (error: any) => {
+            console.error('Error uploading Aadhar card:', error);
+            setUploadingAadhar(false);
+            Alert.alert(t('common.error') || 'Error', error.message || t('signup.failedToUploadAadhar') || 'Failed to upload Aadhar card');
+          },
+        });
+      } else if (type === 'drivingLicense') {
+        setUploadingDrivingLicense(true);
+        uploadDrivingLicenseMutation.mutate({ fileUri, fileType: mimeType }, {
+          onSuccess: async (result) => {
+            setDrivingLicense(result.image_url);
+            setUploadingDrivingLicense(false);
+            
+            // Invalidate profile cache to ensure fresh data on next fetch
+            await queryClient.invalidateQueries({ queryKey: profileQueryKeys.detail(userData?.id) });
+            
+            Alert.alert(t('common.success') || 'Success', t('signup.drivingLicenseUploaded') || 'Driving license uploaded successfully');
+          },
+          onError: (error: any) => {
+            console.error('Error uploading driving license:', error);
+            setUploadingDrivingLicense(false);
+            Alert.alert(t('common.error') || 'Error', error.message || t('signup.failedToUploadDrivingLicense') || 'Failed to upload driving license');
+          },
+        });
+      }
+    } catch (err: any) {
+      console.error('Error processing file:', err);
+      Alert.alert(t('common.error') || 'Error', err.message || t('signup.failedToUploadDocument') || 'Failed to process file');
+      if (type === 'aadhar') {
+        setUploadingAadhar(false);
+      } else if (type === 'drivingLicense') {
+        setUploadingDrivingLicense(false);
+      }
+    }
+  };
+
+  // Handle document upload (shows options)
+  const handleDocumentUpload = (type: 'aadhar' | 'drivingLicense') => {
+    showUploadOptions(type);
   };
 
   // Handle address selection from map modal
@@ -608,6 +782,19 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           // Also check if user has B2B shop to determine if both signups are complete
           const userTypeFromProfile = updatedProfile?.user_type || updatedProfile?.user?.user_type;
           const hasB2BShop = !!(updatedProfile?.b2bShop || (updatedProfile?.shop && (updatedProfile.shop as any)?.shop_type === 1 || (updatedProfile.shop as any)?.shop_type === 4));
+          
+          // Update AsyncStorage with approval_status after successful submission
+          if (updatedProfile?.shop?.approval_status) {
+            const approvalStatus = updatedProfile.shop.approval_status;
+            await AsyncStorage.setItem('@b2c_approval_status', approvalStatus);
+            console.log('✅ B2CSignupScreen: Updated @b2c_approval_status to:', approvalStatus);
+            
+            // If status is pending (after resubmission), clear signup needed flag
+            if (approvalStatus === 'pending') {
+              await AsyncStorage.removeItem('@b2c_signup_needed');
+              console.log('✅ B2CSignupScreen: Status is pending, cleared @b2c_signup_needed flag');
+            }
+          }
           
           console.log('✅ User type from updated profile:', userTypeFromProfile);
           console.log('✅ Has B2B shop:', hasB2BShop);
@@ -867,6 +1054,7 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
               style={[styles.documentButton, !aadharCard && styles.documentButtonRequired]}
               onPress={() => handleDocumentUpload('aadhar')}
               disabled={uploadingAadhar || isSubmitting}
+              activeOpacity={0.7}
             >
               {uploadingAadhar ? (
                 <ActivityIndicator size="small" color={theme.primary} />
@@ -888,6 +1076,7 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
                 style={[styles.documentButton, !drivingLicense && styles.documentButtonRequired]}
                 onPress={() => handleDocumentUpload('drivingLicense')}
                 disabled={uploadingDrivingLicense || isSubmitting}
+                activeOpacity={0.7}
               >
                 {uploadingDrivingLicense ? (
                   <ActivityIndicator size="small" color={theme.primary} />

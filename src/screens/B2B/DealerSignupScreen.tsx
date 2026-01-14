@@ -534,11 +534,7 @@ const DealerSignupScreen = ({ navigation: routeNavigation, route }: any) => {
                 return;
               }
 
-              // Validate GST number (optional but must be valid format if provided)
-              if (gstNumber.trim() && !validateGSTNumber(gstNumber)) {
-                Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterValidGstin') || 'Please enter a valid GSTIN (Format: 22AAAAA0000A1Z5 - 15 characters)');
-                return;
-              }
+              // GST number validation removed - GST is now completely optional
 
               // Validate PAN number (optional but must be valid format if provided)
               if (panNumber.trim() && !validatePANNumber(panNumber)) {
@@ -548,6 +544,7 @@ const DealerSignupScreen = ({ navigation: routeNavigation, route }: any) => {
 
               // Pass form data and source to DocumentUpload screen
               const source = route?.params?.source || null;
+              const fromB2CProfile = route?.params?.fromB2CProfile === true;
               (navigation as any).navigate('DocumentUpload', {
                 signupData: {
                   companyName: trimmedCompanyName,
@@ -567,6 +564,7 @@ const DealerSignupScreen = ({ navigation: routeNavigation, route }: any) => {
                   houseName,
                   nearbyLocation,
                 },
+                fromB2CProfile: fromB2CProfile, // Pass flag as route param
                 source: source, // Pass source from route params
               });
             }}

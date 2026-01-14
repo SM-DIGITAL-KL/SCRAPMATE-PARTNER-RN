@@ -107,6 +107,61 @@ const BulkRequestDetailsScreen = ({ navigation, route }: any) => {
     }
   }, [route.params?.request]);
 
+  // Fetch request by ID if only requestId is provided (not the full request object)
+  useEffect(() => {
+    const fetchRequestById = async () => {
+      // If we already have a request, don't fetch
+      if (request) return;
+      
+      // If requestId is provided but no request object, fetch it
+      const requestId = route.params?.requestId;
+      if (requestId && userData?.id) {
+        try {
+          console.log('🔄 Fetching bulk request by ID:', requestId, 'for user:', userData.id);
+          setRefreshing(true);
+          
+          // Fetch all requests by buyer (includes completed requests)
+          const requests = await getBulkScrapRequestsByBuyer(userData.id);
+          console.log(`📋 Fetched ${requests.length} bulk requests, searching for ID: ${requestId}`);
+          
+          // Try to find the request by ID (handle both string and number comparison)
+          const foundRequest = requests.find((r: any) => {
+            const rId = String(r.id || r.request_id || '');
+            const searchId = String(requestId);
+            const match = rId === searchId || rId === String(Number(searchId)) || String(Number(rId)) === searchId;
+            if (match) {
+              console.log('✅ Found matching request:', { requestId: r.id, searchId: requestId, match });
+            }
+            return match;
+          });
+          
+          if (foundRequest) {
+            console.log('✅ Found bulk request:', {
+              id: foundRequest.id,
+              status: foundRequest.status,
+              buyer_id: foundRequest.buyer_id
+            });
+            setRequest(foundRequest);
+            // Update route params so navigation back also has the request
+            navigation.setParams({ request: foundRequest });
+          } else {
+            console.warn('⚠️ Bulk request not found for ID:', requestId);
+            console.warn('   Available request IDs:', requests.map((r: any) => r.id));
+          }
+        } catch (error) {
+          console.error('❌ Error fetching bulk request by ID:', error);
+        } finally {
+          setRefreshing(false);
+        }
+      }
+    };
+
+    // Only fetch if we have userData and requestId, and no request yet
+    if (userData?.id && route.params?.requestId && !request) {
+      fetchRequestById();
+    }
+  }, [route.params?.requestId, userData?.id, request, navigation]);
+
   // Parse vendor locations from shop data
   useEffect(() => {
     const fetchVendorLocations = async () => {
@@ -1051,6 +1106,9 @@ const BulkRequestDetailsScreen = ({ navigation, route }: any) => {
     };
   }, [mapMarkers, request]);
 
+  // Show loading state if we're fetching by requestId
+  const isFetchingRequest = !request && route.params?.requestId && userData?.id;
+  
   if (!request) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -1065,9 +1123,18 @@ const BulkRequestDetailsScreen = ({ navigation, route }: any) => {
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.emptyContainer}>
-          <AutoText style={styles.emptyText}>
-            {t('dashboard.requestNotFound') || 'Request not found'}
-          </AutoText>
+          {isFetchingRequest ? (
+            <>
+              <ActivityIndicator size="large" color={theme.primary} />
+              <AutoText style={styles.emptyText}>
+                {t('common.loading') || 'Loading...'}
+              </AutoText>
+            </>
+          ) : (
+            <AutoText style={styles.emptyText}>
+              {t('dashboard.requestNotFound') || 'Request not found'}
+            </AutoText>
+          )}
         </View>
       </View>
     );

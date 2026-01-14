@@ -10,11 +10,12 @@ import { AutoText } from '../../components/AutoText';
 import { ScaledSheet } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
 import * as DocumentPicker from '@react-native-documents/picker';
-import { getUserData, logout } from '../../services/auth/authService';
+import { getUserData, logout, setUserData } from '../../services/auth/authService';
 import { uploadB2BDocument } from '../../services/api/v2/b2bSignup';
 import { submitB2BSignup } from '../../services/api/v2/b2bSignup';
 import { useQueryClient } from '@tanstack/react-query';
-import { profileQueryKeys } from '../../hooks/useProfile';
+import { profileQueryKeys, useProfile } from '../../hooks/useProfile';
+import { getProfile } from '../../services/api/v2/profile';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CommonActions } from '@react-navigation/native';
 
@@ -23,10 +24,11 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const signupData = route?.params?.signupData || {};
+  const routeSignupData = route?.params?.signupData || {};
   const [selectedFiles, setSelectedFiles] = useState<Record<string, string>>({});
   const [documentUrls, setDocumentUrls] = useState<Record<string, string>>({});
   const [uploadingDocs, setUploadingDocs] = useState<Record<string, boolean>>({});
+  const [pickingDoc, setPickingDoc] = useState<string | null>(null); // Track which document is currently being picked
   const [userData, setUserData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const styles = useMemo(() => getStyles(theme, themeName), [theme, themeName]);
@@ -40,6 +42,69 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
     };
     loadUserData();
   }, []);
+
+  // Fetch profile data to get approval status and rejection reason
+  const { data: profileData } = useProfile(userData?.id, !!userData?.id);
+
+  // Load signup data from route params or profile data
+  // If navigating from dashboard after rejection, load from profile
+  const signupData = React.useMemo(() => {
+    // If signupData is provided in route params, use it
+    if (routeSignupData && Object.keys(routeSignupData).length > 0) {
+      return routeSignupData;
+    }
+    
+    // Otherwise, try to load from profile data
+    if (profileData?.shop) {
+      const shop = profileData.shop;
+      return {
+        companyName: shop.company_name || '',
+        gstNumber: shop.gst_number || '',
+        panNumber: shop.pan_number || '',
+        businessAddress: shop.address || '',
+        contactPersonName: shop.contact_person_name || '',
+        contactNumber: shop.contact || '',
+        contactEmail: shop.contact_email || '',
+        latitude: shop.latitude || null,
+        longitude: shop.longitude || null,
+        pincode: shop.pincode || '',
+        placeId: shop.place_id || '',
+        state: shop.state || '',
+        place: shop.place || '',
+        location: shop.location || '',
+        houseName: shop.house_name || '',
+        nearbyLocation: shop.nearby_location || '',
+      };
+    }
+    
+    return {};
+  }, [routeSignupData, profileData]);
+
+  // Load existing document URLs from profile when screen loads
+  React.useEffect(() => {
+    if (profileData?.shop && !routeSignupData || Object.keys(routeSignupData).length === 0) {
+      const shop = profileData.shop;
+      const existingUrls: Record<string, string> = {};
+      
+      if (shop.business_license_url) {
+        existingUrls['business-license'] = shop.business_license_url;
+      }
+      if (shop.gst_certificate_url) {
+        existingUrls['gst-certificate'] = shop.gst_certificate_url;
+      }
+      if (shop.address_proof_url) {
+        existingUrls['address-proof'] = shop.address_proof_url;
+      }
+      if (shop.kyc_owner_url) {
+        existingUrls['kyc-owner'] = shop.kyc_owner_url;
+      }
+      
+      if (Object.keys(existingUrls).length > 0) {
+        setDocumentUrls(existingUrls);
+        console.log('✅ DocumentUploadScreen: Loaded existing document URLs from profile');
+      }
+    }
+  }, [profileData?.shop, routeSignupData]);
 
   const documents = [
     {
@@ -198,11 +263,35 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
         return;
       }
 
+      // Prevent multiple simultaneous DocumentPicker calls
+      if (pickingDoc !== null) {
+        console.log('⚠️ DocumentPicker already in progress, ignoring duplicate call');
+        return;
+      }
+
+      // Prevent picking if already uploading
+      if (uploadingDocs[docId]) {
+        console.log('⚠️ Document already uploading, ignoring pick call');
+        return;
+      }
+
+      // Prevent picking if document already uploaded
+      if (documentUrls[docId]) {
+        console.log('⚠️ Document already uploaded, ignoring pick call');
+        return;
+      }
+
+      // Set picking state to prevent multiple calls
+      setPickingDoc(docId);
+
       const pickedFiles = await DocumentPicker.pick({
         type: [DocumentPicker.types.pdf],
         allowMultiSelection: false,
         mode: 'import'
       });
+
+      // Reset picking state after picker completes (even if cancelled)
+      setPickingDoc(null);
 
       if (!pickedFiles || pickedFiles.length === 0) {
         return;
@@ -247,6 +336,9 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
 
       Alert.alert('Success', 'Document uploaded successfully');
     } catch (err: any) {
+      // Reset picking state on error
+      setPickingDoc(null);
+      
       if (DocumentPicker.isErrorWithCode?.(err) && err.code === DocumentPicker.errorCodes.OPERATION_CANCELED) {
         return;
       }
@@ -283,7 +375,8 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
     }
 
     // Validate required documents
-    const requiredDocs = ['business-license', 'gst-certificate', 'address-proof', 'kyc-owner'];
+    // GST certificate is now optional (removed GST validation requirement)
+    const requiredDocs = ['business-license', 'address-proof', 'kyc-owner'];
     const missingDocs = requiredDocs.filter(doc => !documentUrls[doc]);
 
     if (missingDocs.length > 0) {
@@ -296,7 +389,7 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
       const signupPayload = {
         ...signupData,
         businessLicenseUrl: documentUrls['business-license'],
-        gstCertificateUrl: documentUrls['gst-certificate'],
+        gstCertificateUrl: documentUrls['gst-certificate'] || '', // GST certificate is optional
         addressProofUrl: documentUrls['address-proof'],
         kycOwnerUrl: documentUrls['kyc-owner'],
       };
@@ -319,9 +412,133 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
       await queryClient.invalidateQueries({ queryKey: profileQueryKeys.detail(userData.id) });
       await queryClient.invalidateQueries({ queryKey: profileQueryKeys.current() });
 
-      // Refresh user data to get updated user_type
-      const updatedUserData = await getUserData();
-      console.log('✅ Updated user type after B2B signup:', updatedUserData?.user_type);
+      // Fetch fresh profile data from API to get updated user_type
+      console.log('🔄 Fetching fresh profile data from API...');
+      let updatedUserData = await getUserData(); // Get current data as fallback
+      const originalUserType = updatedUserData?.user_type;
+      
+      // Retry fetching profile up to 3 times with delay to handle eventual consistency
+      let profileData = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries && !profileData) {
+        try {
+          profileData = await getProfile(userData.id);
+          if (profileData) {
+            // Update AsyncStorage with fresh user data including updated user_type
+            const freshUserData = {
+              ...updatedUserData,
+              id: profileData.id,
+              name: profileData.name,
+              email: profileData.email,
+              phone_number: profileData.phone,
+              user_type: profileData.user_type,
+              app_type: profileData.app_type,
+              profile_image: profileData.profile_image,
+            };
+            await setUserData(freshUserData);
+            updatedUserData = freshUserData;
+            console.log('✅ Updated user data in AsyncStorage with user_type:', updatedUserData?.user_type);
+            break; // Success, exit retry loop
+          }
+        } catch (profileError) {
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`⚠️ Failed to fetch profile (attempt ${retryCount}/${maxRetries}), retrying...`);
+            // Wait 1 second before retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            console.error('⚠️ Failed to fetch fresh profile after all retries:', profileError);
+          }
+        }
+      }
+      
+      // Verify user_type was updated from 'N' to 'S' (or 'SR' if converting from 'R')
+      console.log('🔍 Verifying user_type update after B2B signup...');
+      console.log('   Original user_type:', originalUserType);
+      console.log('   Updated user_type:', updatedUserData?.user_type);
+      
+      // Check if signup was created properly - if user_type was 'N' and is still 'N', show error
+      if (originalUserType === 'N' && updatedUserData?.user_type === 'N') {
+        // User_type is still 'N' after signup - signup was not created properly
+        console.error('❌ CRITICAL: user_type is still "N" after B2B signup submission');
+        Alert.alert(
+          t('documentUpload.error') || 'Error',
+          t('documentUpload.signupNotCreated') || 'B2B signup was not created properly. The user type was not updated. Please try again or contact support.',
+          [
+            {
+              text: t('common.ok') || 'OK',
+              onPress: () => {
+                // Don't navigate - let user retry
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+        return; // Stop execution - don't proceed with navigation
+      }
+      
+      // If user was 'R' and is now 'SR', that's also valid
+      if (originalUserType === 'R' && updatedUserData?.user_type === 'SR') {
+        console.log('✅ User converted from R to SR successfully');
+      }
+      
+      // If user was 'N' and is now 'S', that's the expected outcome
+      if (originalUserType === 'N' && updatedUserData?.user_type === 'S') {
+        console.log('✅ User converted from N to S successfully');
+      }
+      
+      console.log('✅ User type verification passed:', updatedUserData?.user_type);
+      
+      // Verify user_type was updated from 'N' to 'S' (or 'SR' if converting from 'R')
+      console.log('🔍 Verifying user_type update after B2B signup...');
+      console.log('   Original user_type:', originalUserType);
+      console.log('   Updated user_type:', updatedUserData?.user_type);
+      
+      // Check if signup was created properly - if user_type was 'N' and is still 'N', show error
+      if (originalUserType === 'N' && updatedUserData?.user_type === 'N') {
+        // User_type is still 'N' after signup - signup was not created properly
+        console.error('❌ CRITICAL: user_type is still "N" after B2B signup submission');
+        Alert.alert(
+          t('documentUpload.error') || 'Error',
+          t('documentUpload.signupNotCreated') || 'B2B signup was not created properly. The user type was not updated from "N" to "S". Please try again or contact support.',
+          [
+            {
+              text: t('common.ok') || 'OK',
+              onPress: () => {
+                // Don't navigate - let user retry
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+        return; // Stop execution - don't proceed with navigation
+      }
+      
+      // If user was 'R' and is now 'SR', that's also valid
+      if (originalUserType === 'R' && updatedUserData?.user_type === 'SR') {
+        console.log('✅ User converted from R to SR successfully');
+      }
+      
+      // If user was 'N' and is now 'S', that's the expected outcome
+      if (originalUserType === 'N' && updatedUserData?.user_type === 'S') {
+        console.log('✅ User converted from N to S successfully');
+      }
+      
+      console.log('✅ User type verification passed:', updatedUserData?.user_type);
+      
+      // If user was 'R' and is now 'SR', that's also valid
+      if (originalUserType === 'R' && updatedUserData?.user_type === 'SR') {
+        console.log('✅ User converted from R to SR successfully');
+      }
+      
+      // If user was 'N' and is now 'S', that's the expected outcome
+      if (originalUserType === 'N' && updatedUserData?.user_type === 'S') {
+        console.log('✅ User converted from N to S successfully');
+      }
+      
+      console.log('✅ User type verification passed:', updatedUserData?.user_type);
 
       // If user_type is no longer 'N', clear the 'new_user' flag
       if (updatedUserData?.user_type && updatedUserData.user_type !== 'N') {
@@ -341,6 +558,9 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
       // If user_type is 'S', only B2B is complete, go to JoinAs to complete B2C
       const isFirstSignup = updatedUserData?.user_type === 'S';
       const bothSignupsComplete = updatedUserData?.user_type === 'SR';
+      
+      // Check if user came from B2C profile settings (JoinB2BNetwork flow)
+      const fromB2CProfile = route?.params?.fromB2CProfile === true || signupData?.fromB2CProfile === true;
 
       // Show success message and navigate
       Alert.alert(
@@ -350,7 +570,22 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
           {
             text: t('common.ok') || 'OK',
             onPress: async () => {
-              if (bothSignupsComplete) {
+              // If user came from B2C profile settings, logout and navigate to JoinAs
+              if (fromB2CProfile) {
+                console.log('✅ B2B signup from B2C profile - logging out and navigating to JoinAs');
+                try {
+                  // Logout user
+                  await logout();
+                  console.log('✅ User logged out successfully');
+                  
+                  // Navigate to JoinAs screen
+                  await navigateToJoinAs();
+                } catch (error) {
+                  console.error('❌ Error during logout/navigation:', error);
+                  // Still try to navigate even if logout fails
+                  await navigateToJoinAs();
+                }
+              } else if (bothSignupsComplete) {
                 // Both signups complete - navigate to dashboard
                 console.log('✅ Both B2B and B2C signups complete - navigating to Dashboard');
                 // Navigate to B2B dashboard
@@ -403,6 +638,19 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Rejection Reason Display */}
+        {profileData?.shop?.approval_status === 'rejected' && profileData?.shop?.rejection_reason && (
+          <View style={styles.rejectionReasonCard}>
+            <View style={styles.rejectionReasonHeader}>
+              <MaterialCommunityIcons name="alert-circle" size={20} color="#F44336" />
+              <AutoText style={styles.rejectionReasonTitle}>Rejection Reason</AutoText>
+            </View>
+            <AutoText style={styles.rejectionReasonText}>
+              {profileData.shop.rejection_reason}
+            </AutoText>
+          </View>
+        )}
+
         {documents.map((doc) => (
           <View key={doc.id} style={styles.docCard}>
             <View style={styles.docHeader}>
@@ -425,7 +673,7 @@ const DocumentUploadScreen = ({ navigation, route }: any) => {
                   style={styles.browseBtn}
                   onPress={() => handleBrowse(doc.id)}
                   activeOpacity={0.7}
-                  disabled={!!documentUrls[doc.id]}
+                  disabled={!!documentUrls[doc.id] || uploadingDocs[doc.id] || pickingDoc !== null}
                 >
                   <AutoText style={styles.browseBtnText}>
                     {documentUrls[doc.id] ? 'Uploaded' : t('documentUpload.browse')}
@@ -569,6 +817,31 @@ const getStyles = (theme: any, themeName?: string) =>
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 5,
+    },
+    rejectionReasonCard: {
+      marginBottom: '18@vs',
+      padding: '16@s',
+      borderRadius: '12@ms',
+      backgroundColor: '#F4433622',
+      borderWidth: 1,
+      borderColor: '#F44336',
+    },
+    rejectionReasonHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: '8@vs',
+      gap: '8@s',
+    },
+    rejectionReasonTitle: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '14@s',
+      color: '#F44336',
+    },
+    rejectionReasonText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '13@s',
+      lineHeight: '20@vs',
+      color: '#721c24',
     },
   });
 

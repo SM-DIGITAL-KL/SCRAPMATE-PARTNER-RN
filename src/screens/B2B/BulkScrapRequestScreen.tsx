@@ -17,9 +17,9 @@ import { Category, Subcategory } from '../../services/api/v2/categories';
 import { useCategories, useSubcategories } from '../../hooks/useCategories';
 import { useUserMode } from '../../context/UserModeContext';
 import { getSubscriptionPackages, saveUserSubscription, SubscriptionPackage } from '../../services/api/v2/subscriptionPackages';
-import UPIPaymentService from '../../services/upi/UPIPaymentService';
-import QRCode from 'react-native-qrcode-svg';
-import ViewShot from 'react-native-view-shot';
+import InstamojoWebView, { InstamojoPaymentResponse } from '../../components/InstamojoWebView';
+import { createInstamojoPaymentRequest } from '../../services/api/v2/instamojo';
+import { API_BASE_URL } from '../../services/api/apiConfig';
 import { useProfile } from '../../hooks/useProfile';
 
 // Custom Distance Slider Component
@@ -172,13 +172,10 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
   const [b2bSubscriptionPlan, setB2bSubscriptionPlan] = useState<SubscriptionPackage | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
-  const [upiIntentUrl, setUpiIntentUrl] = useState<string>('');
-  const [pendingTransactionId, setPendingTransactionId] = useState<string>('');
-  const [showUPIVerificationModal, setShowUPIVerificationModal] = useState(false);
-  const [upiTransactionRef, setUpiTransactionRef] = useState('');
-  const [qrCodeFilePath, setQrCodeFilePath] = useState<string>('');
-  const qrCodeViewRef = useRef<ViewShot>(null);
+  const [showInstamojoWebView, setShowInstamojoWebView] = useState(false);
+  const [instamojoPaymentUrl, setInstamojoPaymentUrl] = useState('');
+  const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState<string>('');
   const [pendingBulkRequest, setPendingBulkRequest] = useState<BulkScrapPurchaseRequest | null>(null);
   
   // Fetch profile to check payment approval status
@@ -417,17 +414,23 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
 
   // Calculate total order value and payment amount (percentage-based)
   const calculateOrderValue = useMemo(() => {
-    const subcategoryQuantities = selectedSubcategories
-      .map(sub => {
-        const details = subcategoryDetails.get(sub.id);
-        return details?.quantity ? parseFloat(details.quantity) : 0;
-      })
-      .filter(qty => !isNaN(qty) && qty > 0);
+    // Calculate total order value by summing (quantity * price) for each subcategory
+    let totalOrderValue = 0;
+    let totalQuantity = 0;
     
-    const totalQuantity = subcategoryQuantities.length > 0
-      ? subcategoryQuantities.reduce((sum, qty) => sum + qty, 0)
-      : 0;
+    selectedSubcategories.forEach(sub => {
+      const details = subcategoryDetails.get(sub.id);
+      const quantity = details?.quantity ? parseFloat(details.quantity) : 0;
+      const price = details?.price ? parseFloat(details.price) : 0;
+      
+      if (!isNaN(quantity) && quantity > 0 && !isNaN(price) && price > 0) {
+        const subcategoryValue = quantity * price;
+        totalOrderValue += subcategoryValue;
+        totalQuantity += quantity;
+      }
+    });
     
+    // Calculate average price for display purposes
     const subcategoryPrices = selectedSubcategories
       .map(sub => {
         const details = subcategoryDetails.get(sub.id);
@@ -439,12 +442,15 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
       ? subcategoryPrices.reduce((sum, price) => sum + price, 0) / subcategoryPrices.length
       : 0;
     
-    const totalOrderValue = totalQuantity * avgPrice;
     // Calculate payment amount based on the plan's percentage (default to 1% if plan not loaded)
     const percentage = b2bSubscriptionPlan?.pricePercentage || 1;
-    const paymentAmount = totalOrderValue * (percentage / 100);
+    const basePaymentAmount = totalOrderValue * (percentage / 100);
+    // Calculate GST (18%) on payment amount
+    const gstRate = 0.18; // 18% GST
+    const gstAmount = basePaymentAmount * gstRate;
+    const paymentAmount = basePaymentAmount + gstAmount;
     
-    return { totalOrderValue, paymentAmount, totalQuantity, avgPrice, percentage };
+    return { totalOrderValue, paymentAmount, basePaymentAmount, gstAmount, totalQuantity, avgPrice, percentage };
   }, [selectedSubcategories, subcategoryDetails, b2bSubscriptionPlan]);
 
   // Fetch B2B subscription plan (percentage-based per order)
@@ -693,231 +699,201 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
     }
   };
 
-  // Setup UPI payment callback listener
-  useEffect(() => {
-    UPIPaymentService.setPaymentCallback((result) => {
-      console.log('📱 UPI Payment Callback Received:', result);
+  // Handle Instamojo WebView payment response
+  const handleInstamojoResponse = async (response: InstamojoPaymentResponse) => {
+    console.log('📱 Instamojo Payment Response:', response);
+    
+    // Close WebView
+    setShowInstamojoWebView(false);
+    
+    if (!b2bSubscriptionPlan || !userData?.id) {
+      Alert.alert('Error', 'Payment data not found. Please try again.');
+      setInstamojoPaymentUrl('');
+      setPaymentRequestId(null);
+      setRedirectUrl('');
+      return;
+    }
+
+    if (response.status === 'success' && response.paymentId) {
+      // Payment successful - save subscription
+      const transactionId = response.paymentId;
+      const requestId = response.paymentRequestId || paymentRequestId || null;
       
-      if (result.status === 'success' && result.transactionId) {
-        // Payment successful - save subscription with transaction ID
-        handleUPIPaymentSuccess(result.transactionId, result.approvalRefNo || result.transactionId);
-      } else if (result.status === 'cancelled') {
-        Alert.alert('Payment Cancelled', 'Payment was cancelled. Please try again.');
-        setIsProcessingPayment(false);
-      } else {
-        Alert.alert('Payment Failed', result.message || 'Payment failed. Please try again.');
-        setIsProcessingPayment(false);
+      // Calculate total amount (base + GST)
+      const basePaymentAmount = calculateOrderValue.basePaymentAmount || paymentAmount / 1.18;
+      const gstAmount = calculateOrderValue.gstAmount || basePaymentAmount * 0.18;
+      const totalPaymentAmount = basePaymentAmount + gstAmount;
+      
+      console.log('✅ Payment successful, saving subscription:', {
+        userId: userData.id,
+        packageId: b2bSubscriptionPlan.id,
+        transactionId,
+        paymentRequestId: requestId,
+        baseAmount: basePaymentAmount,
+        gstAmount: gstAmount,
+        totalAmount: totalPaymentAmount,
+      });
+
+      try {
+        // Save subscription with transaction details (use total amount including GST)
+        const saveResult = await saveUserSubscription(
+          userData.id,
+          b2bSubscriptionPlan.id,
+          {
+            transactionId: transactionId,
+            paymentRequestId: requestId,
+            responseCode: '00',
+            approvalRefNo: transactionId,
+            amount: response.amount || totalPaymentAmount.toFixed(2),
+            paymentMethod: 'Instamojo',
+          }
+        );
+
+        if (saveResult.status === 'success') {
+          // Save pending bulk buy order with payment transaction ID
+          if (pendingBulkRequest) {
+            try {
+              await savePendingBulkBuyOrder(
+                userData.id,
+                pendingBulkRequest,
+                transactionId,
+                totalPaymentAmount,
+                b2bSubscriptionPlan.id
+              );
+              console.log('✅ Pending bulk buy order saved with transaction ID:', transactionId);
+            } catch (pendingOrderError: any) {
+              console.error('Error saving pending bulk buy order:', pendingOrderError);
+              // Don't block the payment success flow if pending order save fails
+            }
+          }
+
+          setShowPaymentModal(false);
+          setIsProcessingPayment(false);
+          
+          Alert.alert(
+            'Payment Submitted',
+            `Payment verification submitted successfully!\nTransaction ID: ${transactionId}\nAmount: ₹${totalPaymentAmount.toFixed(2)}\n\nOur admin team will review your payment. Once approved, your bulk buy order will be created automatically.`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // Refetch profile to check payment approval status
+                  refetchProfile();
+                  // Replace current screen with pending orders screen to prevent going back to bulk buy request
+                  navigation.replace('PendingBulkBuyOrders', { fromPayment: true });
+                  // Clear the form after navigation so user can create new orders
+                  setPendingBulkRequest(null);
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert(
+            'Subscription Error',
+            saveResult.msg || 'Payment was successful but subscription activation failed. Please contact support with Transaction ID: ' + transactionId
+          );
+        }
+      } catch (saveError: any) {
+        console.error('Error saving subscription:', saveError);
+        Alert.alert(
+          'Subscription Error',
+          `Payment was successful but subscription activation failed.\n\nTransaction ID: ${transactionId}\n\nError: ${saveError.message || 'Unknown error'}\n\nPlease contact support with the Transaction ID.`
+        );
       }
-    });
+    } else if (response.status === 'cancelled') {
+      console.log('⚠️ Instamojo Payment Cancelled');
+      Alert.alert('Payment Cancelled', 'Payment was cancelled. Please try again to complete your bulk buy order.');
+    } else {
+      console.error('❌ Instamojo Payment Failed:', response);
+      Alert.alert('Payment Failed', response.message || response.error || 'Payment failed. Please try again.');
+    }
+    
+    // Reset state
+    setInstamojoPaymentUrl('');
+    setPaymentRequestId(null);
+    setRedirectUrl('');
+  };
 
-    return () => {
-      UPIPaymentService.setPaymentCallback(null);
-    };
-  }, []);
-
-  // Handle UPI payment
-  const handleUPIPayment = async () => {
+  // Handle Instamojo payment
+  const handleInstamojoPayment = async () => {
     if (isProcessingPayment || !b2bSubscriptionPlan || !userData?.id) return;
     
     setIsProcessingPayment(true);
     try {
-      if (!b2bSubscriptionPlan.upiId) {
-        Alert.alert('Error', 'UPI ID not configured for this plan.');
+      // Get user profile data for buyer information
+      const shop = profileData?.shop as any;
+      const buyerName = userData.name || shop?.shopname || 'User';
+      const buyerEmail = userData.email || shop?.email || '';
+      const buyerPhone = String(userData.mob_num || shop?.contact || '').replace(/\D/g, '');
+
+      if (!buyerEmail || !buyerPhone) {
+        Alert.alert(
+          'Incomplete Profile',
+          'Please ensure your email and phone number are set in your profile before making a payment.'
+        );
         setIsProcessingPayment(false);
         return;
       }
 
-      // Generate unique transaction ID
-      const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-      const transactionId = `BULK${userData.id}_${Date.now()}_${randomSuffix}`;
-      setPendingTransactionId(transactionId);
+      // Create redirect URL - use v2 API endpoint for payment callback
+      const redirectUrlValue = `${API_BASE_URL}/v2/instamojo/payment-redirect`;
+      setRedirectUrl(redirectUrlValue);
 
-      // Generate UPI intent URL
-      const upiResult = await UPIPaymentService.generateQRCodeForDisplay({
-        upiId: b2bSubscriptionPlan.upiId,
-        merchantName: b2bSubscriptionPlan.merchantName || 'Scrapmate Partner',
-        amount: paymentAmount.toFixed(2),
+      // Calculate GST for payment amount
+      const basePaymentAmount = calculateOrderValue.basePaymentAmount || paymentAmount / 1.18;
+      const gstRate = 0.18; // 18% GST
+      const gstAmount = basePaymentAmount * gstRate;
+      const totalPaymentAmount = basePaymentAmount + gstAmount;
+
+      // Create payment request via API
+      console.log('💳 Creating Instamojo payment request for bulk buy:', {
+        userId: userData.id,
+        packageId: b2bSubscriptionPlan.id,
+        baseAmount: basePaymentAmount,
+        gstAmount: gstAmount,
+        totalAmount: totalPaymentAmount,
+        purpose: `Bulk Buy Order Payment - ${b2bSubscriptionPlan.name || 'B2B Subscription'}`,
+        buyerName,
+        buyerEmail,
+        buyerPhone,
       });
 
-      if (upiResult.status === 'qr_generated' && upiResult.upiIntentUrl) {
-        setUpiIntentUrl(upiResult.upiIntentUrl);
-        setShowQRCodeModal(true);
-        setIsProcessingPayment(false);
-        
-        // Generate PNG QR code and open in UPI apps after a short delay
-        setTimeout(() => {
-          generateQRCodePNG(upiResult.upiIntentUrl);
-        }, 100);
-      } else if (upiResult.status === 'app_launched') {
-        Alert.alert(
-          'Complete Payment',
-          'Please complete the payment in your UPI app. After payment, you will need to verify the transaction.',
-          [
-            {
-              text: 'I have paid',
-              onPress: () => {
-                setUpiTransactionRef(transactionId);
-                setShowUPIVerificationModal(true);
-                setIsProcessingPayment(false);
-              },
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel',
-              onPress: () => setIsProcessingPayment(false),
-            },
-          ]
-        );
-      } else if (upiResult.status === 'success') {
-        await handleUPIPaymentSuccess(upiResult.transactionId || transactionId, upiResult.approvalRefNo || transactionId);
-      } else {
-        Alert.alert('Payment Failed', upiResult.message || 'Payment failed. Please try again.');
-        setIsProcessingPayment(false);
-      }
-    } catch (error: any) {
-      console.error('Error processing UPI payment:', error);
-      Alert.alert('Payment Error', error.message || 'Failed to process UPI payment.');
-      setIsProcessingPayment(false);
-    }
-  };
+      // Create payment request via API with total amount (base + GST)
+      const paymentRequest = await createInstamojoPaymentRequest({
+        purpose: `Bulk Buy Order Payment - ${b2bSubscriptionPlan.name || 'B2B Subscription'}`,
+        amount: totalPaymentAmount.toString(),
+        buyer_name: buyerName,
+        email: buyerEmail,
+        phone: buyerPhone,
+        redirect_url: redirectUrlValue,
+        send_email: false,
+        send_sms: false,
+        allow_repeated_payments: false,
+      });
 
-  // Generate PNG QR code from UPI intent URL and automatically open in UPI apps
-  const generateQRCodePNG = async (intentUrl: string) => {
-    try {
-      if (!qrCodeViewRef.current) {
-        console.warn('QR code view ref not ready, retrying...');
-        setTimeout(() => generateQRCodePNG(intentUrl), 200);
-        return;
+      if (!paymentRequest.data?.longurl) {
+        throw new Error('Failed to get payment URL from Instamojo');
       }
 
-      // Wait a bit for the QR code to render
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
+      console.log('✅ Instamojo payment request created:', {
+        payment_request_id: paymentRequest.data.payment_request_id,
+        longurl: paymentRequest.data.longurl,
+      });
 
-      // Capture the QR code view as PNG (returns file URI)
-      const pngFileUri = await qrCodeViewRef.current.capture();
-      
-      // Convert file URI to path
-      const filePath = pngFileUri.replace('file://', '');
-      setQrCodeFilePath(filePath);
-      
-      // Automatically open QR code in UPI apps after 2 seconds (shows only UPI apps)
-      // Use filePath directly instead of state variable to avoid stale closure issue
-      setTimeout(async () => {
-        try {
-          console.log('Opening QR code in UPI apps:', filePath);
-          // Use QR code image file - native module will filter to show only UPI apps
-          await UPIPaymentService.openQRCodeInApps(filePath);
-          
-          // Close QR code modal and show verification modal - keep it open until user cancels or verifies
-          setShowQRCodeModal(false);
-          // Don't auto-close verification modal - keep it open for user to verify
-          setShowUPIVerificationModal(true);
-          setUpiTransactionRef(pendingTransactionId || '');
-        } catch (error: any) {
-          console.error('Error opening QR code in UPI apps:', error);
-          Alert.alert('UPI App Error', error.message || 'Failed to open QR code in UPI apps. Please try scanning the QR code manually.');
-        }
-      }, 2000);
-    } catch (error: any) {
-      console.error('Error generating QR code PNG:', error);
-      Alert.alert('Error', 'Failed to generate QR code. Please try again.');
-      setShowQRCodeModal(false);
+      setPaymentRequestId(paymentRequest.data.payment_request_id);
+      setInstamojoPaymentUrl(paymentRequest.data.longurl);
+      setShowInstamojoWebView(true);
       setIsProcessingPayment(false);
-    }
-  };
-
-  // Handle UPI payment success - save transaction for admin approval
-  const handleUPIPaymentSuccess = async (transactionId: string, approvalRefNo: string) => {
-    if (!b2bSubscriptionPlan || !userData?.id) return;
-
-    try {
-      // Save subscription with transaction ID for admin approval
-      const saveResult = await saveUserSubscription(
-        userData.id,
-        b2bSubscriptionPlan.id,
-        {
-          transactionId: transactionId,
-          responseCode: '00',
-          approvalRefNo: approvalRefNo,
-          amount: paymentAmount.toFixed(2),
-        }
+    } catch (error: any) {
+      console.error('Error processing Instamojo payment:', error);
+      Alert.alert(
+        'Payment Error',
+        error.message || 'Failed to create payment request. Please try again.'
       );
-
-      if (saveResult.status === 'success') {
-        // Save pending bulk buy order with payment transaction ID
-        if (pendingBulkRequest) {
-          try {
-            await savePendingBulkBuyOrder(
-              userData.id,
-              pendingBulkRequest,
-              transactionId,
-              paymentAmount,
-              b2bSubscriptionPlan.id
-            );
-            console.log('✅ Pending bulk buy order saved with transaction ID:', transactionId);
-          } catch (pendingOrderError: any) {
-            console.error('Error saving pending bulk buy order:', pendingOrderError);
-            // Don't block the payment success flow if pending order save fails
-          }
-        }
-
-        setShowPaymentModal(false);
-        setShowQRCodeModal(false);
-        setShowUPIVerificationModal(false);
-        setIsProcessingPayment(false);
-        // Don't clear pendingBulkRequest here - it's saved to database and will be processed after admin approval
-        // The order will be created automatically by backend when admin approves the payment
-        
-        Alert.alert(
-          'Payment Submitted',
-          `Payment verification submitted successfully!\nTransaction ID: ${transactionId}\nAmount: ₹${paymentAmount.toFixed(2)}\n\nOur admin team will review your payment. Once approved, your bulk buy order will be created automatically.`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                // Refetch profile to check payment approval status
-                refetchProfile();
-                // Replace current screen with pending orders screen to prevent going back to bulk buy request
-                navigation.replace('PendingBulkBuyOrders', { fromPayment: true });
-                // Clear the form after navigation so user can create new orders
-                setPendingBulkRequest(null);
-              },
-            },
-          ]
-        );
-      } else {
-        throw new Error(saveResult.msg || 'Failed to save payment');
-      }
-    } catch (error: any) {
-      console.error('Error saving payment:', error);
-      Alert.alert('Payment Error', error.message || 'Payment was successful but saving failed. Please contact support.');
       setIsProcessingPayment(false);
     }
   };
 
-  // Verify UPI payment manually
-  const handleVerifyUPIPayment = async () => {
-    if (!b2bSubscriptionPlan || !userData?.id) {
-      Alert.alert('Error', 'Payment data not found. Please try again.');
-      return;
-    }
-
-    // User must manually enter transaction reference
-    const transactionRef = upiTransactionRef.trim();
-    
-    if (!transactionRef) {
-      Alert.alert('Error', 'Please enter transaction reference number.');
-      return;
-    }
-
-    setIsProcessingPayment(true);
-    try {
-      await handleUPIPaymentSuccess(transactionRef, transactionRef);
-    } catch (error: any) {
-      Alert.alert('Verification Error', error.message || 'Failed to verify payment.');
-      setIsProcessingPayment(false);
-    }
-  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -1649,17 +1625,26 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
                       <AutoText style={{ fontSize: 16, color: theme.primary, fontWeight: '700', marginTop: 4 }}>
                         Payment Amount: ₹{paymentAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ({calculateOrderValue.percentage}%)
                       </AutoText>
-                      {b2bSubscriptionPlan.upiId && (
-                        <AutoText style={{ fontSize: 12, color: theme.textSecondary, marginTop: 8 }}>
-                          UPI ID: {b2bSubscriptionPlan.upiId}
-                        </AutoText>
+                      {/* Show GST breakdown */}
+                      {calculateOrderValue.gstAmount > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.border }}>
+                          <AutoText style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 4 }}>
+                            Base Amount: ₹{calculateOrderValue.basePaymentAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </AutoText>
+                          <AutoText style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 4 }}>
+                            GST (18%): ₹{calculateOrderValue.gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </AutoText>
+                          <AutoText style={{ fontSize: 14, color: theme.primary, fontWeight: '600', marginTop: 4 }}>
+                            Total Payment: ₹{paymentAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </AutoText>
+                        </View>
                       )}
                     </View>
                   </View>
 
                   <TouchableOpacity
                     style={[styles.uploadButton, { backgroundColor: theme.primary }]}
-                    onPress={handleUPIPayment}
+                    onPress={handleInstamojoPayment}
                     disabled={isProcessingPayment}
                     activeOpacity={0.7}
                   >
@@ -1667,9 +1652,9 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
-                        <MaterialCommunityIcons name="wallet" size={20} color="#FFFFFF" />
+                        <MaterialCommunityIcons name="credit-card" size={20} color="#FFFFFF" />
                         <AutoText style={[styles.uploadButtonText, { color: '#FFFFFF', marginLeft: 8 }]}>
-                          {t('bulkScrapRequest.payViaUPI') || 'Pay via UPI'}
+                          {t('bulkScrapRequest.payNow') || 'Pay Now'}
                         </AutoText>
                       </>
                     )}
@@ -1681,184 +1666,21 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
         </View>
       </Modal>
 
-      {/* UPI QR Code Modal */}
-      <Modal
-        visible={showQRCodeModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => {
-          if (!isProcessingPayment) {
-            setShowQRCodeModal(false);
-          }
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '90%', padding: 20 }]}>
-            <View style={styles.modalHeader}>
-              <AutoText style={styles.modalTitle}>
-                {t('bulkScrapRequest.scanQRCode') || 'Scan QR Code to Pay'}
-              </AutoText>
-              <TouchableOpacity
-                onPress={() => {
-                  if (!isProcessingPayment) {
-                    setShowQRCodeModal(false);
-                  }
-                }}
-                style={styles.modalCloseButton}
-                disabled={isProcessingPayment}
-              >
-                <MaterialCommunityIcons name="close" size={24} color={theme.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody} contentContainerStyle={{ alignItems: 'center', padding: 20 }}>
-              <ViewShot ref={qrCodeViewRef} style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12 }}>
-                {upiIntentUrl ? (
-                  <QRCode
-                    value={upiIntentUrl}
-                    size={250}
-                    color="#000000"
-                    backgroundColor="#FFFFFF"
-                  />
-                ) : null}
-              </ViewShot>
-              
-              <AutoText style={[styles.modalDescription, { marginTop: 20, textAlign: 'center' }]}>
-                {t('bulkScrapRequest.scanQRCodeDescription') || 'Scan this QR code with any UPI app to complete payment'}
-              </AutoText>
-              <AutoText style={{ marginTop: 8, fontSize: 16, color: theme.primary, fontWeight: '600', textAlign: 'center' }}>
-                {t('common.amount') || 'Amount'}: ₹{paymentAmount.toFixed(2)}
-              </AutoText>
-
-              <TouchableOpacity
-                style={[styles.uploadButton, { backgroundColor: theme.primary, marginTop: 20 }]}
-                onPress={() => {
-                  // Close QR code modal and open verification modal
-                  setShowQRCodeModal(false);
-                  setShowUPIVerificationModal(true);
-                }}
-                disabled={isProcessingPayment}
-                activeOpacity={0.7}
-              >
-                <AutoText style={[styles.uploadButtonText, { color: '#FFFFFF' }]}>
-                  {t('bulkScrapRequest.iHavePaid') || 'I have paid'}
-                </AutoText>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* UPI Verification Modal */}
-      <Modal
-        visible={showUPIVerificationModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => {
-          if (!isProcessingPayment) {
-            setShowUPIVerificationModal(false);
-          }
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <AutoText style={styles.modalTitle}>
-                {t('bulkScrapRequest.verifyPayment') || 'Verify UPI Payment'}
-              </AutoText>
-              <TouchableOpacity
-                onPress={() => {
-                  if (!isProcessingPayment) {
-                    setShowUPIVerificationModal(false);
-                  }
-                }}
-                style={styles.modalCloseButton}
-                disabled={isProcessingPayment}
-              >
-                <MaterialCommunityIcons name="close" size={24} color={theme.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView 
-              style={styles.modalBody} 
-              contentContainerStyle={styles.modalScrollContent}
-              showsVerticalScrollIndicator={true}
-            >
-              <AutoText 
-                style={styles.modalDescription}
-                numberOfLines={10}
-              >
-                {t('bulkScrapRequest.verifyPaymentDescription') || 'Enter the UPI transaction reference number from your payment app.'}
-              </AutoText>
-
-              <View style={styles.inputContainer}>
-                <AutoText style={styles.inputLabel}>
-                  {t('bulkScrapRequest.transactionReference') || 'Transaction Reference'}
-                </AutoText>
-                <TextInput
-                  style={[styles.textInput, { 
-                    color: theme.textPrimary, 
-                    borderColor: theme.border,
-                    backgroundColor: theme.cardBackground || theme.background,
-                  }]}
-                  placeholder={t('bulkScrapRequest.enterTransactionReference') || 'Enter transaction reference'}
-                  placeholderTextColor={theme.textSecondary}
-                  value={upiTransactionRef}
-                  onChangeText={setUpiTransactionRef}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!isProcessingPayment}
-                  multiline={false}
-                />
-              </View>
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton, { borderColor: theme.border }]}
-                  onPress={() => {
-                    Alert.alert(
-                      t('bulkScrapRequest.paymentPending') || 'Payment Pending',
-                      (t('bulkScrapRequest.paymentPendingMessage') || 'Your payment is pending verification. Please contact support with transaction ID: {transactionId}').replace('{transactionId}', pendingTransactionId || 'N/A'),
-                      [{ 
-                        text: t('common.ok') || 'OK', 
-                        onPress: () => {
-                          setShowUPIVerificationModal(false);
-                          setUpiTransactionRef('');
-                          setPendingTransactionId('');
-                        }
-                      }]
-                    );
-                  }}
-                  disabled={isProcessingPayment}
-                  activeOpacity={0.7}
-                >
-                  <AutoText style={[styles.modalButtonText, { color: theme.textSecondary }]}>
-                    {t('bulkScrapRequest.verifyLater') || 'Verify Later'}
-                  </AutoText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.verifyButton, {
-                    backgroundColor: theme.primary,
-                    opacity: (isProcessingPayment || !upiTransactionRef.trim()) ? 0.6 : 1
-                  }]}
-                  onPress={handleVerifyUPIPayment}
-                  disabled={isProcessingPayment || !upiTransactionRef.trim()}
-                  activeOpacity={0.7}
-                >
-                  {isProcessingPayment ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <AutoText style={[styles.modalButtonText, { color: '#FFFFFF' }]}>
-                      {t('bulkScrapRequest.verifyAndSubmit') || 'Verify & Submit'}
-                    </AutoText>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      {/* Instamojo WebView Modal */}
+      {showInstamojoWebView && instamojoPaymentUrl && (
+        <InstamojoWebView
+          visible={showInstamojoWebView}
+          onClose={() => {
+            setShowInstamojoWebView(false);
+            setInstamojoPaymentUrl('');
+            setPaymentRequestId(null);
+            setRedirectUrl('');
+          }}
+          onPaymentResponse={handleInstamojoResponse}
+          paymentUrl={instamojoPaymentUrl}
+          redirectUrl={redirectUrl}
+        />
+      )}
 
       {/* Submit Button */}
       <Animated.View
