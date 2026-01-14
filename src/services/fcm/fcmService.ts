@@ -38,7 +38,36 @@ class FCMService {
       // Request notification permissions
       await this.requestPermission();
 
-      // Get initial FCM token
+      // Register device for remote messages (required for iOS)
+      // Note: React Native Firebase should auto-register, but we ensure it's done
+      if (Platform.OS === 'ios') {
+        try {
+          // Always try to register - it's idempotent and safe to call multiple times
+          // Even if auto-registration is enabled, calling this ensures registration is complete
+          console.log('📱 FCMService: Ensuring device is registered for remote messages...');
+          await messaging().registerDeviceForRemoteMessages();
+          // Wait longer for APNS token registration to complete
+          // The AppDelegate's didRegisterForRemoteNotificationsWithDeviceToken needs time
+          // APNS token must be registered before FCM token can be obtained
+          console.log('⏳ FCMService: Waiting for APNS token registration...');
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time for APNS
+          console.log('✅ FCMService: Device registration ensured (iOS)');
+        } catch (registerError: any) {
+          // If auto-registration is enabled, this might show a warning but continue
+          const errorMsg = registerError.message || '';
+          if (errorMsg.includes('not required') || errorMsg.includes('auto-registration')) {
+            console.log('ℹ️ FCMService: Auto-registration is enabled, waiting for APNS token...');
+            // Even with auto-registration, wait for APNS token to be registered
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            console.warn('⚠️ FCMService: Registration warning:', errorMsg);
+            // Wait anyway to allow APNS token registration
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+      }
+
+      // Get initial FCM token (with retry mechanism built-in)
       await this.getFCMToken();
 
       // Set up token refresh listener
@@ -120,6 +149,23 @@ class FCMService {
    */
   async getFCMTokenOnly(): Promise<string | null> {
     try {
+      // Ensure device is registered for remote messages (iOS)
+      if (Platform.OS === 'ios') {
+        try {
+          // Check if device is already registered
+          const isRegistered = messaging().isDeviceRegisteredForRemoteMessages;
+          if (!isRegistered) {
+            console.log('📱 FCMService: Registering device for remote messages...');
+            await messaging().registerDeviceForRemoteMessages();
+            // Small delay to ensure registration completes
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        } catch (error: any) {
+          // If registration fails, try to continue anyway
+          console.warn('⚠️ FCMService: Registration check failed, continuing:', error.message);
+        }
+      }
+      
       const token = await messaging().getToken();
       if (token) {
         console.log('🔑 FCMService: FCM Token obtained:', token.substring(0, 20) + '...');
@@ -140,7 +186,78 @@ class FCMService {
    */
   async getFCMToken(): Promise<string | null> {
     try {
-      const token = await messaging().getToken();
+      // Ensure device is registered for remote messages (iOS)
+      if (Platform.OS === 'ios') {
+        try {
+          // Always try to register - it's idempotent
+          await messaging().registerDeviceForRemoteMessages();
+          // Wait a bit longer to ensure registration completes
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error: any) {
+          // If auto-registration is enabled, this might show a warning but continue
+          const errorMsg = error.message || '';
+          if (!errorMsg.includes('not required') && !errorMsg.includes('auto-registration')) {
+            console.warn('⚠️ FCMService: Registration warning:', errorMsg);
+          }
+        }
+      }
+      
+      // Retry mechanism for getting token (iOS sometimes needs a retry)
+      let token: string | null = null;
+      let retries = 8; // Increased retries for APNS token wait
+      let delay = 500; // Start with longer delay
+      
+      while (retries > 0 && !token) {
+        try {
+          token = await messaging().getToken();
+          if (token) break;
+        } catch (error: any) {
+          retries--;
+          const errorCode = error.code || '';
+          const errorMessage = error.message || '';
+          
+          // Check for APNS token error specifically
+          const isAPNSError = errorCode === 'messaging/unknown' && 
+                             (errorMessage.includes('APNS token') || 
+                              errorMessage.includes('No APNS token'));
+          
+          const isUnregisteredError = errorCode === 'messaging/unregistered' || 
+                                     errorMessage.includes('unregistered');
+          
+          if ((isAPNSError || isUnregisteredError) && retries > 0) {
+            if (isAPNSError) {
+              console.log(`⏳ FCMService: Waiting for APNS token, retrying (${retries} attempts left)...`);
+            } else {
+              console.log(`🔄 FCMService: Device not registered yet, retrying (${retries} attempts left)...`);
+            }
+            
+            // Re-register if needed (iOS)
+            if (Platform.OS === 'ios') {
+              try {
+                await messaging().registerDeviceForRemoteMessages();
+                console.log('📱 FCMService: Re-registered device for remote messages');
+              } catch (regError: any) {
+                // Ignore "not required" warnings
+                const regMsg = regError.message || '';
+                if (!regMsg.includes('not required') && !regMsg.includes('auto-registration')) {
+                  console.warn('⚠️ FCMService: Re-registration warning:', regMsg);
+                }
+              }
+            }
+            
+            // Wait longer for APNS token (it takes time to register)
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay = Math.min(delay * 1.2, 3000); // Cap at 3 seconds, slower backoff for APNS
+          } else {
+            // If not a registration/APNS error or out of retries, throw
+            throw error;
+          }
+        }
+      }
+      
+      if (!token) {
+        throw new Error('Failed to get FCM token after retries');
+      }
       if (token) {
         console.log('🔑 FCMService: FCM Token obtained:', token.substring(0, 20) + '...');
         console.log('   Full token length:', token.length);

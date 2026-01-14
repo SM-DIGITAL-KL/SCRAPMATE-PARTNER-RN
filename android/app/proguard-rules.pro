@@ -160,7 +160,6 @@
 # ============================================
 -keep class com.swmansion.** { *; }
 -keep class com.swmansion.gesturehandler.** { *; }
--keep class com.swmansion.reanimated.** { *; }
 
 # ============================================
 # React Native Vector Icons
@@ -206,7 +205,6 @@
 # React Native Gesture Handler
 # ============================================
 -keep class com.swmansion.gesturehandler.** { *; }
--keep class com.swmansion.reanimated.** { *; }
 
 # ============================================
 # Keep application classes

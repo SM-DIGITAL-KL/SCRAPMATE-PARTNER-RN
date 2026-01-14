@@ -32,13 +32,15 @@ export interface SubscriptionPackagesResponse {
 /**
  * Get subscription packages for a specific user type
  * @param userType - 'b2b' or 'b2c' (lowercase as required by API)
+ * @param language - Language code (e.g., 'en', 'hi', 'ta', etc.) - optional, defaults to 'en'
  * @returns Promise with subscription packages
  */
 export const getSubscriptionPackages = async (
-  userType: 'b2b' | 'b2c' = 'b2c'
+  userType: 'b2b' | 'b2c' = 'b2c',
+  language: string = 'en'
 ): Promise<SubscriptionPackagesResponse> => {
   try {
-    const url = buildApiUrl(`${API_ROUTES.V2}/subscription-packages?userType=${userType}`);
+    const url = buildApiUrl(`${API_ROUTES.V2}/subscription-packages?userType=${userType}&language=${language}`);
     const headers = getApiHeaders();
 
     console.log('📦 Fetching subscription packages for:', userType);
