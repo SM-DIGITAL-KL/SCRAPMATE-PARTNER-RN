@@ -103,6 +103,8 @@ export const queryKeys = {
     counts: () => [...queryKeys.dashboard.all, 'counts'] as const,
     byUser: (userId: string | number) =>
       [...queryKeys.dashboard.all, 'user', userId] as const,
+    byUserType: (userType: 'customer' | 'b2c' | 'b2b' | 'delivery', userId?: string | number) =>
+      [...queryKeys.dashboard.all, 'stats', userType, userId || 'anonymous'] as const,
   },
 
   // Recycling statistics queries
@@ -172,6 +174,14 @@ export const queryKeys = {
       [...queryKeys.bulkSell.all, 'accepted', userId, userType, latitude, longitude] as const,
     bySeller: (sellerId: string | number) =>
       [...queryKeys.bulkSell.all, 'bySeller', sellerId] as const,
+  },
+
+  // Live Prices queries
+  livePrices: {
+    all: ['livePrices'] as const,
+    lists: () => [...queryKeys.livePrices.all, 'list'] as const,
+    list: (location?: string, category?: string) => 
+      [...queryKeys.livePrices.lists(), location || 'all', category || 'all'] as const,
   },
 } as const;
 
