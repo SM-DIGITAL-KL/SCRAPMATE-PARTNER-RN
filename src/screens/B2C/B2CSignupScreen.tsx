@@ -140,7 +140,9 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           setDrivingLicense(profileData.shop.driving_license);
         }
       } else {
-        // For non-v1 users, still pre-fill basic info
+        // For non-v1 users (including new users with user_type 'N'), still pre-fill basic info and address
+        console.log('📝 Auto-filling B2C signup form for non-v1 user (including new users)');
+        
         if (profileData.name && !name) {
           setName(profileData.name);
         }
@@ -150,11 +152,46 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
         if (profileData.phone && !contactNumber) {
           setContactNumber(profileData.phone);
         }
-        if (profileData.shop?.address && !address) {
-          setAddress(profileData.shop.address);
+        
+        // Auto-fill from shop data (including address saved from address modal)
+        if (profileData.shop) {
+          if (profileData.shop.address && !address) {
+            setAddress(profileData.shop.address);
+          }
+          if (profileData.shop.contact && !contactNumber) {
+            setContactNumber(profileData.shop.contact);
+          }
+          
+          // Populate location fields from shop data (saved from address modal)
+          if (profileData.shop.lat_log) {
+            const [lat, lng] = profileData.shop.lat_log.split(',').map(Number);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              setLatitude(lat);
+              setLongitude(lng);
+            }
+          }
+          // Also check latitude/longitude directly if lat_log is not available
+          if (profileData.shop.latitude && !latitude) {
+            setLatitude(profileData.shop.latitude);
+          }
+          if (profileData.shop.longitude && !longitude) {
+            setLongitude(profileData.shop.longitude);
+          }
+          if (profileData.shop.pincode && !pincode) setPincode(profileData.shop.pincode);
+          if (profileData.shop.place_id && !placeId) setPlaceId(profileData.shop.place_id);
+          if (profileData.shop.state && !state) setState(profileData.shop.state);
+          if (profileData.shop.place && !place) setPlace(profileData.shop.place);
+          if (profileData.shop.location && !location) setLocation(profileData.shop.location);
         }
-        if (profileData.shop?.contact && !contactNumber) {
-          setContactNumber(profileData.shop.contact);
+        
+        // Pre-fill Aadhar card if already uploaded
+        if (profileData.shop?.aadhar_card && !aadharCard) {
+          setAadharCard(profileData.shop.aadhar_card);
+        }
+        
+        // Pre-fill driving license if already uploaded
+        if (profileData.shop?.driving_license && !drivingLicense) {
+          setDrivingLicense(profileData.shop.driving_license);
         }
       }
     }

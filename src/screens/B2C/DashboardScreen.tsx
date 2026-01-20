@@ -21,6 +21,7 @@ import { Category } from '../../services/api/v2/categories';
 import { useCategories, useUserCategories, useUserSubcategories } from '../../hooks/useCategories';
 import { useRecyclingStats, useVendorRecyclingStats } from '../../hooks/useRecycling';
 import { useMonthlyBreakdown } from '../../hooks/useEarnings';
+import { useDashboardStats } from '../../hooks/useStats';
 import { useActivePickup, useAllActivePickups, useAvailablePickupRequests, useAcceptPickupRequest, useBulkScrapRequests, useAcceptedBulkScrapRequests, useAcceptBulkScrapRequest, useRejectBulkScrapRequest } from '../../hooks/useOrders';
 import { startPickup, cancelPickupRequest } from '../../services/api/v2/orders';
 import { PickupRequest } from '../../services/api/v2/orders';
@@ -256,6 +257,20 @@ const DashboardScreen = () => {
     6,
     !!userData?.id
   );
+
+  // Fetch dashboard statistics with 365-day cache
+  // This hook:
+  // 1. Checks AsyncStorage cache first (365-day persistence)
+  // 2. Calls /api/v2/stats/incremental-updates with lastUpdatedOn timestamp
+  // 3. Merges incremental updates (total recycled, carbon offset, order value, categories) with cached data
+  // 4. Saves updated cache back to AsyncStorage
+  // 5. If cache is expired or missing, performs full fetch
+  const {
+    data: dashboardStatsData,
+    isLoading: loadingStats,
+    error: statsError,
+    refetch: refetchStats
+  } = useDashboardStats('b2c', !!userData?.id, true);
 
   // Log errors for debugging
   useEffect(() => {
@@ -1214,11 +1229,13 @@ const DashboardScreen = () => {
 
         // Force refetch recycling stats even if cache exists (to show latest completed orders data)
         refetchRecyclingStats();
+        // Also refetch dashboard stats to get latest incremental updates
+        refetchStats();
       }
     });
 
     return unsubscribe;
-  }, [navigation, userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, refetchAvailableRequests, refetchActivePickup, refetchRecyclingStats, queryClient]);
+  }, [navigation, userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, refetchAvailableRequests, refetchActivePickup, refetchRecyclingStats, refetchStats, queryClient]);
 
   // Refetch when modal opens to ensure we have latest subcategories
   React.useEffect(() => {
@@ -3585,6 +3602,51 @@ const getStyles = (theme: any, themeName?: string, isDark?: boolean) =>
       paddingHorizontal: '14@s',
       paddingTop: '12@vs',
       paddingBottom: '24@vs',
+    },
+    statsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: '16@vs',
+      gap: '8@s',
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: theme.card,
+      borderRadius: '14@ms',
+      padding: '12@s',
+      alignItems: 'center',
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    statIconWrapper: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '6@vs',
+    },
+    statValue: {
+      fontFamily: 'Poppins-Bold',
+      fontSize: '16@s',
+      color: theme.textPrimary,
+      marginBottom: '2@vs',
+    },
+    statLabel: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '10@s',
+      color: theme.textSecondary,
+      textAlign: 'center',
+    },
+    statSubLabel: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '8@s',
+      color: theme.textSecondary,
+      opacity: 0.7,
+      marginTop: '2@vs',
+      textAlign: 'center',
     },
     approvalStatusCard: {
       backgroundColor: theme.card,

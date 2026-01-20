@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, TouchableOpacity, StatusBar, Vibration, Platform, ActivityIndicator, Image, Alert, TextInput, Modal, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../components/ThemeProvider';
 import { GreenButton } from '../../components/GreenButton';
@@ -100,6 +101,23 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
     };
     loadUserData();
   }, []);
+
+  // Check for incremental updates when screen is focused
+  // This ensures subcategory properties are updated when user navigates to this screen
+  useFocusEffect(
+    React.useCallback(() => {
+      if (selectedCategoryId && step === 'subcategories') {
+        // Refetch the query to trigger a check for incremental updates
+        // The queryFn will check cache first and then check for incremental updates in background
+        // This ensures we get the latest data without causing recursive calls
+        queryClient.refetchQueries({ 
+          queryKey: queryKeys.subcategories.byCategory(selectedCategoryId, userType),
+          type: 'active' // Only refetch active queries (this screen's query)
+        });
+        console.log(`🔄 [AddCategoryScreen] Screen focused - checking for incremental updates for category ${selectedCategoryId}`);
+      }
+    }, [selectedCategoryId, step, userType, queryClient])
+  );
 
   // Load user's existing subcategories when category is selected
   useEffect(() => {

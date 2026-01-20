@@ -331,6 +331,76 @@ export const getUserSubcategoryRequests = async (
   return response.json();
 };
 
+/**
+ * Get incremental updates for categories and subcategories since lastUpdatedOn
+ * This endpoint returns only categories/subcategories that have changed (name, image, rates, etc.)
+ * or have been deleted since the lastUpdatedOn timestamp
+ * 
+ * @param userType - Optional filter: 'b2b', 'b2c', or 'all' (default: 'all')
+ * @param lastUpdatedOn - ISO timestamp string, required for incremental updates
+ * @param userId - Optional user ID for user-specific stats
+ * @param type - Optional type filter (default: 'customer')
+ * 
+ * Returns:
+ * - categories: Array of updated categories (only fields that changed)
+ * - subcategories: Array of updated subcategories (only fields that changed)
+ * - deleted: { categories: [], subcategories: [] } - IDs of deleted items
+ * - meta.hasUpdates: true if any updates found
+ * - meta.lastUpdatedOn: Current timestamp
+ */
+export interface IncrementalUpdatesResponse {
+  status: string;
+  msg: string;
+  data: {
+    categories?: Category[];
+    subcategories?: Subcategory[];
+    deleted?: {
+      categories?: Array<{ id: number; deleted: boolean }>;
+      subcategories?: Array<{ id: number; deleted: boolean }>;
+    };
+    stats?: any;
+  };
+  meta: {
+    hasUpdates: boolean;
+    lastUpdatedOn: string;
+  };
+  hitBy?: string;
+}
 
+export const getIncrementalUpdates = async (
+  userType?: 'b2b' | 'b2c' | 'all',
+  lastUpdatedOn?: string,
+  userId?: number,
+  type?: string
+): Promise<IncrementalUpdatesResponse> => {
+  const url = buildApiUrl('/v2/categories/incremental-updates');
+  const params = new URLSearchParams();
+  
+  if (userType && userType !== 'all') {
+    params.append('userType', userType);
+  }
+  if (lastUpdatedOn) {
+    params.append('lastUpdatedOn', lastUpdatedOn);
+  }
+  if (userId) {
+    params.append('userId', userId.toString());
+  }
+  if (type) {
+    params.append('type', type);
+  }
+  
+  const queryString = params.toString();
+  const fullUrl = queryString ? `${url}?${queryString}` : url;
 
+  const response = await fetch(fullUrl, {
+    method: 'GET',
+    headers: getApiHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch incremental updates: ${response.statusText}`);
+  }
+
+  return response.json();
+};
 

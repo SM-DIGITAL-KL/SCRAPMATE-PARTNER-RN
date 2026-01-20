@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { checkForUpdate } from '../services/api/v2/appVersion';
 
@@ -12,6 +13,12 @@ export const useAppUpdate = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   const checkUpdate = useCallback(async (forceCheck: boolean = false) => {
+    // Skip update check on iOS
+    if (Platform.OS === 'ios') {
+      console.log('⏭️ Skipping update check on iOS');
+      setShowUpdateModal(false);
+      return;
+    }
     try {
       setIsChecking(true);
 
@@ -63,8 +70,10 @@ export const useAppUpdate = () => {
   }, []);
 
   useEffect(() => {
-    // Check for updates on mount
-    checkUpdate(false);
+    // Check for updates on mount (only on Android)
+    if (Platform.OS === 'android') {
+      checkUpdate(false);
+    }
   }, [checkUpdate]);
 
   return {

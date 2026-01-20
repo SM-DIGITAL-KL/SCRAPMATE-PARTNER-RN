@@ -381,6 +381,14 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
           const data = await getUserData();
           setUserData(data);
 
+          // Load B2B subscription plan early so payment calculations use correct percentage
+          try {
+            await fetchB2BSubscriptionPlan();
+          } catch (error) {
+            console.warn('Failed to load B2B subscription plan:', error);
+            // Don't block the screen if plan loading fails
+          }
+
           // Get current location
           setIsLoadingLocation(true);
           try {
@@ -442,8 +450,9 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
       ? subcategoryPrices.reduce((sum, price) => sum + price, 0) / subcategoryPrices.length
       : 0;
     
-    // Calculate payment amount based on the plan's percentage (default to 1% if plan not loaded)
-    const percentage = b2bSubscriptionPlan?.pricePercentage || 1;
+    // Calculate payment amount based on the plan's percentage (default to 0.5% if plan not loaded)
+    // Use nullish coalescing to only default if pricePercentage is null/undefined, not if it's 0
+    const percentage = b2bSubscriptionPlan?.pricePercentage ?? 0.5;
     const basePaymentAmount = totalOrderValue * (percentage / 100);
     // Calculate GST (18%) on payment amount
     const gstRate = 0.18; // 18% GST
@@ -1617,7 +1626,7 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
                         style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 4 }}
                         numberOfLines={10}
                       >
-                        {b2bSubscriptionPlan.description || `B2B subscription plan - Pay ${b2bSubscriptionPlan.pricePercentage || 1}% of each order value when accepting orders`}
+                        {b2bSubscriptionPlan.description || `B2B subscription plan - Pay ${b2bSubscriptionPlan.pricePercentage ?? 0.5}% of each order value when accepting orders`}
                       </AutoText>
                       <AutoText style={{ fontSize: 14, color: theme.primary, fontWeight: '600', marginTop: 8 }}>
                         Total Order Value: ₹{calculateOrderValue.totalOrderValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}

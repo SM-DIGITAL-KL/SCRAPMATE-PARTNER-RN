@@ -18,12 +18,14 @@ import { useBulkScrapRequests, useAcceptedBulkScrapRequests, useBulkScrapRequest
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Category } from '../../services/api/v2/categories';
 import { useCategories, useUserCategories, useUserSubcategories } from '../../hooks/useCategories';
+import { useDashboardStats } from '../../hooks/useStats';
 import { CategoryBadge } from '../../components/CategoryBadge';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/api/queryKeys';
 import { getSubscriptionPackages, SubscriptionPackage } from '../../services/api/v2/subscriptionPackages';
 import LocationDisclosureModal from '../../components/LocationDisclosureModal';
 import { hasShownDisclosure, requestLocationPermissionsWithDisclosure } from '../../utils/locationPermission';
+import { useLivePrices } from '../../hooks/useLivePrices';
 
 
 const DealerDashboardScreen = () => {
@@ -67,21 +69,55 @@ const DealerDashboardScreen = () => {
   // Get all categories to match with user's category IDs
   const { data: allCategoriesData, refetch: refetchAllCategories } = useCategories('b2b', true);
 
+  // Fetch dashboard statistics with 365-day cache
+  const {
+    data: dashboardStatsData,
+    isLoading: loadingStats,
+    error: statsError,
+    refetch: refetchStats
+  } = useDashboardStats('b2b', !!userData?.id, true);
+
+  // Fetch live prices
+  const {
+    data: livePricesData,
+    isLoading: loadingLivePrices,
+    error: livePricesError,
+    refetch: refetchLivePrices
+  } = useLivePrices(undefined, undefined, true);
+
+  // Debug: Log live prices data
+  React.useEffect(() => {
+    if (livePricesData) {
+      console.log('📊 [B2B Dashboard] Live Prices Data:', {
+        status: livePricesData.status,
+        msg: livePricesData.msg,
+        dataLength: livePricesData.data?.length || 0,
+        hasData: !!livePricesData.data,
+        firstItem: livePricesData.data?.[0]
+      });
+    }
+    if (livePricesError) {
+      console.error('❌ [B2B Dashboard] Live Prices Error:', livePricesError);
+    }
+  }, [livePricesData, livePricesError]);
+
   // Refetch all category data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       if (userData?.id) {
         // Small delay to ensure navigation is complete
         const timer = setTimeout(() => {
-          console.log('🔄 Dashboard focused - refetching category data...');
+          console.log('🔄 Dashboard focused - refetching category data and stats...');
           // Just refetch, no need to invalidate on focus
           refetchUserCategories();
           refetchUserSubcategories();
           refetchAllCategories();
+          // Refetch dashboard stats to get latest incremental updates
+          refetchStats();
         }, 200);
         return () => clearTimeout(timer);
       }
-    }, [userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, queryClient])
+    }, [userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, refetchStats, queryClient])
   );
 
   // Listen for navigation events to refetch when returning from AddCategoryScreen
@@ -1026,31 +1062,83 @@ const DealerDashboardScreen = () => {
       >
         {/* Scrap rates card */}
         <SectionCard>
-          <AutoText style={styles.sectionTitle}>{t('dealerDashboard.liveScrapPrices')}</AutoText>
-          <View style={styles.priceRow}>
-            <View style={styles.priceColumn}>
-              <AutoText style={styles.priceLabel}>{t('dealerDashboard.aluminium')}</AutoText>
-              <View style={styles.priceValueRow}>
-                <AutoText style={styles.priceValue}>₹185</AutoText>
-                <View style={styles.changePositive}>
-                  <MaterialCommunityIcons name="arrow-up" size={14} color={theme.primary} />
-                  <AutoText style={styles.changeText}>1.50%</AutoText>
-                </View>
-              </View>
-              <AutoText style={styles.dailyLabel}>{t('dealerDashboard.daily')}</AutoText>
-            </View>
-            <View style={styles.priceColumn}>
-              <AutoText style={styles.priceLabel}>{t('dealerDashboard.copper')}</AutoText>
-              <View style={styles.priceValueRow}>
-                <AutoText style={styles.priceValue}>₹650</AutoText>
-                <View style={styles.changePositive}>
-                  <MaterialCommunityIcons name="arrow-up" size={14} color={theme.primary} />
-                  <AutoText style={styles.changeText}>0.80%</AutoText>
-                </View>
-              </View>
-              <AutoText style={styles.dailyLabel}>{t('dealerDashboard.daily')}</AutoText>
+          <View style={styles.livePricesHeader}>
+            <AutoText style={styles.sectionTitle}>{t('dealerDashboard.liveScrapPrices')}</AutoText>
+            <View style={styles.livePricesHeaderRight}>
+              {loadingLivePrices && (
+                <ActivityIndicator size="small" color={theme.primary} style={{ marginRight: 10 }} />
+              )}
+              {livePricesData?.data && livePricesData.data.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('LivePrices' as never)}
+                  style={styles.viewAllButton}
+                >
+                  <AutoText style={styles.viewAllButtonText}>
+                    {t('common.viewAll') || 'View All'}
+                  </AutoText>
+                  <MaterialCommunityIcons name="chevron-right" size={16} color={theme.primary} />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
+          
+          {livePricesError ? (
+            <View style={styles.errorContainer}>
+              <AutoText style={styles.errorText}>
+                {t('common.error') || 'Error'}: {livePricesError?.message || 'Failed to load live prices'}
+              </AutoText>
+            </View>
+          ) : loadingLivePrices && (!livePricesData?.data || livePricesData.data.length === 0) ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <AutoText style={styles.loadingText}>
+                {t('common.loading') || 'Loading live prices...'}
+              </AutoText>
+            </View>
+          ) : livePricesData?.data && livePricesData.data.length > 0 ? (
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.livePricesScrollContent}
+            >
+              {livePricesData.data.slice(0, 10).map((price, index) => {
+                // Get the primary price (buy_price or sell_price or lme_price or mcx_price)
+                const primaryPrice = price.buy_price || price.sell_price || price.lme_price || price.mcx_price || 'N/A';
+                const priceLabel = price.item || price.category || 'Price';
+                const location = price.location || '';
+                
+                return (
+                  <View key={index} style={styles.priceColumn}>
+                    <AutoText style={styles.priceLabel} numberOfLines={1}>
+                      {priceLabel}
+                    </AutoText>
+                    {location ? (
+                      <AutoText style={styles.priceLocation} numberOfLines={1}>
+                        {location}
+                      </AutoText>
+                    ) : null}
+                    <View style={styles.priceValueRow}>
+                      <AutoText style={styles.priceValue}>
+                        {primaryPrice.includes('₹') ? primaryPrice : `₹${primaryPrice}`}
+                      </AutoText>
+                    </View>
+                    {price.buy_price && price.sell_price && (
+                      <AutoText style={styles.priceRange}>
+                        Buy: ₹{price.buy_price} | Sell: ₹{price.sell_price}
+                      </AutoText>
+                    )}
+                    <AutoText style={styles.dailyLabel}>{t('dealerDashboard.daily')}</AutoText>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <AutoText style={styles.emptyText}>
+                {t('common.noData') || 'No live prices available'}
+              </AutoText>
+            </View>
+          )}
         </SectionCard>
 
         {/* Action buttons - Toggle between Bulk Buy and Bulk Sell */}
@@ -2586,6 +2674,51 @@ const getStyles = (theme: any, themeName?: string) =>
       paddingTop: '18@vs',
       paddingBottom: '24@vs',
     },
+    statsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: '16@vs',
+      gap: '8@s',
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: theme.card,
+      borderRadius: '14@ms',
+      padding: '12@s',
+      alignItems: 'center',
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    statIconWrapper: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '6@vs',
+    },
+    statValue: {
+      fontFamily: 'Poppins-Bold',
+      fontSize: '16@s',
+      color: theme.textPrimary,
+      marginBottom: '2@vs',
+    },
+    statLabel: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '10@s',
+      color: theme.textSecondary,
+      textAlign: 'center',
+    },
+    statSubLabel: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '8@s',
+      color: theme.textSecondary,
+      opacity: 0.7,
+      marginTop: '2@vs',
+      textAlign: 'center',
+    },
     sectionTitle: {
       fontFamily: 'Poppins-SemiBold',
       fontSize: '15@s',
@@ -2597,8 +2730,42 @@ const getStyles = (theme: any, themeName?: string) =>
       justifyContent: 'space-between',
       gap: '14@s',
     },
+    livePricesHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: '12@vs',
+    },
+    livePricesHeaderRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    viewAllButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: '12@s',
+      paddingVertical: '6@vs',
+      borderRadius: '8@ms',
+      backgroundColor: theme.primary + '15',
+    },
+    viewAllButtonText: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '12@s',
+      color: theme.primary,
+      marginRight: '4@s',
+    },
+    livePricesScrollContent: {
+      paddingRight: '10@s',
+      gap: '14@s',
+    },
     priceColumn: {
       flex: 1,
+      minWidth: '140@s',
+      maxWidth: '160@s',
+      padding: '12@s',
+      backgroundColor: theme.cardBackground || theme.background,
+      borderRadius: '8@s',
+      marginRight: '10@s',
     },
     priceLabel: {
       fontFamily: 'Poppins-Medium',
@@ -2617,6 +2784,28 @@ const getStyles = (theme: any, themeName?: string) =>
       fontSize: '20@s',
       color: theme.textPrimary,
     },
+    priceLocation: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '10@s',
+      color: theme.textSecondary,
+      marginBottom: '4@vs',
+    },
+    priceRange: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '10@s',
+      color: theme.textSecondary,
+      marginTop: '4@vs',
+    },
+    errorContainer: {
+      padding: '12@s',
+      alignItems: 'center',
+    },
+    errorText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.error || '#F44336',
+    },
+    // loadingContainer, loadingText, emptyContainer, emptyText are defined earlier
     changePositive: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -2827,24 +3016,7 @@ const getStyles = (theme: any, themeName?: string) =>
     modalBody: {
       flex: 1,
     },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: '18@s',
-      paddingVertical: '16@vs',
-      borderBottomWidth: 1,
-      borderBottomColor: theme.border,
-    },
-    modalTitle: {
-      fontFamily: 'Poppins-SemiBold',
-      fontSize: '18@s',
-      color: theme.textPrimary,
-      flex: 1,
-    },
-    modalCloseButton: {
-      padding: '4@s',
-    },
+    // modalHeader, modalTitle, modalCloseButton are defined later for live prices modal
     modalLoadingContainer: {
       paddingVertical: '40@vs',
       alignItems: 'center',
@@ -2953,18 +3125,7 @@ const getStyles = (theme: any, themeName?: string) =>
       fontFamily: 'Poppins-SemiBold',
       fontSize: '15@s',
     },
-    loadingContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: '20@vs',
-      gap: '10@s',
-    },
-    loadingText: {
-      fontFamily: 'Poppins-Regular',
-      fontSize: '14@s',
-      color: theme.textSecondary,
-    },
+    // loadingContainer and loadingText are defined earlier
     acceptButton: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -3293,6 +3454,197 @@ const getStyles = (theme: any, themeName?: string) =>
       fontFamily: 'Poppins-Medium',
       fontSize: '12@s',
       color: theme.textPrimary,
+    },
+    // Modal Styles
+    modalContainer: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: '18@s',
+      paddingVertical: '16@vs',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+      backgroundColor: theme.card,
+    },
+    modalCloseButton: {
+      padding: '8@s',
+    },
+    modalTitle: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '18@s',
+      color: theme.textPrimary,
+      flex: 1,
+      textAlign: 'center',
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card,
+      marginHorizontal: '18@s',
+      marginVertical: '12@vs',
+      borderRadius: '12@ms',
+      paddingHorizontal: '16@s',
+      paddingVertical: '12@vs',
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    searchIcon: {
+      marginRight: '12@s',
+    },
+    searchInput: {
+      flex: 1,
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textPrimary,
+      padding: 0,
+    },
+    searchClearButton: {
+      padding: '4@s',
+      marginLeft: '8@s',
+    },
+    modalScrollView: {
+      flex: 1,
+    },
+    modalScrollContent: {
+      padding: '18@s',
+      paddingBottom: '40@vs',
+    },
+    priceCard: {
+      backgroundColor: theme.card,
+      borderRadius: '12@ms',
+      padding: '16@s',
+      marginBottom: '16@vs',
+      borderWidth: 1,
+      borderColor: theme.border,
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    priceCardHeader: {
+      marginBottom: '12@vs',
+    },
+    priceCardTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: '8@vs',
+    },
+    priceCardItem: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '16@s',
+      color: theme.textPrimary,
+      flex: 1,
+      marginRight: '8@s',
+    },
+    locationBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.primary + '15',
+      paddingHorizontal: '8@s',
+      paddingVertical: '4@vs',
+      borderRadius: '6@ms',
+      maxWidth: '120@s',
+    },
+    locationBadgeText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '10@s',
+      color: theme.primary,
+      marginLeft: '4@s',
+    },
+    categoryBadgeContainer: {
+      alignSelf: 'flex-start',
+      backgroundColor: theme.accent + '20',
+      paddingHorizontal: '10@s',
+      paddingVertical: '4@vs',
+      borderRadius: '6@ms',
+    },
+    categoryBadgeText: {
+      fontFamily: 'Poppins-Medium',
+      fontSize: '11@s',
+      color: theme.accent,
+    },
+    priceCardBody: {
+      marginTop: '8@vs',
+    },
+    priceColumnFull: {
+      width: '100%',
+    },
+    priceValueContainer: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+    },
+    priceValueLarge: {
+      fontFamily: 'Poppins-Bold',
+      fontSize: '24@s',
+      color: theme.primary,
+    },
+    originalPriceContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginLeft: '12@s',
+    },
+    originalPriceLabel: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '11@s',
+      color: theme.textSecondary,
+      marginRight: '4@s',
+    },
+    originalPriceValue: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '11@s',
+      color: theme.textSecondary,
+      textDecorationLine: 'line-through',
+    },
+    priceDetailsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: '12@vs',
+      paddingTop: '12@vs',
+      borderTopWidth: 1,
+      borderTopColor: theme.border,
+      gap: '12@s',
+    },
+    priceDetailItem: {
+      flex: 1,
+      minWidth: '80@s',
+      backgroundColor: theme.background,
+      padding: '10@s',
+      borderRadius: '8@ms',
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    priceDetailLabel: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '10@s',
+      color: theme.textSecondary,
+      marginBottom: '4@vs',
+    },
+    priceDetailValue: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '14@s',
+      color: theme.textPrimary,
+    },
+    cityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: '8@vs',
+      paddingTop: '8@vs',
+      borderTopWidth: 1,
+      borderTopColor: theme.border,
+    },
+    cityText: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '12@s',
+      color: theme.textSecondary,
+      marginLeft: '6@s',
     },
   });
 

@@ -100,11 +100,13 @@ const AppContent = () => {
           <AppNavigator />
         </NavigationContainer>
         
-        <UpdateModal
-          visible={showUpdateModal}
-          latestVersion={latestVersion}
-          onUpdate={() => setShowUpdateModal(false)}
-        />
+        {Platform.OS === 'android' && (
+          <UpdateModal
+            visible={showUpdateModal}
+            latestVersion={latestVersion}
+            onUpdate={() => setShowUpdateModal(false)}
+          />
+        )}
       </SafeAreaProvider>
     </View>
   );

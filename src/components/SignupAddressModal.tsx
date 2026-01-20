@@ -35,6 +35,19 @@ interface SignupAddressModalProps {
     location?: string;
     place_id?: string;
   }) => void;
+  onAutoSave?: (addressData: {
+    address: string;
+    latitude: number;
+    longitude: number;
+    lat_log: string;
+    houseName?: string;
+    nearbyLocation?: string;
+    pincode?: string;
+    state?: string;
+    place?: string;
+    location?: string;
+    place_id?: string;
+  }) => void;
   initialAddress?: string;
   initialLatitude?: number;
   initialLongitude?: number;
@@ -44,6 +57,7 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
   visible,
   onClose,
   onAddressSelect,
+  onAutoSave,
   initialAddress,
   initialLatitude,
   initialLongitude,
@@ -63,6 +77,7 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
     place_id?: string;
   } | null>(null);
   const locationFetchedRef = useRef(false);
+  const autoSavedRef = useRef(false); // Track if we've auto-saved the address
   const [houseName, setHouseName] = useState('');
   const [nearbyLocation, setNearbyLocation] = useState('');
   const locationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,12 +113,17 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
     if (visible) {
       setShowAddressForm(false);
       locationFetchedRef.current = false;
+      autoSavedRef.current = false; // Reset auto-save flag when modal opens
       setHouseName('');
       setNearbyLocation('');
       setCurrentAddress(initialAddress || 'Shop No 15, Katraj');
-      setCurrentLocation(
-        initialLatitude && initialLongitude ? { latitude: initialLatitude, longitude: initialLongitude } : null
-      );
+      
+      // If we have initial coordinates, set location immediately
+      const initialLoc = initialLatitude && initialLongitude 
+        ? { latitude: initialLatitude, longitude: initialLongitude } 
+        : null;
+      setCurrentLocation(initialLoc);
+      
       setAddressDetails(null);
       setIsLocationLoading(true); // Start loading when modal opens
       if (locationTimeoutRef.current) {
@@ -112,8 +132,37 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
       }
       // Check if location is enabled
       checkLocationEnabled();
+      
+      // If we have initial coordinates and address, auto-save immediately
+      if (initialLoc && initialAddress && initialAddress !== 'Shop No 15, Katraj' && onAutoSave && !autoSavedRef.current) {
+        // Validate coordinates
+        const lat = typeof initialLatitude === 'number' && !isNaN(initialLatitude) && isFinite(initialLatitude)
+          ? Number(initialLatitude.toFixed(8))
+          : null;
+        const lng = typeof initialLongitude === 'number' && !isNaN(initialLongitude) && isFinite(initialLongitude)
+          ? Number(initialLongitude.toFixed(8))
+          : null;
+        
+        if (lat && lng) {
+          autoSavedRef.current = true;
+          console.log('💾 Auto-saving initial address from props to server...');
+          
+          const addressData = {
+            address: initialAddress,
+            latitude: lat,
+            longitude: lng,
+            lat_log: `${lat},${lng}`,
+          };
+          
+          // Auto-save without closing modal
+          onAutoSave(addressData).catch((error: any) => {
+            console.error('❌ Error auto-saving initial address:', error);
+            autoSavedRef.current = false; // Reset flag on error
+          });
+        }
+      }
     }
-  }, [visible, initialAddress, initialLatitude, initialLongitude]);
+  }, [visible, initialAddress, initialLatitude, initialLongitude, onAutoSave]);
 
   const handleClose = () => {
     setShowAddressForm(false);
@@ -332,6 +381,48 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
                         
                         console.log('📍 Location received and address fetched. Map should be centered. User can click Continue.');
                         console.log('📍 Address details:', details);
+                        
+                        // Automatically save address to server when location and address are received
+                        if (!autoSavedRef.current && onAutoSave && location && addressText && addressText !== 'Shop No 15, Katraj') {
+                          try {
+                            // Validate location coordinates
+                            const lat = typeof location.latitude === 'number' && !isNaN(location.latitude) && isFinite(location.latitude)
+                              ? Number(location.latitude.toFixed(8))
+                              : null;
+                            const lng = typeof location.longitude === 'number' && !isNaN(location.longitude) && isFinite(location.longitude)
+                              ? Number(location.longitude.toFixed(8))
+                              : null;
+                            
+                            if (lat && lng) {
+                              autoSavedRef.current = true; // Mark as auto-saved to prevent duplicate saves
+                              console.log('💾 Auto-saving address from map to server (background save, modal stays open)...');
+                              
+                              const addressData = {
+                                address: addressText,
+                                latitude: lat,
+                                longitude: lng,
+                                lat_log: `${lat},${lng}`,
+                                houseName: undefined,
+                                nearbyLocation: undefined,
+                                pincode: details?.pincode,
+                                state: details?.state,
+                                place: details?.place,
+                                location: details?.location,
+                                place_id: details?.place_id,
+                              };
+                              
+                              // Auto-save address (without closing modal)
+                              onAutoSave(addressData);
+                              console.log('✅ Address auto-saved from map to server (modal remains open for user to refine)');
+                            } else {
+                              console.warn('⚠️ Invalid location coordinates - skipping auto-save:', { lat, lng });
+                            }
+                          } catch (autoSaveError) {
+                            console.error('❌ Error auto-saving address:', autoSaveError);
+                            // Don't block user flow - they can still select address manually
+                            autoSavedRef.current = false; // Reset flag so user can try again
+                          }
+                        }
                       } catch (error) {
                         console.warn('Failed to get address:', error);
                         // Clear timeout since we got location successfully

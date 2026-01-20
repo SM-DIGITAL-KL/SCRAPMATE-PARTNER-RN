@@ -105,6 +105,76 @@ const DealerSignupScreen = ({ navigation: routeNavigation, route }: any) => {
         if (profileData.phone && !contactNumber) {
           setContactNumber(profileData.phone);
         }
+        
+        // Populate location fields from shop data (saved from address modal)
+        if (profileData.shop?.lat_log) {
+          const [lat, lng] = profileData.shop.lat_log.split(',').map(Number);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            setLatitude(lat);
+            setLongitude(lng);
+          }
+        }
+        // Also check latitude/longitude directly if lat_log is not available
+        if (profileData.shop?.latitude && !latitude) {
+          setLatitude(profileData.shop.latitude);
+        }
+        if (profileData.shop?.longitude && !longitude) {
+          setLongitude(profileData.shop.longitude);
+        }
+        if (profileData.shop?.pincode && !pincode) setPincode(profileData.shop.pincode);
+        if (profileData.shop?.place_id && !placeId) setPlaceId(profileData.shop.place_id);
+        if (profileData.shop?.state && !state) setState(profileData.shop.state);
+        if (profileData.shop?.place && !place) setPlace(profileData.shop.place);
+        if (profileData.shop?.location && !location) setLocation(profileData.shop.location);
+      } else {
+        // For non-v1 users (including new users with user_type 'N'), auto-fill address and location fields
+        console.log('📝 Auto-filling B2B signup form for non-v1 user (including new users)');
+        
+        // Auto-fill from user data
+        if (profileData.name && !companyName && !contactPersonName) {
+          setCompanyName(profileData.name);
+          setContactPersonName(profileData.name);
+        }
+        if (profileData.email && !contactEmail) {
+          setContactEmail(profileData.email);
+        }
+        if (profileData.phone && !contactNumber) {
+          setContactNumber(profileData.phone);
+        }
+        
+        // Auto-fill from shop data (including address saved from address modal)
+        if (profileData.shop) {
+          if (profileData.shop.shopname && !companyName) {
+            setCompanyName(profileData.shop.shopname);
+          }
+          if (profileData.shop.address && !businessAddress) {
+            setBusinessAddress(profileData.shop.address);
+          }
+          if (profileData.shop.contact && !contactNumber) {
+            setContactNumber(profileData.shop.contact);
+          }
+          
+          // Populate location fields from shop data (saved from address modal)
+          if (profileData.shop.lat_log) {
+            const [lat, lng] = profileData.shop.lat_log.split(',').map(Number);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              setLatitude(lat);
+              setLongitude(lng);
+            }
+          }
+          // Also check latitude/longitude directly if lat_log is not available
+          if (profileData.shop.latitude && !latitude) {
+            setLatitude(profileData.shop.latitude);
+          }
+          if (profileData.shop.longitude && !longitude) {
+            setLongitude(profileData.shop.longitude);
+          }
+          if (profileData.shop.pincode && !pincode) setPincode(profileData.shop.pincode);
+          if (profileData.shop.place_id && !placeId) setPlaceId(profileData.shop.place_id);
+          if (profileData.shop.state && !state) setState(profileData.shop.state);
+          if (profileData.shop.place && !place) setPlace(profileData.shop.place);
+          if (profileData.shop.location && !location) setLocation(profileData.shop.location);
+        }
       }
     }
   }, [profileData, userData]);

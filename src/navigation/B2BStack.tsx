@@ -29,6 +29,7 @@ import DeliveryTrackingScreen from '../screens/B2C/DeliveryTrackingScreen';
 import ParticipateBulkRequestScreen from '../screens/B2C/ParticipateBulkRequestScreen';
 import BulkRequestTrackingScreen from '../screens/B2C/BulkRequestTrackingScreen';
 import B2BMyOrdersScreen from '../screens/B2B/B2BMyOrdersScreen';
+import LivePricesScreen from '../screens/B2B/LivePricesScreen';
 import { useTheme } from '../components/ThemeProvider';
 import { getUserData } from '../services/auth/authService';
 import { getProfile } from '../services/api/v2/profile';
@@ -61,6 +62,7 @@ export type B2BStackParamList = {
   PendingBulkBuyOrders: { fromPayment?: boolean } | undefined;
   PendingBulkBuyOrderDetail: { order: any };
   MyOrders: undefined;
+  LivePrices: undefined;
 };
 
 const Stack = createNativeStackNavigator<B2BStackParamList>();
@@ -285,6 +287,7 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="ParticipateBulkRequest" component={ParticipateBulkRequestScreen} />
       <Stack.Screen name="BulkRequestTracking" component={BulkRequestTrackingScreen} />
       <Stack.Screen name="MyOrders" component={B2BMyOrdersScreen} />
+      <Stack.Screen name="LivePrices" component={LivePricesScreen} />
       <Stack.Screen name="Placeholder" component={B2BPlaceholderScreen} />
     </Stack.Navigator>
   );

@@ -20,6 +20,7 @@ import { useActivePickup, useAvailablePickupRequests, useAcceptPickupRequest } f
 import { Switch } from 'react-native';
 import { Category } from '../../services/api/v2/categories';
 import { useCategories, useUserCategories, useUserSubcategories } from '../../hooks/useCategories';
+import { useDashboardStats } from '../../hooks/useStats';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/api/queryKeys';
 
@@ -48,6 +49,14 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
   
   // Get all categories to match with user's category IDs
   const { data: allCategoriesData, refetch: refetchAllCategories } = useCategories('delivery', true);
+
+  // Fetch dashboard statistics with 365-day cache
+  const {
+    data: dashboardStatsData,
+    isLoading: loadingStats,
+    error: statsError,
+    refetch: refetchStats
+  } = useDashboardStats('delivery', !!userData?.id, true);
   
   // Load user data and fetch profile
   useFocusEffect(
@@ -66,29 +75,33 @@ const DeliveryDashboardScreen = ({ navigation }: any) => {
       if (userData?.id) {
         // Small delay to ensure navigation is complete
         const timer = setTimeout(() => {
-          console.log('🔄 Delivery Dashboard focused - refetching category data...');
+          console.log('🔄 Delivery Dashboard focused - refetching category data and stats...');
           refetchUserCategories();
           refetchUserSubcategories();
           refetchAllCategories();
+          // Refetch dashboard stats to get latest incremental updates
+          refetchStats();
         }, 200);
         return () => clearTimeout(timer);
       }
-    }, [userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories])
+    }, [userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, refetchStats])
   );
 
   // Listen for navigation events to refetch when returning from AddCategoryScreen
   React.useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       if (userData?.id) {
-        console.log('🔄 Navigation focus - refetching category data...');
+        console.log('🔄 Navigation focus - refetching category data and stats...');
         refetchUserCategories();
         refetchUserSubcategories();
         refetchAllCategories();
+        // Refetch dashboard stats to get latest incremental updates
+        refetchStats();
       }
     });
 
     return unsubscribe;
-  }, [navigation, userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories]);
+  }, [navigation, userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, refetchStats]);
 
   // Process user categories
   const userCategories = React.useMemo(() => {
@@ -1124,6 +1137,51 @@ const getStyles = (theme: any, themeName: string) =>
       paddingHorizontal: '14@s',
       paddingTop: '12@vs',
       paddingBottom: '24@vs',
+    },
+    statsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: '16@vs',
+      gap: '8@s',
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: theme.card,
+      borderRadius: '14@ms',
+      padding: '12@s',
+      alignItems: 'center',
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    statIconWrapper: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '6@vs',
+    },
+    statValue: {
+      fontFamily: 'Poppins-Bold',
+      fontSize: '16@s',
+      color: theme.textPrimary,
+      marginBottom: '2@vs',
+    },
+    statLabel: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '10@s',
+      color: theme.textSecondary,
+      textAlign: 'center',
+    },
+    statSubLabel: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '8@s',
+      color: theme.textSecondary,
+      opacity: 0.7,
+      marginTop: '2@vs',
+      textAlign: 'center',
     },
     sectionTitle: {
       fontFamily: 'Poppins-SemiBold',

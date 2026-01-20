@@ -73,8 +73,11 @@ const VehicleInformationScreen = ({ navigation }: any) => {
       }
       
       // Auto-fill from delivery data if available (backend returns as 'delivery' or 'delivery_boy')
+      // This includes address saved from address modal for new users
       const deliveryData = profileData.delivery_boy || profileData.delivery;
       if (deliveryData) {
+        console.log('📝 Auto-filling Delivery signup form with saved address and data');
+        
         if (deliveryData.address && !address) {
           setAddress(deliveryData.address);
         }
@@ -95,6 +98,13 @@ const VehicleInformationScreen = ({ navigation }: any) => {
         }
         if (deliveryData.driving_license && !drivingLicense) {
           setDrivingLicense(deliveryData.driving_license);
+        }
+        
+        // Populate location fields if available (saved from address modal)
+        if (deliveryData.lat_log) {
+          const [lat, lng] = deliveryData.lat_log.split(',').map(Number);
+          // Note: VehicleInformationScreen might not have latitude/longitude state
+          // If it does, you can set them here, otherwise these are stored in the profile
         }
       }
     }
