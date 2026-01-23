@@ -1,6 +1,6 @@
 {
   "name": "scrapmatepartner",
-  "version": "1.21.0",
+  "version": "1.25.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -38,9 +38,11 @@
     "react-native": "0.82.1",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.29.1",
+    "react-native-iap": "^14.7.6",
     "react-native-image-picker": "^8.2.1",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-linear-gradient": "^2.8.3",
+    "react-native-nitro-modules": "^0.31.10",
     "react-native-paper": "^5.12.5",
     "react-native-qrcode-svg": "^6.3.21",
     "react-native-safe-area-context": "^5.5.2",

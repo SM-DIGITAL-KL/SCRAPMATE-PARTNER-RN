@@ -39,7 +39,8 @@
     "loginRequired": "लॉगिन आवश्यक",
     "reject": "अस्वीकार करें",
     "retry": "पुनः प्रयास करें",
-    "errorLoadingData": "डेटा लोड करने में त्रुटि"
+    "errorLoadingData": "डेटा लोड करने में त्रुटि",
+    "viewAll": "सभी देखें"
   },
   "selectLanguage": {
     "title": "भाषा चुनें",
@@ -81,6 +82,8 @@
     "subcategories": "उपश्रेणियाँ",
     "noSubcategories": "कोई उपश्रेणी उपलब्ध नहीं",
     "price": "मूल्य",
+    "buy": "खरीदें",
+    "sell": "बेचें",
     "defaultPrice": "डिफ़ॉल्ट",
     "noImage": "कोई छवि नहीं",
     "noCategoriesOperating": "कोई स्क्रैप श्रेणी संचालित नहीं हो रही",
@@ -261,6 +264,8 @@
     "completed": "32% पूर्ण",
     "myOrders": "मेरे ऑर्डर",
     "pickupStatus": "पिकअप स्थिति",
+    "liveScrapRates": "लाइव स्क्रैप दरें",
+    "bulkSell": "थोक बिक्री",
     "appearance": "दिखावट",
     "light": "नेचर ग्रीन",
     "dark": "मिडनाइट ब्लैक",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "डीलर डैशबोर्ड",
     "liveScrapPrices": "लाइव स्क्रैप कीमतें",
+    "asOfToday": "के अनुसार",
     "aluminium": "एल्यूमीनियम",
     "copper": "तांबा",
     "daily": "दैनिक",
@@ -751,6 +757,7 @@
     "locationRequired": "कृपया स्थान सेवाएँ सक्षम करें",
     "selectSubcategory": "कृपया कम से कम एक उपश्रेणी चुनें",
     "quantityRequired": "कृपया कम से कम एक उपश्रेणी के लिए मात्रा दर्ज करें",
+    "minimumQuantityRequired": "बल्क बिक्री अनुरोधों के लिए न्यूनतम 100 किलो मात्रा आवश्यक है।",
     "availabilityImmediate": "तत्काल",
     "availabilityWithinWeek": "एक सप्ताह के भीतर",
     "availabilityWithinMonth": "एक महीने के भीतर",
@@ -758,7 +765,8 @@
     "pickupLocation": "पिकअप स्थान और अतिरिक्त जानकारी",
     "pickupLocationLabel": "पिकअप आपके वर्तमान स्थान पर होगा",
     "locationNotAvailable": "स्थान उपलब्ध नहीं। कृपया स्थान सेवाएँ सक्षम करें।",
-    "averageSellingPrice": "औसत विक्रय मूल्य"
+    "averageSellingPrice": "औसत विक्रय मूल्य",
+    "submitRequest": "अनुरोध सबमिट करें"
   },
   "subcategoryRequests": {
     "title": "उपश्रेणी अनुरोध",
@@ -884,5 +892,19 @@
     "privacyText": "आपके स्थान डेटा का उपयोग केवल ऑर्डर ट्रैकिंग के लिए किया जाता है और इसे तीसरे पक्ष के साथ साझा नहीं किया जाता है। आप किसी भी समय अपनी डिवाइस सेटिंग्स में इस अनुमति को रद्द कर सकते हैं।",
     "accept": "जारी रखें",
     "decline": "अभी नहीं"
+  },
+  "livePrices": {
+    "location": "स्थान",
+    "category": "श्रेणी",
+    "item": "आइटम",
+    "city": "शहर",
+    "buyPrice": "खरीद मूल्य",
+    "sellPrice": "बिक्री मूल्य",
+    "status": "स्थिति",
+    "liveData": "लाइव डेटा",
+    "noDataAvailable": "कोई डेटा उपलब्ध नहीं",
+    "searchPlaceholder": "स्थान, आइटम, श्रेणी, मूल्य से खोजें...",
+    "loadingSubtext": "कृपया प्रतीक्षा करें जब तक हम Redis कैश से नवीनतम मूल्य प्राप्त करते हैं",
+    "failedToLoad": "लाइव मूल्य लोड करने में विफल"
   }
 }

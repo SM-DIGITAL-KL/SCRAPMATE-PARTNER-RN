@@ -561,6 +561,27 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
       return;
     }
 
+    // Calculate total quantity to check minimum requirement
+    const validationQuantities = selectedSubcategories
+      .map(sub => {
+        const details = subcategoryDetails.get(sub.id);
+        return details?.quantity ? parseFloat(details.quantity) : 0;
+      })
+      .filter(qty => !isNaN(qty) && qty > 0);
+    
+    const validationTotalQuantity = validationQuantities.length > 0
+      ? validationQuantities.reduce((sum, qty) => sum + qty, 0)
+      : 0;
+
+    // Validate minimum quantity requirement (100 kg)
+    if (validationTotalQuantity < 100) {
+      Alert.alert(
+        t('common.error') || 'Error',
+        t('bulkScrapRequest.minimumQuantityRequired') || 'Minimum quantity of 100 kg is required for bulk requests.'
+      );
+      return;
+    }
+
     // Calculate total order value and payment amount
     const { totalOrderValue, paymentAmount } = calculateOrderValue;
     
@@ -853,6 +874,9 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
       const gstRate = 0.18; // 18% GST
       const gstAmount = basePaymentAmount * gstRate;
       const totalPaymentAmount = basePaymentAmount + gstAmount;
+      
+      // Round to 2 decimal places for Instamojo (required format)
+      const roundedTotalAmount = parseFloat(totalPaymentAmount.toFixed(2));
 
       // Create payment request via API
       console.log('💳 Creating Instamojo payment request for bulk buy:', {
@@ -860,7 +884,7 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
         packageId: b2bSubscriptionPlan.id,
         baseAmount: basePaymentAmount,
         gstAmount: gstAmount,
-        totalAmount: totalPaymentAmount,
+        totalAmount: roundedTotalAmount,
         purpose: `Bulk Buy Order Payment - ${b2bSubscriptionPlan.name || 'B2B Subscription'}`,
         buyerName,
         buyerEmail,
@@ -870,7 +894,7 @@ const BulkScrapRequestScreen = ({ navigation }: any) => {
       // Create payment request via API with total amount (base + GST)
       const paymentRequest = await createInstamojoPaymentRequest({
         purpose: `Bulk Buy Order Payment - ${b2bSubscriptionPlan.name || 'B2B Subscription'}`,
-        amount: totalPaymentAmount.toString(),
+        amount: roundedTotalAmount.toFixed(2),
         buyer_name: buyerName,
         email: buyerEmail,
         phone: buyerPhone,

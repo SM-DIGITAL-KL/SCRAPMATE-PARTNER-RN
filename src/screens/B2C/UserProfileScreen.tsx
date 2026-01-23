@@ -399,7 +399,16 @@ const UserProfileScreen = ({ navigation, route }: any) => {
       navigation.navigate('PickupStatus');
     } else if (item.action === 'SubcategoryRequests') {
       navigation.navigate('SubcategoryRequests');
+    } else if (item.action === 'LiveScrapRates') {
+      navigation.navigate('LivePrices');
+    } else if (item.action === 'BulkSell') {
+      navigation.navigate('BulkSellRequest');
     }
+  };
+
+  // Get today's date formatted for Live Scrap Rates subtitle
+  const getTodayDate = () => {
+    return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const menuItems = [
@@ -408,6 +417,8 @@ const UserProfileScreen = ({ navigation, route }: any) => {
     ...(hasPendingSubcategoryRequests ? [{ icon: 'file-document-outline', label: t('userProfile.subcategoryRequests') || 'Subcategory Requests', action: 'SubcategoryRequests' }] : []),
     { icon: 'package-variant', label: t('userProfile.myOrders'), action: 'MyOrders' },
     { icon: 'truck-delivery-outline', label: t('userProfile.pickupStatus'), action: 'PickupStatus' },
+    { icon: 'chart-line', label: t('userProfile.liveScrapRates') || 'Live Scrap Rates', subtitle: `${t('dealerDashboard.asOfToday') || 'As of'} ${getTodayDate()}`, action: 'LiveScrapRates' },
+    { icon: 'cart-arrow-down', label: t('userProfile.bulkSell') || 'Bulk Sell', action: 'BulkSell' },
     { icon: 'weather-sunny', label: t('userProfile.appearance'), subtitle: getThemeSubtitle(), action: 'Appearance' },
     { icon: 'truck', label: t('userProfile.addDeliveryPartner'), action: null },
     { icon: 'star', label: t('userProfile.changeLanguage'), action: 'ChangeLanguage' },

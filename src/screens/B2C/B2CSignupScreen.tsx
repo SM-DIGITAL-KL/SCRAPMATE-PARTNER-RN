@@ -98,10 +98,10 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
         // Auto-fill from shop data if available
         if (profileData.shop) {
           if (profileData.shop.address && !address) {
-            setAddress(profileData.shop.address);
+            setAddress(String(profileData.shop.address));
           }
           if (profileData.shop.contact && !contactNumber) {
-            setContactNumber(profileData.shop.contact);
+            setContactNumber(String(profileData.shop.contact));
           }
           // Populate location fields from shop data
           if (profileData.shop.lat_log) {
@@ -111,55 +111,55 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
               setLongitude(lng);
             }
           }
-          if (profileData.shop.pincode) setPincode(profileData.shop.pincode);
-          if (profileData.shop.place_id) setPlaceId(profileData.shop.place_id);
-          if (profileData.shop.state) setState(profileData.shop.state);
-          if (profileData.shop.language) setLanguage(profileData.shop.language);
-          if (profileData.shop.place) setPlace(profileData.shop.place);
-          if (profileData.shop.location) setLocation(profileData.shop.location);
+          if (profileData.shop.pincode) setPincode(String(profileData.shop.pincode));
+          if (profileData.shop.place_id) setPlaceId(String(profileData.shop.place_id));
+          if (profileData.shop.state) setState(String(profileData.shop.state));
+          if (profileData.shop.language) setLanguage(String(profileData.shop.language));
+          if (profileData.shop.place) setPlace(String(profileData.shop.place));
+          if (profileData.shop.location) setLocation(String(profileData.shop.location));
         }
         
         // Auto-fill from user data
         if (profileData.name && !name) {
-          setName(profileData.name);
+          setName(String(profileData.name));
         }
         if (profileData.email && !email) {
-          setEmail(profileData.email);
+          setEmail(String(profileData.email));
         }
         if (profileData.phone && !contactNumber) {
-          setContactNumber(profileData.phone);
+          setContactNumber(String(profileData.phone));
         }
         
         // Pre-fill Aadhar card if already uploaded
         if (profileData.shop?.aadhar_card && !aadharCard) {
-          setAadharCard(profileData.shop.aadhar_card);
+          setAadharCard(String(profileData.shop.aadhar_card));
         }
         
         // Pre-fill driving license if already uploaded
         if (profileData.shop?.driving_license && !drivingLicense) {
-          setDrivingLicense(profileData.shop.driving_license);
+          setDrivingLicense(String(profileData.shop.driving_license));
         }
       } else {
         // For non-v1 users (including new users with user_type 'N'), still pre-fill basic info and address
         console.log('📝 Auto-filling B2C signup form for non-v1 user (including new users)');
         
         if (profileData.name && !name) {
-          setName(profileData.name);
+          setName(String(profileData.name));
         }
         if (profileData.email && !email) {
-          setEmail(profileData.email);
+          setEmail(String(profileData.email));
         }
         if (profileData.phone && !contactNumber) {
-          setContactNumber(profileData.phone);
+          setContactNumber(String(profileData.phone));
         }
         
         // Auto-fill from shop data (including address saved from address modal)
         if (profileData.shop) {
           if (profileData.shop.address && !address) {
-            setAddress(profileData.shop.address);
+            setAddress(String(profileData.shop.address));
           }
           if (profileData.shop.contact && !contactNumber) {
-            setContactNumber(profileData.shop.contact);
+            setContactNumber(String(profileData.shop.contact));
           }
           
           // Populate location fields from shop data (saved from address modal)
@@ -177,21 +177,21 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           if (profileData.shop.longitude && !longitude) {
             setLongitude(profileData.shop.longitude);
           }
-          if (profileData.shop.pincode && !pincode) setPincode(profileData.shop.pincode);
-          if (profileData.shop.place_id && !placeId) setPlaceId(profileData.shop.place_id);
-          if (profileData.shop.state && !state) setState(profileData.shop.state);
-          if (profileData.shop.place && !place) setPlace(profileData.shop.place);
-          if (profileData.shop.location && !location) setLocation(profileData.shop.location);
+          if (profileData.shop.pincode && !pincode) setPincode(String(profileData.shop.pincode));
+          if (profileData.shop.place_id && !placeId) setPlaceId(String(profileData.shop.place_id));
+          if (profileData.shop.state && !state) setState(String(profileData.shop.state));
+          if (profileData.shop.place && !place) setPlace(String(profileData.shop.place));
+          if (profileData.shop.location && !location) setLocation(String(profileData.shop.location));
         }
         
         // Pre-fill Aadhar card if already uploaded
         if (profileData.shop?.aadhar_card && !aadharCard) {
-          setAadharCard(profileData.shop.aadhar_card);
+          setAadharCard(String(profileData.shop.aadhar_card));
         }
         
         // Pre-fill driving license if already uploaded
         if (profileData.shop?.driving_license && !drivingLicense) {
-          setDrivingLicense(profileData.shop.driving_license);
+          setDrivingLicense(String(profileData.shop.driving_license));
         }
       }
     }
@@ -637,13 +637,13 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
   // Handle form submission
   const handleSubmit = async () => {
     // Validate required fields
-    if (!name.trim()) {
+    if (!(name || '').trim()) {
       Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterYourName') || 'Please enter your name');
       return;
     }
 
     // Check if name is a default username pattern (User_xxx or user_xxx where xxx is phone number)
-    const trimmedName = name.trim();
+    const trimmedName = (name || '').trim();
     const defaultNamePattern = /^[Uu]ser_\d+$/;
     if (defaultNamePattern.test(trimmedName)) {
       Alert.alert(
@@ -654,14 +654,14 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
       return;
     }
 
-    if (!email.trim()) {
+    if (!(email || '').trim()) {
       Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterEmailAddress') || 'Please enter your email address');
       return;
     }
 
     // Validate email format - more comprehensive validation
     const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    const trimmedEmail = email.trim();
+    const trimmedEmail = (email || '').trim();
     if (!emailRegex.test(trimmedEmail)) {
       Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterValidEmail') || 'Please enter a valid email address');
       return;
@@ -681,7 +681,7 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
       return;
     }
 
-    if (!address.trim()) {
+    if (!(address || '').trim()) {
       Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterYourAddress') || 'Please enter your address');
       return;
     }
@@ -703,7 +703,7 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
       return;
     }
 
-    if (!contactNumber.trim()) {
+    if (!(contactNumber || '').trim()) {
       Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterContactNumber') || 'Please enter your contact number');
       return;
     }
@@ -717,7 +717,7 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
     // Vehicle details are required if vehicle pickup is selected, but not for cycle
     if (vehiclePickup && vehicleType !== 'cycle') {
       // Validate vehicle model
-      const trimmedVehicleModel = vehicleModel.trim();
+      const trimmedVehicleModel = (vehicleModel || '').trim();
       if (!trimmedVehicleModel) {
         Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterVehicleModel') || 'Please enter vehicle model');
         return;
@@ -728,7 +728,7 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
       }
       
       // Validate registration number
-      const trimmedRegistrationNumber = registrationNumber.trim();
+      const trimmedRegistrationNumber = (registrationNumber || '').trim();
       if (!trimmedRegistrationNumber) {
         Alert.alert(t('common.error') || 'Error', t('signup.pleaseEnterRegistrationNumber') || 'Please enter registration number');
         return;
@@ -762,11 +762,11 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
     try {
       // Update profile with name, email, address, contact, and documents
       const updateData: any = {
-        name: name.trim(),
-        email: email.trim(),
+        name: (name || '').trim(),
+        email: (email || '').trim(),
         shop: {
-          address: address.trim(),
-          contact: contactNumber.trim(),
+          address: (address || '').trim(),
+          contact: (contactNumber || '').trim(),
           aadhar_card: aadharCard, // Include Aadhar card in shop data
         },
       };
@@ -777,12 +777,12 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
         updateData.shop.longitude = longitude;
         updateData.shop.lat_log = `${latitude},${longitude}`;
       }
-      if (pincode) updateData.shop.pincode = pincode.trim();
-      if (placeId) updateData.shop.place_id = placeId.trim();
-      if (state) updateData.shop.state = state.trim();
-      if (language) updateData.shop.language = language.trim();
-      if (place) updateData.shop.place = place.trim();
-      if (location) updateData.shop.location = location.trim();
+      if (pincode) updateData.shop.pincode = (pincode || '').trim();
+      if (placeId) updateData.shop.place_id = (placeId || '').trim();
+      if (state) updateData.shop.state = (state || '').trim();
+      if (language) updateData.shop.language = (language || '').trim();
+      if (place) updateData.shop.place = (place || '').trim();
+      if (location) updateData.shop.location = (location || '').trim();
       
       // Include vehicle details and driving license if vehicle pickup is selected
       if (vehiclePickup) {
@@ -790,8 +790,8 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           updateData.shop.driving_license = drivingLicense;
         }
         updateData.shop.vehicle_type = vehicleType;
-        updateData.shop.vehicle_model = vehicleModel.trim().toUpperCase(); // Store in uppercase for consistency
-        updateData.shop.vehicle_registration_number = registrationNumber.trim().toUpperCase(); // Store in uppercase for consistency
+        updateData.shop.vehicle_model = (vehicleModel || '').trim().toUpperCase(); // Store in uppercase for consistency
+        updateData.shop.vehicle_registration_number = (registrationNumber || '').trim().toUpperCase(); // Store in uppercase for consistency
       }
       
       console.log('📤 B2C Signup - Shop updateData:', JSON.stringify(updateData.shop, null, 2));
@@ -1160,7 +1160,7 @@ const B2CSignupScreen = ({ navigation: routeNavigation }: any) => {
           <GreenButton
             title={t('buttons.submit') || 'Submit'}
             onPress={handleSubmit}
-            disabled={isSubmitting || !name.trim() || !email.trim() || !address.trim() || !contactNumber.trim() || !aadharCard || (vehiclePickup && vehicleType !== 'cycle' && (!drivingLicense || !vehicleModel.trim() || !registrationNumber.trim()))}
+            disabled={isSubmitting || !(name || '').trim() || !(email || '').trim() || !(address || '').trim() || !(contactNumber || '').trim() || !aadharCard || (vehiclePickup && vehicleType !== 'cycle' && (!drivingLicense || !(vehicleModel || '').trim() || !(registrationNumber || '').trim()))}
           />
         </Animated.View>
       </KeyboardAvoidingView>

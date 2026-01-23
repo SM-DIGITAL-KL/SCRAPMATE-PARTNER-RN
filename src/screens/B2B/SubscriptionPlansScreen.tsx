@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Alert, Modal, TextInput, Image, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Alert, Modal, TextInput, Image, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -17,6 +17,9 @@ import InstamojoWebView, { InstamojoPaymentResponse } from '../../components/Ins
 import { getSubscriptionPackages, saveUserSubscription, SubscriptionPackage, checkSubscriptionExpiry } from '../../services/api/v2/subscriptionPackages';
 import { createInstamojoPaymentRequest } from '../../services/api/v2/instamojo';
 import { API_BASE_URL } from '../../services/api/apiConfig';
+import { useIAP } from '../../hooks/useIAP';
+import { Purchase, SubscriptionPurchase } from 'react-native-iap';
+import { getAppleProductId, getAllAppleProductIds } from '../../services/iap/productIdMapping';
 
 // Using SubscriptionPackage from API service
 
@@ -153,6 +156,17 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
   
   // Check if plans should be disabled (B2B users)
   const isB2BUser = mode === 'b2b';
+  const isIOS = Platform.OS === 'ios';
+
+  // Initialize IAP for iOS
+  // Use all available Apple product IDs for initialization
+  const appleProductIds = useMemo(() => {
+    if (!isIOS) return [];
+    // Use all product IDs from mapping for initialization
+    return getAllAppleProductIds();
+  }, [isIOS]);
+
+  const { products: iapProducts, purchaseProduct: purchaseIAPProduct, initialized: iapInitialized } = useIAP(appleProductIds);
 
   // Handle Instamojo WebView payment response
   const handleInstamojoResponse = async (response: InstamojoPaymentResponse) => {
@@ -280,9 +294,111 @@ const SubscriptionPlansScreen = ({ navigation }: any) => {
       return;
     }
 
-    // For fixed-price plans, proceed with Instamojo payment
-    // For B2C subscription, use Instamojo Android SDK
-    handleInstamojoPayment(plan);
+    // For fixed-price plans, use IAP on iOS, Instamojo on Android
+    if (isIOS) {
+      handleIAPPayment(plan);
+    } else {
+      handleInstamojoPayment(plan);
+    }
+  };
+
+  const handleIAPPayment = async (plan: SubscriptionPackage) => {
+    if (isProcessingPayment) return;
+    
+    setIsProcessingPayment(true);
+    try {
+      if (!userData?.id) {
+        Alert.alert(t('subscriptionPlans.error'), t('subscriptionPlans.userInfoNotFound'));
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      // Get Apple product ID from mapping or plan data
+      const appleProductId = 
+        (plan as any).appleProductId || 
+        getAppleProductId(plan.id, plan.name) ||
+        plan.id; // Fallback to plan.id if no mapping found
+      
+      if (!appleProductId) {
+        throw new Error('Apple product ID not found for this plan');
+      }
+
+      console.log('🔍 IAP Product ID mapping:', {
+        packageId: plan.id,
+        packageName: plan.name,
+        appleProductId,
+      });
+
+      console.log('💳 Initiating IAP purchase:', {
+        userId: userData.id,
+        packageId: plan.id,
+        appleProductId,
+      });
+
+      // Purchase via IAP
+      const purchase = await purchaseIAPProduct(appleProductId, plan.id);
+
+      console.log('✅ IAP purchase successful:', {
+        transactionId: purchase.transactionId,
+        productId: purchase.productId,
+        purchaseToken: purchase.purchaseToken || purchase.transactionReceipt,
+      });
+
+      // Calculate total amount (base + GST for B2C)
+      const baseAmount = plan.price;
+      const gstRate = 0.18; // 18% GST
+      const gstAmount = mode === 'b2c' ? baseAmount * gstRate : 0;
+      const totalAmount = baseAmount + gstAmount;
+
+      // Save subscription with IAP transaction details
+      const saveResult = await saveUserSubscription(
+        userData.id,
+        plan.id,
+        {
+          transactionId: purchase.transactionId,
+          responseCode: '00',
+          approvalRefNo: purchase.transactionId,
+          amount: totalAmount.toString(),
+          paymentMethod: 'Apple IAP',
+        }
+      );
+
+      if (saveResult.status === 'success') {
+        Alert.alert(
+          t('subscriptionPlans.paymentSubmitted'),
+          t('subscriptionPlans.paymentSubmittedMessage', { transactionId: purchase.transactionId }),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => {
+                navigation.goBack();
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          t('subscriptionPlans.subscriptionError'),
+          saveResult.msg || t('subscriptionPlans.paymentSuccessSubscriptionFailed', { transactionId: purchase.transactionId })
+        );
+      }
+    } catch (error: any) {
+      console.error('Error processing IAP payment:', error);
+      
+      if (error.message === 'Purchase cancelled by user') {
+        Alert.alert(
+          t('subscriptionPlans.paymentCancelled'),
+          t('subscriptionPlans.paymentCancelledMessage')
+        );
+      } else {
+        Alert.alert(
+          t('subscriptionPlans.paymentError'),
+          error.message || t('subscriptionPlans.paymentRequestFailed')
+        );
+      }
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const handleInstamojoPayment = async (plan: SubscriptionPackage) => {

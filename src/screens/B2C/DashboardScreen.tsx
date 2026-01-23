@@ -875,6 +875,67 @@ const DashboardScreen = () => {
     });
   }, [cancelModalVisible, selectedOrderForCancel]);
 
+  // Watch for changes in operatingCategories from incremental updates and refetch user categories
+  const previousOperatingCategories = React.useRef<number | undefined>(undefined);
+  const hasRefetchedForChange = React.useRef<number | undefined>(undefined);
+  
+  React.useEffect(() => {
+    const currentOperatingCategories = dashboardStatsData?.data?.operatingCategories;
+    
+    console.log('🔍 [B2C Dashboard] Checking operatingCategories:', {
+      current: currentOperatingCategories,
+      previous: previousOperatingCategories.current,
+      lastRefetchedFor: hasRefetchedForChange.current,
+      hasChanged: currentOperatingCategories !== undefined && 
+                  currentOperatingCategories !== previousOperatingCategories.current
+    });
+    
+    // Trigger refetch if:
+    // 1. Current value is defined AND different from previous
+    // 2. AND we haven't already refetched for this value
+    // 3. OR going from undefined to a defined value (initial load with categories)
+    if (
+      currentOperatingCategories !== undefined &&
+      currentOperatingCategories !== hasRefetchedForChange.current &&
+      (previousOperatingCategories.current === undefined || 
+       currentOperatingCategories !== previousOperatingCategories.current)
+    ) {
+      console.log('🔄 [B2C Dashboard] Operating categories changed - clearing cache and refetching user categories:', {
+        previous: previousOperatingCategories.current,
+        current: currentOperatingCategories
+      });
+      // Mark that we've refetched for this value
+      hasRefetchedForChange.current = currentOperatingCategories;
+      
+      // Clear cache to force fresh fetch from API
+      const clearCacheAndRefetch = async () => {
+        try {
+          const { clearUserCategoriesCache } = await import('../../services/cache/userCategoriesCache');
+          const { clearUserSubcategoriesCache } = await import('../../services/cache/userSubcategoriesCache');
+          
+          if (userData?.id) {
+            await clearUserCategoriesCache(userData.id);
+            await clearUserSubcategoriesCache(userData.id);
+            console.log('🗑️ [B2C Dashboard] Cleared user categories and subcategories cache');
+          }
+        } catch (error) {
+          console.error('Error clearing cache:', error);
+        }
+        
+        // Refetch after clearing cache
+        refetchUserCategories();
+        refetchUserSubcategories();
+      };
+      
+      clearCacheAndRefetch();
+    }
+    
+    // Update the ref
+    if (currentOperatingCategories !== undefined) {
+      previousOperatingCategories.current = currentOperatingCategories;
+    }
+  }, [dashboardStatsData?.data?.operatingCategories, dashboardStatsData?.meta?.hasUpdates, refetchUserCategories, refetchUserSubcategories, userData?.id]);
+
   // Refetch all category data and available pickup requests when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
@@ -882,7 +943,7 @@ const DashboardScreen = () => {
         // Small delay to ensure navigation is complete
         const timer = setTimeout(() => {
           console.log('🔄 Dashboard focused - refetching category data and available pickup requests...');
-          // Just refetch, no need to invalidate on focus
+          // Just refetch without invalidating - incremental updates will be applied
           refetchUserCategories();
           refetchUserSubcategories();
           refetchAllCategories();
@@ -897,7 +958,7 @@ const DashboardScreen = () => {
         }, 200);
         return () => clearTimeout(timer);
       }
-    }, [userData?.id, userData?.user_type, userLocation, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, refetchAvailableRequests, refetchActivePickup, refetchBulkScrapRequests, queryClient])
+    }, [userData?.id, userData?.user_type, userLocation, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, refetchAvailableRequests, refetchActivePickup, refetchBulkScrapRequests])
   );
 
   // Refetch available pickup requests when app comes to foreground
@@ -1217,7 +1278,7 @@ const DashboardScreen = () => {
     const unsubscribe = navigation.addListener('focus', () => {
       if (userData?.id) {
         console.log('🔄 Navigation focus - refetching category data and orders...');
-        // Refetch all category-related data
+        // Just refetch without invalidating - incremental updates will be applied
         refetchUserCategories();
         refetchUserSubcategories();
         refetchAllCategories();
@@ -1235,12 +1296,12 @@ const DashboardScreen = () => {
     });
 
     return unsubscribe;
-  }, [navigation, userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, refetchAvailableRequests, refetchActivePickup, refetchRecyclingStats, refetchStats, queryClient]);
+  }, [navigation, userData?.id, refetchUserCategories, refetchUserSubcategories, refetchAllCategories, refetchAvailableRequests, refetchActivePickup, refetchRecyclingStats, refetchStats]);
 
   // Refetch when modal opens to ensure we have latest subcategories
   React.useEffect(() => {
     if (modalVisible && userData?.id && selectedCategory?.id) {
-      // Force refetch to get latest data
+      // Just refetch without invalidating - incremental updates will be applied
       refetchUserSubcategories();
       refetchUserCategories();
     }

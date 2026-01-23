@@ -322,30 +322,11 @@ const AddCategoryScreen = ({ navigation, route }: any) => {
         Vibration.vibrate(50);
       }
       
-      console.log('✅ Subcategories saved successfully, cache will be invalidated automatically');
+      console.log('✅ Subcategories saved successfully, refetching data...');
       
-      // Force refetch to get updated data
+      // Just refetch without invalidating - incremental updates will be applied
       await refetchUserSubcategories();
       await refetchUserCategories();
-      
-      // Invalidate queries for the category and its subcategories
-      if (selectedCategoryId) {
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.subcategories.byCategory(selectedCategoryId, userType)
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.categories.detail(selectedCategoryId)
-        });
-      }
-      // Also invalidate user's category/subcategory lists since they changed
-      if (userData?.id) {
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.userCategories.byUser(userData.id)
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.userSubcategories.byUser(userData.id)
-        });
-      }
       
       Alert.alert(
         t('common.success'),

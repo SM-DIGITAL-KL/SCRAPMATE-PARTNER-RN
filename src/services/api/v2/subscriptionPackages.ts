@@ -21,6 +21,7 @@ export interface SubscriptionPackage {
   pricePercentage?: number; // For percentage-based pricing (e.g., 0.5 for 0.5%)
   isPercentageBased?: boolean; // Flag to indicate if pricing is percentage-based
   originalPrice?: number; // Original price for reference
+  appleProductId?: string; // Apple IAP product ID for iOS subscriptions
 }
 
 export interface SubscriptionPackagesResponse {

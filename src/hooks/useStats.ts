@@ -203,6 +203,18 @@ export const useDashboardStats = (
           if (updates.meta.hasUpdates) {
             console.log('✅ [useDashboardStats] Dashboard: Updates found - merging with cached data');
             console.log('🔄 [useDashboardStats] Data Source: CACHE + API (Incremental Updates)');
+            console.log('📊 [useDashboardStats] Updates data:', {
+              totalRecycled: updates.data.totalRecycled,
+              carbonOffset: updates.data.carbonOffset,
+              totalOrderValue: updates.data.totalOrderValue,
+              operatingCategories: updates.data.operatingCategories,
+            });
+            console.log('📊 [useDashboardStats] Cached data before merge:', {
+              totalRecycled: cachedData.totalRecycled,
+              carbonOffset: cachedData.carbonOffset,
+              totalOrderValue: cachedData.totalOrderValue,
+              operatingCategories: cachedData.operatingCategories,
+            });
             
             // Merge incremental updates with cached data
             const mergedData = mergeIncrementalStatsUpdates(cachedData, updates.data);

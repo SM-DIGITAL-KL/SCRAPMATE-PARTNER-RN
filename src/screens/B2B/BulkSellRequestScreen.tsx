@@ -16,6 +16,11 @@ import { createBulkSellRequest, BulkSellRequest } from '../../services/api/v2/bu
 import { Category, Subcategory } from '../../services/api/v2/categories';
 import { useCategories, useSubcategories } from '../../hooks/useCategories';
 import { useUserMode } from '../../context/UserModeContext';
+import { getSubscriptionPackages, saveUserSubscription, SubscriptionPackage } from '../../services/api/v2/subscriptionPackages';
+import InstamojoWebView, { InstamojoPaymentResponse } from '../../components/InstamojoWebView';
+import { createInstamojoPaymentRequest } from '../../services/api/v2/instamojo';
+import { API_BASE_URL } from '../../services/api/apiConfig';
+import { useProfile } from '../../hooks/useProfile';
 
 // Reuse DistanceSlider from BulkScrapRequestScreen
 interface DistanceSliderProps {
@@ -165,6 +170,17 @@ const BulkSellRequestScreen = ({ navigation }: any) => {
   const [selectedAvailability, setSelectedAvailability] = useState<string>('');
   const [subcategorySearchQuery, setSubcategorySearchQuery] = useState<string>('');
   const [preferredDistance, setPreferredDistance] = useState<number>(50);
+  
+  // Payment states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [b2bSubscriptionPlan, setB2bSubscriptionPlan] = useState<SubscriptionPackage | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showInstamojoWebView, setShowInstamojoWebView] = useState(false);
+  const [instamojoPaymentUrl, setInstamojoPaymentUrl] = useState('');
+  const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState<string>('');
+  const [pendingBulkRequest, setPendingBulkRequest] = useState<BulkSellRequest | null>(null);
 
   // Fetch categories and subcategories
   const { data: categoriesData, isLoading: loadingCategories } = useCategories('all', true);
@@ -334,6 +350,9 @@ const BulkSellRequestScreen = ({ navigation }: any) => {
     }, [setTabBarVisible])
   );
 
+  // Fetch profile data
+  const { data: profileData, refetch: refetchProfile } = useProfile(userData?.id, !!userData?.id);
+
   // Load user data
   useEffect(() => {
     const loadUserData = async () => {
@@ -342,6 +361,92 @@ const BulkSellRequestScreen = ({ navigation }: any) => {
     };
     loadUserData();
   }, []);
+
+  // Fetch B2B subscription plan (percentage-based per order)
+  const fetchB2BSubscriptionPlan = async () => {
+    try {
+      const response = await getSubscriptionPackages('b2b');
+      if (response.status === 'success' && response.data) {
+        // Find the percentage-based per order plan (look for 1% or any percentage-based plan)
+        const plan = response.data.find((p: SubscriptionPackage) => 
+          p.isPercentageBased && (p.pricePercentage === 1 || p.pricePercentage === 0.5)
+        ) || response.data.find((p: SubscriptionPackage) => p.isPercentageBased);
+        if (plan) {
+          setB2bSubscriptionPlan(plan);
+          return plan;
+        }
+      }
+      throw new Error('B2B subscription plan (percentage-based per order) not found');
+    } catch (error) {
+      console.error('Error fetching B2B subscription plan:', error);
+      Alert.alert(
+        t('common.error') || 'Error',
+        'Failed to load subscription plan. Please try again.'
+      );
+      return null;
+    }
+  };
+
+  // Calculate total order value and payment amount (percentage-based)
+  const calculateOrderValue = useMemo(() => {
+    // Calculate total order value by summing (quantity * price) for each subcategory
+    let totalOrderValue = 0;
+    let totalQuantity = 0;
+    
+    selectedSubcategories.forEach(sub => {
+      const details = subcategoryDetails.get(sub.id);
+      const quantity = details?.quantity ? parseFloat(details.quantity) : 0;
+      const price = details?.price ? parseFloat(details.price) : 0;
+      
+      if (!isNaN(quantity) && quantity > 0 && !isNaN(price) && price > 0) {
+        const subcategoryValue = quantity * price;
+        totalOrderValue += subcategoryValue;
+        totalQuantity += quantity;
+      }
+    });
+    
+    // Calculate average price for display purposes
+    const subcategoryPrices = selectedSubcategories
+      .map(sub => {
+        const details = subcategoryDetails.get(sub.id);
+        return details?.price ? parseFloat(details.price) : undefined;
+      })
+      .filter((price): price is number => price !== undefined && !isNaN(price) && price > 0);
+    
+    const avgPrice = subcategoryPrices.length > 0
+      ? subcategoryPrices.reduce((sum, price) => sum + price, 0) / subcategoryPrices.length
+      : 0;
+    
+    // Calculate payment amount based on the plan's percentage (default to 0.5% if plan not loaded)
+    const percentage = b2bSubscriptionPlan?.pricePercentage ?? 0.5;
+    const basePaymentAmount = totalOrderValue * (percentage / 100);
+    // Calculate GST (18%) on payment amount
+    const gstRate = 0.18; // 18% GST
+    const gstAmount = basePaymentAmount * gstRate;
+    const paymentAmount = basePaymentAmount + gstAmount;
+    
+    return { totalOrderValue, paymentAmount, basePaymentAmount, gstAmount, totalQuantity, avgPrice, percentage };
+  }, [selectedSubcategories, subcategoryDetails, b2bSubscriptionPlan]);
+
+  // Load B2B subscription plan early so payment calculations use correct percentage
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadData = async () => {
+        try {
+          // Load B2B subscription plan early so payment calculations use correct percentage
+          try {
+            await fetchB2BSubscriptionPlan();
+          } catch (error) {
+            console.warn('Failed to load B2B subscription plan:', error);
+            // Don't block the screen if plan loading fails
+          }
+        } catch (error) {
+          console.error('Error loading data:', error);
+        }
+      };
+      loadData();
+    }, [])
+  );
 
   // Load location
   useEffect(() => {
@@ -455,54 +560,95 @@ const BulkSellRequestScreen = ({ navigation }: any) => {
       return;
     }
 
-    setIsSubmitting(true);
+    // Get total quantity from summary
+    const totalQuantity = subcategorySummary.totalQuantity;
 
-    try {
-      // Build subcategories array
-      const subcategoriesArray = selectedSubcategories.map(sub => {
-        const details = subcategoryDetails.get(sub.id);
-        return {
-          subcategory_id: sub.id,
-          subcategory_name: sub.name,
-          quantity: details?.quantity ? parseFloat(details.quantity) : 0,
-          asking_price: details?.price ? parseFloat(details.price) : undefined,
-        };
-      }).filter(item => item.quantity > 0);
+    // Validate minimum quantity requirement (100 kg)
+    if (totalQuantity < 100) {
+      Alert.alert(
+        t('common.error') || 'Error',
+        t('bulkSellRequest.minimumQuantityRequired') || 'Minimum quantity of 100 kg is required for bulk sell requests.'
+      );
+      return;
+    }
 
-      const totalQuantity = subcategorySummary.totalQuantity;
-      const avgPrice = subcategorySummary.averagePrice > 0 ? subcategorySummary.averagePrice : undefined;
+    // Calculate total order value and payment amount
+    const { totalOrderValue, paymentAmount } = calculateOrderValue;
+    
+    if (totalOrderValue <= 0 || paymentAmount <= 0) {
+      Alert.alert(
+        t('common.error') || 'Error',
+        'Please enter valid quantity and price to calculate order value.'
+      );
+      return;
+    }
 
-      // Build documents array
-      const documentsArray = selectedDocuments.map(doc => ({
-        uri: doc.uri,
-        name: doc.name,
-        type: doc.type,
-      }));
-
-      // Determine scrap type from first category
-      const scrapType = selectedCategories.length > 0 ? selectedCategories[0].name : undefined;
-
-      // Get address string (it's already a string from the location loading)
-      const pickupLocation = currentLocation?.address || locationAddress || undefined;
-
-      const request: BulkSellRequest = {
-        seller_id: userData.id,
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-        scrap_type: scrapType,
-        subcategories: subcategoriesArray.length > 0 ? subcategoriesArray : undefined,
-        quantity: totalQuantity,
-        asking_price: avgPrice,
-        preferred_distance: preferredDistance,
-        when_available: selectedAvailability || undefined,
-        location: pickupLocation,
-        additional_notes: additionalNotes || undefined,
-        documents: documentsArray.length > 0 ? documentsArray : undefined
+    // Build subcategories array
+    const subcategoriesArray = selectedSubcategories.map(sub => {
+      const details = subcategoryDetails.get(sub.id);
+      return {
+        subcategory_id: sub.id,
+        subcategory_name: sub.name,
+        quantity: details?.quantity ? parseFloat(details.quantity) : 0,
+        asking_price: details?.price ? parseFloat(details.price) : undefined,
       };
+    }).filter(item => item.quantity > 0);
 
+    const avgPrice = subcategorySummary.averagePrice > 0 ? subcategorySummary.averagePrice : undefined;
+
+    // Build documents array
+    const documentsArray = selectedDocuments.map(doc => ({
+      uri: doc.uri,
+      name: doc.name,
+      type: doc.type,
+    }));
+
+    // Determine scrap type from first category
+    const scrapType = selectedCategories.length > 0 ? selectedCategories[0].name : undefined;
+
+    // Get address string (it's already a string from the location loading)
+    const pickupLocation = currentLocation?.address || locationAddress || undefined;
+
+    const request: BulkSellRequest = {
+      seller_id: userData.id,
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude,
+      scrap_type: scrapType,
+      subcategories: subcategoriesArray.length > 0 ? subcategoriesArray : undefined,
+      quantity: totalQuantity,
+      asking_price: avgPrice,
+      preferred_distance: preferredDistance,
+      when_available: selectedAvailability || undefined,
+      location: pickupLocation,
+      additional_notes: additionalNotes || undefined,
+      documents: documentsArray.length > 0 ? documentsArray : undefined
+    };
+
+    // Always require payment before creating request
+    // Fetch subscription plan and show payment modal
+    const plan = await fetchB2BSubscriptionPlan();
+    if (!plan) {
+      return;
+    }
+
+    // Store the request for later submission after payment approval
+    setPendingBulkRequest(request);
+    // Payment amount is percentage-based on total order value
+    setPaymentAmount(paymentAmount);
+    setB2bSubscriptionPlan(plan);
+    setShowPaymentModal(true);
+  };
+
+  // Submit bulk sell request after payment approval
+  const submitBulkSellRequest = async (request: BulkSellRequest) => {
+    setIsSubmitting(true);
+    try {
       const response = await createBulkSellRequest(request);
 
       if (response.status === 'success') {
+        // Clear pending request
+        setPendingBulkRequest(null);
+        
         Alert.alert(
           t('common.success') || 'Success',
           t('bulkSellRequest.requestSubmitted') || `Your bulk sell request has been submitted! Notifications sent to ${response.data?.notified_users?.notified || 0} nearby users.`,
@@ -530,6 +676,202 @@ const BulkSellRequestScreen = ({ navigation }: any) => {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle Instamojo WebView payment response
+  const handleInstamojoResponse = async (response: InstamojoPaymentResponse) => {
+    console.log('📱 Instamojo Payment Response:', response);
+    
+    // Close WebView
+    setShowInstamojoWebView(false);
+    
+    if (!b2bSubscriptionPlan || !userData?.id) {
+      Alert.alert('Error', 'Payment data not found. Please try again.');
+      setInstamojoPaymentUrl('');
+      setPaymentRequestId(null);
+      setRedirectUrl('');
+      return;
+    }
+
+    if (response.status === 'success' && response.paymentId) {
+      // Payment successful - save subscription
+      const transactionId = response.paymentId;
+      const requestId = response.paymentRequestId || paymentRequestId || null;
+      
+      // Calculate total amount (base + GST)
+      const basePaymentAmount = calculateOrderValue.basePaymentAmount || paymentAmount / 1.18;
+      const gstAmount = calculateOrderValue.gstAmount || basePaymentAmount * 0.18;
+      const totalPaymentAmount = basePaymentAmount + gstAmount;
+      
+      console.log('✅ Payment successful, saving subscription:', {
+        userId: userData.id,
+        packageId: b2bSubscriptionPlan.id,
+        transactionId,
+        paymentRequestId: requestId,
+        baseAmount: basePaymentAmount,
+        gstAmount: gstAmount,
+        totalAmount: totalPaymentAmount,
+      });
+
+      try {
+        // Save subscription with transaction details (use total amount including GST)
+        const saveResult = await saveUserSubscription(
+          userData.id,
+          b2bSubscriptionPlan.id,
+          {
+            transactionId: transactionId,
+            paymentRequestId: requestId,
+            responseCode: '00',
+            approvalRefNo: transactionId,
+            amount: response.amount || totalPaymentAmount.toFixed(2),
+            paymentMethod: 'Instamojo',
+          }
+        );
+
+        if (saveResult.status === 'success') {
+          // Submit bulk sell request after payment approval
+          if (pendingBulkRequest) {
+            await submitBulkSellRequest(pendingBulkRequest);
+          }
+
+          setShowPaymentModal(false);
+          setIsProcessingPayment(false);
+          
+          Alert.alert(
+            'Payment Submitted',
+            `Payment verification submitted successfully!\nTransaction ID: ${transactionId}\nAmount: ₹${totalPaymentAmount.toFixed(2)}\n\nYour bulk sell request has been submitted!`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // Refetch profile to check payment approval status
+                  refetchProfile();
+                  // Navigate back to dashboard
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'DealerDashboard' }],
+                  });
+                  // Clear the form after navigation
+                  setPendingBulkRequest(null);
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert(
+            'Subscription Error',
+            saveResult.msg || 'Payment was successful but subscription activation failed. Please contact support with Transaction ID: ' + transactionId
+          );
+        }
+      } catch (saveError: any) {
+        console.error('Error saving subscription:', saveError);
+        Alert.alert(
+          'Subscription Error',
+          `Payment was successful but subscription activation failed.\n\nTransaction ID: ${transactionId}\n\nError: ${saveError.message || 'Unknown error'}\n\nPlease contact support with the Transaction ID.`
+        );
+      }
+    } else if (response.status === 'cancelled') {
+      console.log('⚠️ Instamojo Payment Cancelled');
+      Alert.alert('Payment Cancelled', 'Payment was cancelled. Please try again when ready.');
+    } else {
+      console.error('❌ Instamojo Payment Failed:', response);
+      Alert.alert('Payment Failed', response.message || response.error || 'Payment failed. Please try again.');
+    }
+    
+    // Reset state
+    setInstamojoPaymentUrl('');
+    setPaymentRequestId(null);
+    setRedirectUrl('');
+    setIsProcessingPayment(false);
+  };
+
+  // Handle Instamojo payment initiation
+  const handleInstamojoPayment = async () => {
+    if (isProcessingPayment) return;
+    
+    setIsProcessingPayment(true);
+    try {
+      if (!userData?.id) {
+        Alert.alert(t('bulkScrapRequest.error') || 'Error', t('bulkScrapRequest.userInfoNotFound') || 'User information not found');
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      // Get user profile data for buyer information
+      const shop = profileData?.shop as any;
+      const buyerName = userData.name || shop?.shopname || 'User';
+      const buyerEmail = userData.email || shop?.email || '';
+      const buyerPhone = String(userData.mob_num || shop?.contact || '').replace(/\D/g, '');
+
+      if (!buyerEmail || !buyerPhone) {
+        Alert.alert(
+          t('bulkScrapRequest.incompleteProfile') || 'Incomplete Profile',
+          t('bulkScrapRequest.incompleteProfileMessage') || 'Please complete your profile with email and phone number before making payment.'
+        );
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      // Create redirect URL - use v2 API endpoint for payment callback
+      const redirectUrlValue = `${API_BASE_URL}/v2/instamojo/payment-redirect`;
+      setRedirectUrl(redirectUrlValue);
+
+      // Calculate GST (18%) for B2B users
+      const baseAmount = calculateOrderValue.basePaymentAmount || paymentAmount / 1.18;
+      const gstRate = 0.18; // 18% GST
+      const gstAmount = baseAmount * gstRate;
+      const totalAmount = baseAmount + gstAmount;
+      
+      // Round to 2 decimal places for Instamojo (required format)
+      const roundedTotalAmount = parseFloat(totalAmount.toFixed(2));
+
+      // Create payment request via API
+      console.log('💳 Creating Instamojo payment request:', {
+        userId: userData.id,
+        packageId: b2bSubscriptionPlan?.id,
+        baseAmount: baseAmount,
+        gstAmount: gstAmount,
+        totalAmount: roundedTotalAmount,
+        purpose: b2bSubscriptionPlan?.name || 'B2B Subscription Payment',
+        buyerName,
+        buyerEmail,
+        buyerPhone,
+      });
+
+      // Create payment request via API with total amount (base + GST for B2B)
+      const paymentRequest = await createInstamojoPaymentRequest({
+        purpose: b2bSubscriptionPlan?.name || 'B2B Subscription Payment',
+        amount: roundedTotalAmount.toFixed(2),
+        buyer_name: buyerName,
+        email: buyerEmail,
+        phone: buyerPhone,
+        redirect_url: redirectUrlValue,
+        send_email: false,
+        send_sms: false,
+        allow_repeated_payments: false,
+      });
+
+      if (!paymentRequest.data?.longurl) {
+        throw new Error('Failed to get payment URL from Instamojo');
+      }
+
+      console.log('✅ Instamojo payment request created:', {
+        payment_request_id: paymentRequest.data.payment_request_id,
+        longurl: paymentRequest.data.longurl,
+      });
+
+      setPaymentRequestId(paymentRequest.data.payment_request_id);
+      setInstamojoPaymentUrl(paymentRequest.data.longurl);
+      setShowInstamojoWebView(true);
+      setIsProcessingPayment(false);
+    } catch (error: any) {
+      console.error('❌ Error creating Instamojo payment request:', error);
+      Alert.alert(
+        t('bulkScrapRequest.paymentFailed') || 'Payment Failed',
+        error.message || t('bulkScrapRequest.paymentFailedMessage') || 'Failed to initiate payment. Please try again.'
+      );
+      setIsProcessingPayment(false);
     }
   };
 
@@ -1128,6 +1470,124 @@ const BulkSellRequestScreen = ({ navigation }: any) => {
         </View>
       </Modal>
 
+      {/* B2B Subscription Payment Modal */}
+      <Modal
+        visible={showPaymentModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          if (!isProcessingPayment) {
+            setShowPaymentModal(false);
+          }
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <AutoText style={styles.modalTitle}>
+                {t('bulkScrapRequest.paymentRequired') || 'Payment Required'}
+              </AutoText>
+              <TouchableOpacity
+                onPress={() => {
+                  if (!isProcessingPayment) {
+                    setShowPaymentModal(false);
+                  }
+                }}
+                style={styles.modalCloseButton}
+                disabled={isProcessingPayment}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={theme.textPrimary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalScrollContent}>
+              <AutoText 
+                style={[styles.modalDescription, { marginBottom: 16, textAlign: 'left' }]}
+                numberOfLines={10}
+              >
+                {t('bulkScrapRequest.paymentRequiredMessage') || 'You need to pay 0.5% of the total order value as B2B subscription fee before submitting your bulk sell request.'}
+              </AutoText>
+
+              {b2bSubscriptionPlan && (
+                <>
+                  <View style={[styles.modalItem, { marginBottom: 16 }]}>
+                    <View style={{ flex: 1 }}>
+                      <AutoText style={[styles.modalItemText, { marginBottom: 8 }]}>
+                        {b2bSubscriptionPlan.displayname || b2bSubscriptionPlan.name}
+                      </AutoText>
+                      <AutoText 
+                        style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 4 }}
+                        numberOfLines={10}
+                      >
+                        {b2bSubscriptionPlan.description || `B2B subscription plan - Pay ${b2bSubscriptionPlan.pricePercentage ?? 0.5}% of each order value when accepting orders`}
+                      </AutoText>
+                      <AutoText style={{ fontSize: 14, color: theme.primary, fontWeight: '600', marginTop: 8 }}>
+                        Total Order Value: ₹{calculateOrderValue.totalOrderValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </AutoText>
+                      <AutoText style={{ fontSize: 16, color: theme.primary, fontWeight: '700', marginTop: 4 }}>
+                        Payment Amount: ₹{paymentAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ({calculateOrderValue.percentage}%)
+                      </AutoText>
+                      {/* Show GST breakdown */}
+                      {calculateOrderValue.gstAmount > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.border }}>
+                          <AutoText style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 4 }}>
+                            Base Amount: ₹{calculateOrderValue.basePaymentAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </AutoText>
+                          <AutoText style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 4 }}>
+                            GST (18%): ₹{calculateOrderValue.gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </AutoText>
+                          <AutoText style={{ fontSize: 14, color: theme.primary, fontWeight: '600', marginTop: 4 }}>
+                            Total Payment: ₹{paymentAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </AutoText>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.uploadButton, { backgroundColor: theme.primary }]}
+                    onPress={handleInstamojoPayment}
+                    disabled={isProcessingPayment}
+                    activeOpacity={0.7}
+                  >
+                    {isProcessingPayment ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="credit-card" size={20} color="#FFFFFF" />
+                        <AutoText style={[styles.uploadButtonText, { color: '#FFFFFF', marginLeft: 8 }]}>
+                          {t('bulkScrapRequest.payNow') || 'Pay Now'}
+                        </AutoText>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Instamojo WebView Modal */}
+      {showInstamojoWebView && instamojoPaymentUrl && (
+        <InstamojoWebView
+          visible={showInstamojoWebView}
+          onClose={() => {
+            setShowInstamojoWebView(false);
+            setInstamojoPaymentUrl('');
+            setPaymentRequestId(null);
+            setRedirectUrl('');
+          }}
+          onPaymentResponse={handleInstamojoResponse}
+          paymentUrl={instamojoPaymentUrl}
+          redirectUrl={redirectUrl}
+        />
+      )}
+
       <Animated.View
         style={[
           styles.submitButtonContainer,
@@ -1638,6 +2098,25 @@ const getStyles = (theme: any, themeName?: string) =>
     modalItemTextSelected: {
       color: theme.primary,
       fontFamily: 'Poppins-SemiBold',
+    },
+    modalDescription: {
+      fontFamily: 'Poppins-Regular',
+      fontSize: '14@s',
+      color: theme.textSecondary,
+      lineHeight: '20@vs',
+    },
+    uploadButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: '14@vs',
+      paddingHorizontal: '20@s',
+      borderRadius: '12@ms',
+      marginTop: '16@vs',
+    },
+    uploadButtonText: {
+      fontFamily: 'Poppins-SemiBold',
+      fontSize: '16@s',
     },
     checkboxContainer: {
       marginRight: '8@s',
