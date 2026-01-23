@@ -39,7 +39,8 @@
     "loginRequired": "ಲಾಗಿನ್ ಅಗತ್ಯ",
     "reject": "ನಿರಾಕರಿಸಿ",
     "retry": "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
-    "errorLoadingData": "ಡೇಟಾ ಲೋಡ್ ಮಾಡಲು ದೋಷ"
+    "errorLoadingData": "ಡೇಟಾ ಲೋಡ್ ಮಾಡಲು ದೋಷ",
+    "viewAll": "ಎಲ್ಲವನ್ನೂ ನೋಡಿ"
   },
   "selectLanguage": {
     "title": "ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
@@ -81,6 +82,8 @@
     "subcategories": "ಉಪವರ್ಗಗಳು",
     "noSubcategories": "ಯಾವುದೇ ಉಪವರ್ಗಗಳು ಲಭ್ಯವಿಲ್ಲ",
     "price": "ಬೆಲೆ",
+    "buy": "ಖರೀದಿ",
+    "sell": "ವಿಕ್ರಯ",
     "defaultPrice": "ಡೀಫಾಲ್ಟ್",
     "noImage": "ಚಿತ್ರವಿಲ್ಲ",
     "noCategoriesOperating": "ಯಾವುದೇ ಸ್ಕ್ರ್ಯಾಪ್ ವರ್ಗಗಳು ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತಿಲ್ಲ",
@@ -261,6 +264,8 @@
     "completed": "32% ಪೂರ್ಣಗೊಂಡಿದೆ",
     "myOrders": "ನನ್ನ ಆರ್ಡರ್‌ಗಳು",
     "pickupStatus": "ಪಿಕ್‌ಅಪ್ ಸ್ಥಿತಿ",
+    "liveScrapRates": "ಲೈವ್ ಸ್ಕ್ರ್ಯಾಪ್ ಬೆಲೆಗಳು",
+    "bulkSell": "ಬಲ್ಕ್ ಮಾರಾಟ",
     "appearance": "ದೃಶ್ಯ",
     "light": "ನೇಚರ್ ಗ್ರೀನ್",
     "dark": "ಮಿಡ್‌ನೈಟ್ ಬ್ಲ್ಯಾಕ್",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "ಡೀಲರ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
     "liveScrapPrices": "ಲೈವ್ ಸ್ಕ್ರ್ಯಾಪ್ ಬೆಲೆಗಳು",
+    "asOfToday": "ಅನುಸಾರ",
     "aluminium": "ಅಲ್ಯೂಮಿನಿಯಂ",
     "copper": "ಕಾಪರ್",
     "daily": "ದೈನಂದಿನ",
@@ -751,6 +757,7 @@
     "locationRequired": "ದಯವಿಟ್ಟು ಸ್ಥಳ ಸೇವೆಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ",
     "selectSubcategory": "ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಉಪವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
     "quantityRequired": "ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಉಪವರ್ಗಕ್ಕೆ ಪ್ರಮಾಣವನ್ನು ನಮೂದಿಸಿ",
+    "minimumQuantityRequired": "ಮೊತ್ತದ ಮಾರಾಟ ವಿನಂತಿಗಳಿಗೆ ಕನಿಷ್ಠ 100 ಕೆಜಿ ಪ್ರಮಾಣ ಅಗತ್ಯವಿದೆ.",
     "availabilityImmediate": "ತಕ್ಷಣ",
     "availabilityWithinWeek": "ಒಂದು ವಾರದೊಳಗೆ",
     "availabilityWithinMonth": "ಒಂದು ತಿಂಗಳೊಳಗೆ",
@@ -758,7 +765,8 @@
     "pickupLocation": "ಪಿಕಪ್ ಸ್ಥಳ ಮತ್ತು ಹೆಚ್ಚುವರಿ ಮಾಹಿತಿ",
     "pickupLocationLabel": "ಪಿಕಪ್ ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಸ್ಥಳದಲ್ಲಿ ಇರುತ್ತದೆ",
     "locationNotAvailable": "ಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ಥಳ ಸೇವೆಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ.",
-    "averageSellingPrice": "ಸರಾಸರಿ ಮಾರಾಟ ಬೆಲೆ"
+    "averageSellingPrice": "ಸರಾಸರಿ ಮಾರಾಟ ಬೆಲೆ",
+    "submitRequest": "ವಿನಂತಿಯನ್ನು ಸಲ್ಲಿಸಿ"
   },
   "subcategoryRequests": {
     "title": "ಉಪವರ್ಗ ವಿನಂತಿಗಳು",
@@ -884,5 +892,19 @@
     "privacyText": "ನಿಮ್ಮ ಸ್ಥಳ ಡೇಟಾವನ್ನು ಆರ್ಡರ್ ಟ್ರ್ಯಾಕಿಂಗ್‌ಗಾಗಿ ಮಾತ್ರ ಬಳಸಲಾಗುತ್ತದೆ ಮತ್ತು ಇದನ್ನು ಮೂರನೇ ವ್ಯಕ್ತಿಗಳೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಲಾಗುವುದಿಲ್ಲ। ನಿಮ್ಮ ಸಾಧನ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಯಾವುದೇ ಸಮಯದಲ್ಲಿ ಈ ಅನುಮತಿಯನ್ನು ರದ್ದುಪಡಿಸಬಹುದು।",
     "accept": "ಮುಂದುವರಿಸಿ",
     "decline": "ಈಗ ಅಲ್ಲ"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "ಸ್ಥಳ, ಐಟಂ, ವರ್ಗ, ಬೆಲೆಯಿಂದ ಹುಡುಕಿ...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

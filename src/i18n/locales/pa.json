@@ -39,7 +39,8 @@
     "loginRequired": "ਲੌਗਇਨ ਲੋੜੀਂਦਾ",
     "reject": "ਇਨਕਾਰ ਕਰੋ",
     "retry": "ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
-    "errorLoadingData": "ਡੇਟਾ ਲੋਡ ਕਰਨ ਵਿੱਚ ਗਲਤੀ"
+    "errorLoadingData": "ਡੇਟਾ ਲੋਡ ਕਰਨ ਵਿੱਚ ਗਲਤੀ",
+    "viewAll": "ਸਭ ਦੇਖੋ"
   },
   "selectLanguage": {
     "title": "ਭਾਸ਼ਾ ਚੁਣੋ",
@@ -81,6 +82,8 @@
     "subcategories": "ਉਪ-ਸ਼੍ਰੇਣੀਆਂ",
     "noSubcategories": "ਕੋਈ ਉਪ-ਸ਼੍ਰੇਣੀ ਉਪਲਬਧ ਨਹੀਂ",
     "price": "ਕੀਮਤ",
+    "buy": "ਖਰੀਦੋ",
+    "sell": "ਵੇਚੋ",
     "defaultPrice": "ਡਿਫੌਲਟ",
     "noImage": "ਕੋਈ ਚਿੱਤਰ ਨਹੀਂ",
     "noCategoriesOperating": "ਕੋਈ ਸਕ੍ਰੈਪ ਸ਼੍ਰੇਣੀ ਕੰਮ ਨਹੀਂ ਕਰ ਰਹੀ",
@@ -261,6 +264,8 @@
     "completed": "32% ਪੂਰਾ ਹੋਇਆ",
     "myOrders": "ਮੇਰੇ ਆਰਡਰ",
     "pickupStatus": "ਪਿਕਅਪ ਸਥਿਤੀ",
+    "liveScrapRates": "ਲਾਈਵ ਸਕ੍ਰੈਪ ਕੀਮਤਾਂ",
+    "bulkSell": "ਬਲਕ ਵਿਕਰੀ",
     "appearance": "ਦਿੱਖ",
     "light": "ਨੇਚਰ ਗ੍ਰੀਨ",
     "dark": "ਮਿਡਨਾਈਟ ਬਲੈਕ",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "ਡੀਲਰ ਡੈਸ਼ਬੋਰਡ",
     "liveScrapPrices": "ਲਾਈਵ ਸਕ੍ਰੈਪ ਕੀਮਤਾਂ",
+    "asOfToday": "ਅਨੁਸਾਰ",
     "aluminium": "ਐਲੂਮੀਨੀਅਮ",
     "copper": "ਤਾਂਬਾ",
     "daily": "ਰੋਜ਼ਾਨਾ",
@@ -751,6 +757,7 @@
     "locationRequired": "ਕਿਰਪਾ ਕਰਕੇ ਸਥਾਨ ਸੇਵਾਵਾਂ ਸਮਰੱਥ ਕਰੋ",
     "selectSubcategory": "ਕਿਰਪਾ ਕਰਕੇ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਉਪ-ਸ਼੍ਰੇਣੀ ਚੁਣੋ",
     "quantityRequired": "ਕਿਰਪਾ ਕਰਕੇ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਉਪ-ਸ਼੍ਰੇਣੀ ਲਈ ਮਾਤਰਾ ਦਰਜ ਕਰੋ",
+    "minimumQuantityRequired": "ਬਲਕ ਵਿਕਰੀ ਬੇਨਤੀਆਂ ਲਈ ਘੱਟੋ-ਘੱਟ 100 ਕਿਲੋ ਮਾਤਰਾ ਲੋੜੀਂਦੀ ਹੈ।",
     "availabilityImmediate": "ਤੁਰੰਤ",
     "availabilityWithinWeek": "ਇੱਕ ਹਫ਼ਤੇ ਦੇ ਅੰਦਰ",
     "availabilityWithinMonth": "ਇੱਕ ਮਹੀਨੇ ਦੇ ਅੰਦਰ",
@@ -758,7 +765,8 @@
     "pickupLocation": "ਪਿਕਅੱਪ ਸਥਾਨ ਅਤੇ ਵਾਧੂ ਜਾਣਕਾਰੀ",
     "pickupLocationLabel": "ਪਿਕਅੱਪ ਤੁਹਾਡੇ ਮੌਜੂਦਾ ਸਥਾਨ 'ਤੇ ਹੋਵੇਗਾ",
     "locationNotAvailable": "ਸਥਾਨ ਉਪਲਬਧ ਨਹੀਂ। ਕਿਰਪਾ ਕਰਕੇ ਸਥਾਨ ਸੇਵਾਵਾਂ ਸਮਰੱਥ ਕਰੋ।",
-    "averageSellingPrice": "ਔਸਤ ਵੇਚ ਕੀਮਤ"
+    "averageSellingPrice": "ਔਸਤ ਵੇਚ ਕੀਮਤ",
+    "submitRequest": "ਬੇਨਤੀ ਜਮ੍ਹਾ ਕਰੋ"
   },
   "subcategoryRequests": {
     "title": "ਉਪ-ਸ਼੍ਰੇਣੀ ਮੰਗਾਂ",
@@ -884,5 +892,19 @@
     "privacyText": "ਤੁਹਾਡੇ ਸਥਾਨ ਡੇਟਾ ਦੀ ਵਰਤੋਂ ਸਿਰਫ਼ ਆਰਡਰ ਟ੍ਰੈਕਿੰਗ ਲਈ ਕੀਤੀ ਜਾਂਦੀ ਹੈ ਅਤੇ ਇਸਨੂੰ ਤੀਜੀ ਧਿਰਾਂ ਨਾਲ ਸਾਂਝਾ ਨਹੀਂ ਕੀਤਾ ਜਾਂਦਾ। ਤੁਸੀਂ ਕਿਸੇ ਵੀ ਸਮੇਂ ਆਪਣੀਆਂ ਡਿਵਾਈਸ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਇਸ ਇਜਾਜ਼ਤ ਨੂੰ ਰੱਦ ਕਰ ਸਕਦੇ ਹੋ।",
     "accept": "ਜਾਰੀ ਰੱਖੋ",
     "decline": "ਹੁਣ ਨਹੀਂ"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "ਸਥਾਨ, ਆਈਟਮ, ਸ਼੍ਰੇਣੀ, ਕੀਮਤ ਦੁਆਰਾ ਖੋਜੋ...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

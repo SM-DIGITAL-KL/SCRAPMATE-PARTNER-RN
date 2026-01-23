@@ -39,7 +39,8 @@
     "loginRequired": "لاگ ان ضروری",
     "reject": "مسترد کریں",
     "retry": "دوبارہ کوشش کریں",
-    "errorLoadingData": "ڈیٹا لوڈ کرنے میں خرابی"
+    "errorLoadingData": "ڈیٹا لوڈ کرنے میں خرابی",
+    "viewAll": "سب دیکھیں"
   },
   "selectLanguage": {
     "title": "زبان منتخب کریں",
@@ -81,6 +82,8 @@
     "subcategories": "ضمنی زمرہ جات",
     "noSubcategories": "کوئی ضمنی زمرے دستیاب نہیں",
     "price": "قیمت",
+    "buy": "خریدیں",
+    "sell": "بیچیں",
     "defaultPrice": "ڈیفالٹ",
     "noImage": "کوئی تصویر نہیں",
     "noCategoriesOperating": "کوئی سکریپ زمرہ کام نہیں کر رہا",
@@ -261,6 +264,8 @@
     "completed": "32% مکمل",
     "myOrders": "میرے آرڈر",
     "pickupStatus": "پک اپ کی حیثیت",
+    "liveScrapRates": "لائیو سکریپ کی قیمتیں",
+    "bulkSell": "بڑی فروخت",
     "appearance": "ظہور",
     "light": "قدرتی سبز",
     "dark": "آدھی رات سیاہ",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "ڈیلر ڈیش بورڈ",
     "liveScrapPrices": "لائیو سکریپ قیمتیں",
+    "asOfToday": "کے مطابق",
     "aluminium": "ایلومینیم",
     "copper": "تانبا",
     "daily": "روزانہ",
@@ -512,6 +518,7 @@
     "selectCategoryFirst": "براہ کرم پہلے زمرہ منتخب کریں",
     "selectSubcategoryRequired": "براہ کرم کم از کم ایک ضمنی زمرہ منتخب کریں۔",
     "quantityRequired": "براہ کرم کم از کم ایک ضمنی زمرہ کے لیے درست مقدار درج کریں۔",
+    "minimumQuantityRequired": "بڑے پیمانے پر درخواستوں کے لیے کم از کم 100 کلو مقدار درکار ہے۔",
     "documentPickError": "دستاویز منتخب کرنے میں ناکام",
     "summary": "خلاصہ",
     "totalSubcategories": "کل ضمنی زمرے",
@@ -751,6 +758,7 @@
     "locationRequired": "براہ کرم مقام کی خدمات کو فعال کریں",
     "selectSubcategory": "براہ کرم کم از کم ایک ضمنی زمرہ منتخب کریں",
     "quantityRequired": "براہ کرم کم از کم ایک ضمنی زمرہ کے لیے مقدار درج کریں",
+    "minimumQuantityRequired": "بڑے پیمانے پر فروخت کی درخواستوں کے لیے کم از کم 100 کلو مقدار درکار ہے۔",
     "availabilityImmediate": "فوری طور پر",
     "availabilityWithinWeek": "ایک ہفتے کے اندر",
     "availabilityWithinMonth": "ایک مہینے کے اندر",
@@ -758,7 +766,8 @@
     "pickupLocation": "پک اپ کا مقام اور اضافی معلومات",
     "pickupLocationLabel": "پک اپ آپ کے موجودہ مقام پر ہوگا",
     "locationNotAvailable": "مقام دستیاب نہیں۔ براہ کرم مقام کی خدمات کو فعال کریں۔",
-    "averageSellingPrice": "اوسط فروخت کی قیمت"
+    "averageSellingPrice": "اوسط فروخت کی قیمت",
+    "submitRequest": "درخواست جمع کریں"
   },
   "subcategoryRequests": {
     "title": "ضمنی زمرہ کی درخواستیں",
@@ -884,5 +893,19 @@
     "privacyText": "آپ کے مقام کے ڈیٹا کا استعمال صرف آرڈر ٹریکنگ کے لیے کیا جاتا ہے اور اسے تیسرے فریقوں کے ساتھ شیئر نہیں کیا جاتا۔ آپ کسی بھی وقت اپنی ڈیوائس کی ترتیبات میں اس اجازت کو منسوخ کر سکتے ہیں۔",
     "accept": "جاری رکھیں",
     "decline": "ابھی نہیں"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "مقام، آئٹم، زمرہ، قیمت سے تلاش کریں...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

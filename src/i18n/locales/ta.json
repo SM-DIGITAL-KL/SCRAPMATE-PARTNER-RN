@@ -39,7 +39,8 @@
     "loginRequired": "உள்நுழைவு தேவை",
     "reject": "நிராகரிக்கவும்",
     "retry": "மீண்டும் முயற்சிக்கவும்",
-    "errorLoadingData": "தரவை ஏற்றுவதில் பிழை"
+    "errorLoadingData": "தரவை ஏற்றுவதில் பிழை",
+    "viewAll": "அனைத்தையும் பார்க்க"
   },
   "selectLanguage": {
     "title": "மொழியைத் தேர்ந்தெடுக்கவும்",
@@ -81,6 +82,8 @@
     "subcategories": "துணைப்பிரிவுகள்",
     "noSubcategories": "துணைப்பிரிவுகள் இல்லை",
     "price": "விலை",
+    "buy": "வாங்க",
+    "sell": "விற்க",
     "defaultPrice": "இயல்புநிலை",
     "noImage": "படம் இல்லை",
     "noCategoriesOperating": "பழைய இரும்பு வகைகள் எதுவும் இயங்கவில்லை",
@@ -261,6 +264,8 @@
     "completed": "32% முடிந்தது",
     "myOrders": "எனது ஆர்டர்கள்",
     "pickupStatus": "பிக்அப் நிலை",
+    "liveScrapRates": "நேரடி குப்பை விலைகள்",
+    "bulkSell": "மொத்த விற்பனை",
     "appearance": "தோற்றம்",
     "light": "நேச்சர் கிரீன்",
     "dark": "மிட்நைட் பிளாக்",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "டீலர் டாஷ்போர்டு",
     "liveScrapPrices": "நேரடி குப்பை விலைகள்",
+    "asOfToday": "படி",
     "aluminium": "அலுமினியம்",
     "copper": "தாமிரம்",
     "daily": "தினசரி",
@@ -751,6 +757,7 @@
     "locationRequired": "இருப்பிடச் சேவைகளை இயக்கவும்",
     "selectSubcategory": "குறைந்தபட்சம் ஒரு துணைப்பிரிவைத் தேர்ந்தெடுக்கவும்",
     "quantityRequired": "குறைந்தபட்சம் ஒரு துணைப்பிரிவுக்கு அளவை உள்ளிடவும்",
+    "minimumQuantityRequired": "மொத்த விற்பனை கோரிக்கைகளுக்கு குறைந்தபட்சம் 100 கிலோ அளவு தேவை.",
     "availabilityImmediate": "உடனடியாக",
     "availabilityWithinWeek": "ஒரு வாரத்திற்குள்",
     "availabilityWithinMonth": "ஒரு மாதத்திற்குள்",
@@ -758,7 +765,8 @@
     "pickupLocation": "பிக்கப் இடம் மற்றும் கூடுதல் தகவல்",
     "pickupLocationLabel": "பிக்கப் உங்கள் தற்போதைய இடத்தில் இருக்கும்",
     "locationNotAvailable": "இடம் கிடைக்கவில்லை. இருப்பிடச் சேவைகளை இயக்கவும்.",
-    "averageSellingPrice": "சராசரி விற்பனை விலை"
+    "averageSellingPrice": "சராசரி விற்பனை விலை",
+    "submitRequest": "கோரிக்கையை சமர்ப்பிக்கவும்"
   },
   "subcategoryRequests": {
     "title": "துணைப்பிரிவு கோரிக்கைகள்",
@@ -884,5 +892,19 @@
     "privacyText": "உங்கள் இருப்பிட தரவு ஆர்டர் கண்காணிப்புக்காக மட்டுமே பயன்படுத்தப்படுகிறது மற்றும் மூன்றாம் தரப்பினருடன் பகிரப்படாது। உங்கள் சாதன அமைப்புகளில் எந்த நேரத்திலும் இந்த அனுமதியை நீக்கலாம்।",
     "accept": "தொடரவும்",
     "decline": "இப்போது வேண்டாம்"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "இடம், பொருள், வகை, விலை மூலம் தேடு...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

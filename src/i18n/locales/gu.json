@@ -39,7 +39,8 @@
     "loginRequired": "લોગિન જરૂરી",
     "reject": "નકારો",
     "retry": "ફરી પ્રયાસ કરો",
-    "errorLoadingData": "ડેટા લોડ કરવામાં ભૂલ"
+    "errorLoadingData": "ડેટા લોડ કરવામાં ભૂલ",
+    "viewAll": "બધું જુઓ"
   },
   "selectLanguage": {
     "title": "ભાષા પસંદ કરો",
@@ -81,6 +82,8 @@
     "subcategories": "ઉપશ્રેણીઓ",
     "noSubcategories": "કોઈ ઉપશ્રેણીઓ ઉપલબ્ધ નથી",
     "price": "કિંમત",
+    "buy": "ખરીદો",
+    "sell": "વેચો",
     "defaultPrice": "મૂળભૂત",
     "noImage": "કોઈ છબી નથી",
     "noCategoriesOperating": "કોઈ સ્ક્રેપ શ્રેણીઓ કાર્યરત નથી",
@@ -261,6 +264,8 @@
     "completed": "32% પૂર્ણ થયું",
     "myOrders": "મારા ઓર્ડર",
     "pickupStatus": "પિકઅપ સ્થિતિ",
+    "liveScrapRates": "લાઇવ સ્ક્રેપ કિંમતો",
+    "bulkSell": "બલ્ક વેચાણ",
     "appearance": "દેખાવ",
     "light": "નેચર ગ્રીન",
     "dark": "મિડનાઈટ બ્લેક",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "ડીલર ડેશબોર્ડ",
     "liveScrapPrices": "લાઇવ સ્ક્રેપ કિંમતો",
+    "asOfToday": "અનુસાર",
     "aluminium": "એલ્યુમિનિયમ",
     "copper": "તાંબુ",
     "daily": "દૈનિક",
@@ -750,6 +756,7 @@
     "locationRequired": "કૃપા કરીને GPS સક્ષમ કરો",
     "selectSubcategory": "કૃપા કરીને ઓછામાં ઓછી એક ઉપશ્રેણી પસંદ કરો",
     "quantityRequired": "કૃપા કરીને ઓછામાં ઓછી એક ઉપશ્રેણી માટે રકમ દાખલ કરો",
+    "minimumQuantityRequired": "મોટા પ્રમાણમાં વેચાણ વિનંતીઓ માટે ઓછામાં ઓછું 100 કિલો જથ્થો જરૂરી છે.",
     "availabilityImmediate": "તાત્કાલિક",
     "availabilityWithinWeek": "એક અઠવાડિયામાં",
     "availabilityWithinMonth": "એક મહિનામાં",
@@ -757,7 +764,8 @@
     "pickupLocation": "પિકઅપ સ્થાન અને વધારાની માહિતી",
     "pickupLocationLabel": "પિકઅપ તમારા વર્તમાન સ્થાન પર થશે",
     "locationNotAvailable": "સ્થાન ઉપલબ્ધ નથી. કૃપા કરીને GPS સક્ષમ કરો.",
-    "averageSellingPrice": "સરેરાશ વેચાણ કિંમત"
+    "averageSellingPrice": "સરેરાશ વેચાણ કિંમત",
+    "submitRequest": "વિનંતી સબમિટ કરો"
   },
   "subcategoryRequests": {
     "title": "ઉપશ્રેણી વિનંતીઓ",
@@ -883,5 +891,19 @@
     "privacyText": "તમારા સ્થાન ડેટાનો ઉપયોગ ફક્ત ઓર્ડર ટ્રેકિંગ માટે થાય છે અને તે તૃતીય પક્ષો સાથે શેર કરવામાં આવતો નથી। તમે તમારી ડિવાઇસ સેટિંગ્સમાં કોઈ પણ સમયે આ પરવાનગી રદ કરી શકો છો।",
     "accept": "ચાલુ રાખો",
     "decline": "હમણાં નહીં"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "સ્થાન, આઇટમ, કેટેગરી, કિંમત દ્વારા શોધો...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

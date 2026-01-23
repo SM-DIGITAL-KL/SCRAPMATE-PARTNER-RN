@@ -46,5 +46,15 @@ target 'ScrapmatePartner' do
         end
       end
     end
+    
+    # Fix for NitroIap/NitroModules dependency issue
+    installer.pods_project.targets.each do |target|
+      if target.name == 'NitroIap'
+        target.build_configurations.each do |config|
+          # Remove NitroModules dependency if it causes issues
+          config.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] ||= ['$(inherited)']
+        end
+      end
+    end
   end
 end

@@ -25,6 +25,8 @@ import B2CSignupScreen from '../screens/B2C/B2CSignupScreen';
 import SubcategoryRequestsScreen from '../screens/B2C/SubcategoryRequestsScreen';
 import ParticipateBulkRequestScreen from '../screens/B2C/ParticipateBulkRequestScreen';
 import BulkRequestTrackingScreen from '../screens/B2C/BulkRequestTrackingScreen';
+import LivePricesScreen from '../screens/B2B/LivePricesScreen';
+import BulkSellRequestScreen from '../screens/B2B/BulkSellRequestScreen';
 import { useTheme } from '../components/ThemeProvider';
 import { getUserData } from '../services/auth/authService';
 
@@ -52,6 +54,8 @@ export type B2CStackParamList = {
   SubcategoryRequests: undefined;
   ParticipateBulkRequest: { request: any };
   BulkRequestTracking: { bulkRequest: any; orderId?: string | number };
+  LivePrices: undefined;
+  BulkSellRequest: undefined;
 };
 
 const Stack = createNativeStackNavigator<B2CStackParamList>();
@@ -179,6 +183,8 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="SubcategoryRequests" component={SubcategoryRequestsScreen} />
       <Stack.Screen name="ParticipateBulkRequest" component={ParticipateBulkRequestScreen} />
       <Stack.Screen name="BulkRequestTracking" component={BulkRequestTrackingScreen} />
+      <Stack.Screen name="LivePrices" component={LivePricesScreen} />
+      <Stack.Screen name="BulkSellRequest" component={BulkSellRequestScreen} />
     </Stack.Navigator>
   );
 });

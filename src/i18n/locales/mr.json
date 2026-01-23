@@ -39,7 +39,8 @@
     "loginRequired": "लॉगिन आवश्यक",
     "reject": "नकार द्या",
     "retry": "पुन्हा प्रयत्न करा",
-    "errorLoadingData": "डेटा लोड करताना त्रुटी"
+    "errorLoadingData": "डेटा लोड करताना त्रुटी",
+    "viewAll": "सर्व पहा"
   },
   "selectLanguage": {
     "title": "भाषा निवडा",
@@ -81,6 +82,8 @@
     "subcategories": "उपवर्ग",
     "noSubcategories": "कोणतेही उपवर्ग उपलब्ध नाहीत",
     "price": "किंमत",
+    "buy": "खरेदी",
+    "sell": "विक्री",
     "defaultPrice": "डिफॉल्ट",
     "noImage": "प्रतिमा नाही",
     "noCategoriesOperating": "कोणतेही भंगार वर्ग कार्यरत नाहीत",
@@ -261,6 +264,8 @@
     "completed": "32% पूर्ण झाले",
     "myOrders": "माझे ऑर्डर",
     "pickupStatus": "पिकअप स्थिती",
+    "liveScrapRates": "लाइव्ह स्क्रॅप किंमती",
+    "bulkSell": "बल्क विक्री",
     "appearance": "देखावा",
     "light": "नेचर ग्रीन",
     "dark": "मिडनाईट ब्लॅक",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "डीलर डॅशबोर्ड",
     "liveScrapPrices": "लाइव्ह स्क्रॅप किंमती",
+    "asOfToday": "नुसार",
     "aluminium": "अॅल्युमिनियम",
     "copper": "तांबे",
     "daily": "दैनंदिन",
@@ -751,6 +757,7 @@
     "locationRequired": "कृपया स्थान सेवा सक्षम करा",
     "selectSubcategory": "कृपया किमान एक उपवर्ग निवडा",
     "quantityRequired": "कृपया किमान एका उपवर्गासाठी प्रमाण प्रविष्ट करा",
+    "minimumQuantityRequired": "मोठ्या प्रमाणातील विक्री विनंत्या करिता किमान 100 किलो प्रमाण आवश्यक आहे.",
     "availabilityImmediate": "त्वरित",
     "availabilityWithinWeek": "एका आठवड्यात",
     "availabilityWithinMonth": "एका महिन्यात",
@@ -758,7 +765,8 @@
     "pickupLocation": "पिकअप स्थान आणि अतिरिक्त माहिती",
     "pickupLocationLabel": "पिकअप तुमच्या सध्याच्या स्थानावर असेल",
     "locationNotAvailable": "स्थान उपलब्ध नाही. कृपया स्थान सेवा सक्षम करा.",
-    "averageSellingPrice": "सरासरी विक्री किंमत"
+    "averageSellingPrice": "सरासरी विक्री किंमत",
+    "submitRequest": "विनंती सबमिट करा"
   },
   "subcategoryRequests": {
     "title": "उपवर्ग विनंत्या",
@@ -884,5 +892,19 @@
     "privacyText": "तुमच्या स्थान डेटाचा वापर केवळ ऑर्डर ट्रॅकिंगसाठी केला जातो आणि तो तृतीय पक्षांसोबत सामायिक केला जात नाही। तुम्ही तुमच्या डिव्हाइस सेटिंग्जमध्ये कोणत्याही वेळी ही परवानगी रद्द करू शकता।",
     "accept": "सुरू ठेवा",
     "decline": "आत्ता नाही"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "स्थान, आयटम, श्रेणी, किंमत द्वारे शोधा...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

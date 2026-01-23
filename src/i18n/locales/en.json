@@ -39,7 +39,8 @@
     "loginRequired": "Login Required",
     "reject": "Reject",
     "retry": "Retry",
-    "errorLoadingData": "Error loading data"
+    "errorLoadingData": "Error loading data",
+    "viewAll": "View All"
   },
   "joinAs": {
     "continue": "Continue",
@@ -93,6 +94,8 @@
     "subcategories": "Subcategories",
     "noSubcategories": "No subcategories available",
     "price": "Price",
+    "buy": "Buy",
+    "sell": "Sell",
     "defaultPrice": "Default",
     "noImage": "No Image",
     "noCategoriesOperating": "No scrap categories operating",
@@ -322,6 +325,8 @@
     "completed": "32% completed",
     "myOrders": "My Orders",
     "pickupStatus": "Pickup Status",
+    "liveScrapRates": "Live Scrap Rates",
+    "bulkSell": "Bulk Sell",
     "appearance": "Appearance",
     "light": "Nature Green",
     "dark": "Midnight Black",
@@ -531,6 +536,7 @@
   "dealerDashboard": {
     "title": "Dealer Dashboard",
     "liveScrapPrices": "Live Scrap Prices",
+    "asOfToday": "As of",
     "aluminium": "Aluminium",
     "copper": "Copper",
     "daily": "Daily",
@@ -556,6 +562,7 @@
     "selectCategoryFirst": "Please select a category first",
     "quantityLabel": "Quantity (in kgs)",
     "quantityPlaceholder": "e.g., 50000",
+    "minimumQuantityRequired": "Minimum quantity of 100 kg is required for bulk requests.",
     "pricingDelivery": "Frequency & Distance",
     "preferredDistance": "Preferred Distance",
     "frequencyQuestion": "How often do you need scrap?",
@@ -619,6 +626,7 @@
     "askingPrice": "Selling Price",
     "sellingPrice": "Selling Price",
     "whenAvailable": "When Available",
+    "minimumQuantityRequired": "Minimum quantity of 100 kg is required for bulk sell requests.",
     "acceptAndBuy": "Accept & Buy",
     "navigateToShop": "Navigate to Seller Shop",
     "sellerLocationNotAvailable": "Seller location not available",
@@ -649,7 +657,8 @@
     "pickupLocation": "Pickup Location & Additional Information",
     "pickupLocationLabel": "Pickup will be at your current location",
     "locationNotAvailable": "Location not available. Please enable location services.",
-    "averageSellingPrice": "Average Selling Price"
+    "averageSellingPrice": "Average Selling Price",
+    "submitRequest": "Submit Request"
   },
   "documentUpload": {
     "title": "Upload Documents",
@@ -913,5 +922,19 @@
     "privacyText": "Your location data is only used for order tracking and is not shared with third parties. You can revoke this permission at any time in your device settings.",
     "accept": "Continue",
     "decline": "Not Now"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "Search by location, item, category, price...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

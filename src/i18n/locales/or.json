@@ -39,7 +39,8 @@
     "loginRequired": "ଲଗଇନ୍ ଆବଶ୍ୟକ",
     "reject": "ପ୍ରତ୍ୟାଖ୍ୟାନ କରନ୍ତୁ",
     "retry": "ପୁନର୍ବାର ଚେଷ୍ଟା କରନ୍ତୁ",
-    "errorLoadingData": "ଡାଟା ଲୋଡ୍ କରିବାରେ ତ୍ରୁଟି"
+    "errorLoadingData": "ଡାଟା ଲୋଡ୍ କରିବାରେ ତ୍ରୁଟି",
+    "viewAll": "ସମସ୍ତ ଦେଖନ୍ତୁ"
   },
   "selectLanguage": {
     "title": "ଭାଷା ବାଛନ୍ତୁ",
@@ -81,6 +82,8 @@
     "subcategories": "ଉପ-ବର୍ଗଗୁଡିକ",
     "noSubcategories": "କୌଣସି ଉପ-ବର୍ଗ ଉପଲବ୍ଧ ନାହିଁ",
     "price": "ମୂଲ୍ୟ",
+    "buy": "କିଣନ୍ତୁ",
+    "sell": "ବିକ୍ରୟ",
     "defaultPrice": "ଡିଫଲ୍ଟ",
     "noImage": "କୌଣସି ଚିତ୍ର ନାହିଁ",
     "noCategoriesOperating": "କୌଣସି ସ୍କ୍ରାପ୍ ବର୍ଗ କାର୍ଯ୍ୟ କରୁନାହିଁ",
@@ -261,6 +264,8 @@
     "completed": "32% ସମାପ୍ତ",
     "myOrders": "ମୋର ଅର୍ଡର୍",
     "pickupStatus": "ପିକଅପ୍ ସ୍ଥିତି",
+    "liveScrapRates": "ଲାଇଭ୍ ସ୍କ୍ରାପ୍ ମୂଲ୍ୟ",
+    "bulkSell": "ବହୁଳ ବିକ୍ରୟ",
     "appearance": "ଦୃଶ୍ୟ",
     "light": "ନେଚର ଗ୍ରୀନ",
     "dark": "ମିଡନାଇଟ ବ୍ଲାକ",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "ଡିଲର୍ ଡ୍ୟାସବୋର୍ଡ୍",
     "liveScrapPrices": "ଲାଇଭ୍ ସ୍କ୍ରାପ୍ ମୂଲ୍ୟ",
+    "asOfToday": "ଅନୁଯାୟୀ",
     "aluminium": "ଆଲୁମିନିୟମ୍",
     "copper": "ତମ୍ବା",
     "daily": "ଦୈନିକ",
@@ -751,6 +757,7 @@
     "locationRequired": "ଦୟାକରି ସ୍ଥାନ ସେବା ସକ୍ଷମ କରନ୍ତୁ",
     "selectSubcategory": "ଦୟାକରି କମରେ ଗୋଟିଏ ଉପ-ବର୍ଗ ଚୟନ କରନ୍ତୁ",
     "quantityRequired": "ଦୟାକରି କମରେ ଗୋଟିଏ ଉପ-ବର୍ଗ ପାଇଁ ପରିମାଣ ଲେଖନ୍ତୁ",
+    "minimumQuantityRequired": "ମୋଟ ବିକ୍ରୟ ଅନୁରୋଧଗୁଡ଼ିକ ପାଇଁ କମରେ 100 କିଲୋଗ୍ରାମ ପରିମାଣ ଆବଶ୍ୟକ |",
     "availabilityImmediate": "ତୁରନ୍ତ",
     "availabilityWithinWeek": "ଏକ ସପ୍ତାହ ମଧ୍ୟରେ",
     "availabilityWithinMonth": "ଏକ ମାସ ମଧ୍ୟରେ",
@@ -758,7 +765,8 @@
     "pickupLocation": "ପିକଅପ୍ ସ୍ଥାନ ଏବଂ ଅତିରିକ୍ତ ସୂଚନା",
     "pickupLocationLabel": "ପିକଅପ୍ ଆପଣଙ୍କ ବର୍ତ୍ତମାନର ସ୍ଥାନରେ ହେବ",
     "locationNotAvailable": "ସ୍ଥାନ ଉପଲବ୍ଧ ନାହିଁ | ଦୟାକରି ସ୍ଥାନ ସେବା ସକ୍ଷମ କରନ୍ତୁ |",
-    "averageSellingPrice": "ହାରାହାରି ବିକ୍ରୟ ମୂଲ୍ୟ"
+    "averageSellingPrice": "ହାରାହାରି ବିକ୍ରୟ ମୂଲ୍ୟ",
+    "submitRequest": "ଅନୁରୋଧ ଦାଖଲ କରନ୍ତୁ"
   },
   "subcategoryRequests": {
     "title": "ଉପ-ବର୍ଗ ଅନୁରୋଧ",
@@ -884,5 +892,19 @@
     "privacyText": "ଆପଣଙ୍କର ଅବସ୍ଥାନ ଡାଟା କେବଳ ଅର୍ଡର ଟ୍ରାକିଂ ପାଇଁ ବ୍ୟବହୃତ ହୁଏ ଏବଂ ଏହା ତୃତୀୟ ପକ୍ଷମାନଙ୍କ ସହିତ ଅଂଶୀଦାର ହୁଏ ନାହିଁ। ଆପଣ ଯେକୌଣସି ସମୟରେ ଆପଣଙ୍କର ଡିଭାଇସ୍ ସେଟିଂରେ ଏହି ଅନୁମତି ରଦ୍ଦ କରିପାରିବେ।",
     "accept": "ଜାରି ରଖନ୍ତୁ",
     "decline": "ବର୍ତ୍ତମାନ ନୁହେଁ"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "ଅବସ୍ଥାନ, ଆଇଟମ୍, ବର୍ଗ, ମୂଲ୍ୟ ଅନୁସାରେ ଖୋଜନ୍ତୁ...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

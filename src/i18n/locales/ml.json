@@ -39,7 +39,8 @@
     "loginRequired": "ലോഗിൻ ആവശ്യമാണ്",
     "reject": "നിരസിക്കുക",
     "retry": "വീണ്ടും ശ്രമിക്കുക",
-    "errorLoadingData": "ഡാറ്റ ലോഡ് ചെയ്യുന്നതിൽ പിശക്"
+    "errorLoadingData": "ഡാറ്റ ലോഡ് ചെയ്യുന്നതിൽ പിശക്",
+    "viewAll": "എല്ലാം കാണുക"
   },
   "selectLanguage": {
     "title": "ഭാഷ തിരഞ്ഞെടുക്കുക",
@@ -81,6 +82,8 @@
     "subcategories": "ഉപവിഭാഗങ്ങൾ",
     "noSubcategories": "ഉപവിഭാഗങ്ങളൊന്നും ലഭ്യമല്ല",
     "price": "വില",
+    "buy": "വാങ്ങുക",
+    "sell": "വിൽക്കുക",
     "defaultPrice": "ഡിഫോൾട്ട്",
     "noImage": "ചിത്രമില്ല",
     "noCategoriesOperating": "സ്ക്രാപ്പ് വിഭാഗങ്ങളൊന്നും പ്രവർത്തിക്കുന്നില്ല",
@@ -261,6 +264,8 @@
     "completed": "32% പൂർത്തിയായി",
     "myOrders": "എന്റെ ഓർഡറുകൾ",
     "pickupStatus": "പിക്കപ്പ് സ്ഥിതി",
+    "liveScrapRates": "ലൈവ് സ്ക്രാപ് നിരക്കുകൾ",
+    "bulkSell": "ബൾക്ക് വിൽപ്പന",
     "appearance": "ദൃശ്യം",
     "light": "നേച്ചർ ഗ്രീൻ",
     "dark": "മിഡ്നൈറ്റ് ബ്ലാക്ക്",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "ഡീലർ ഡാഷ്ബോർഡ്",
     "liveScrapPrices": "ലൈവ് സ്ക്രാപ് നിരക്കുകൾ",
+    "asOfToday": "പ്രകാരം",
     "aluminium": "അലൂമിനിയം",
     "copper": "കാപ്പർ",
     "daily": "ദിവസേന",
@@ -751,6 +757,7 @@
     "locationRequired": "ദയവായി ലൊക്കേഷൻ സേവനങ്ങൾ പ്രവർത്തനക്ഷമമാക്കുക",
     "selectSubcategory": "ദയവായി ഒരു ഉപവിഭാഗമെങ്കിലും തിരഞ്ഞെടുക്കുക",
     "quantityRequired": "ദയവായി ഒരു ഉപവിഭാഗത്തിനെങ്കിലും അളവ് നൽകുക",
+    "minimumQuantityRequired": "മൊത്തം വിൽപ്പന അഭ്യർത്ഥനകൾക്ക് കുറഞ്ഞത് 100 കിലോ അളവ് ആവശ്യമാണ്.",
     "availabilityImmediate": "ഉടൻ",
     "availabilityWithinWeek": "ഒരാഴ്ചയ്ക്കുള്ളിൽ",
     "availabilityWithinMonth": "ഒരു മാസത്തിനുള്ളിൽ",
@@ -758,7 +765,8 @@
     "pickupLocation": "പിക്കപ്പ് ലൊക്കേഷനും അധിക വിവരങ്ങളും",
     "pickupLocationLabel": "പിക്കപ്പ് നിങ്ങളുടെ നിലവിലെ ലൊക്കേഷനിലായിരിക്കും",
     "locationNotAvailable": "ലൊക്കേഷൻ ലഭ്യമല്ല. ദയവായി ലൊക്കേഷൻ സേവനങ്ങൾ പ്രവർത്തനക്ഷമമാക്കുക.",
-    "averageSellingPrice": "ശരാശരി വിൽക്കുന്ന വില"
+    "averageSellingPrice": "ശരാശരി വിൽക്കുന്ന വില",
+    "submitRequest": "അഭ്യർത്ഥന സമർപ്പിക്കുക"
   },
   "subcategoryRequests": {
     "title": "ഉപവിഭാഗ അഭ്യർത്ഥനകൾ",
@@ -884,6 +892,19 @@
     "privacyText": "നിങ്ങളുടെ സ്ഥാന ഡാറ്റ ഓർഡർ ട്രാക്കിംഗിനായി മാത്രമേ ഉപയോഗിക്കൂ, മൂന്നാം കക്ഷികളുമായി പങ്കിടില്ല। നിങ്ങളുടെ ഉപകരണ സെറ്റിംഗുകളിൽ ഏത് സമയത്തും ഈ അനുമതി റദ്ദാക്കാം।",
     "accept": "തുടരുക",
     "decline": "ഇപ്പോൾ അല്ല"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "സ്ഥാനം, ഇനം, വിഭാഗം, വില അനുസരിച്ച് തിരയുക...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }
-  

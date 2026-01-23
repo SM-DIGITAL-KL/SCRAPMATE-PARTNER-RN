@@ -180,8 +180,8 @@ export const queryKeys = {
   livePrices: {
     all: ['livePrices'] as const,
     lists: () => [...queryKeys.livePrices.all, 'list'] as const,
-    list: (location?: string, category?: string) => 
-      [...queryKeys.livePrices.lists(), location || 'all', category || 'all'] as const,
+    list: (location?: string, category?: string, refresh?: boolean) => 
+      [...queryKeys.livePrices.lists(), location || 'all', category || 'all', refresh ? 'refresh' : 'cached'] as const,
   },
 } as const;
 

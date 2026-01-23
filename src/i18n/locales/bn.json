@@ -39,7 +39,8 @@
     "loginRequired": "লগইন প্রয়োজন",
     "reject": "প্রত্যাখ্যান করুন",
     "retry": "পুনরায় চেষ্টা করুন",
-    "errorLoadingData": "ডেটা লোড করতে ত্রুটি"
+    "errorLoadingData": "ডেটা লোড করতে ত্রুটি",
+    "viewAll": "সব দেখুন"
   },
   "selectLanguage": {
     "title": "ভাষা নির্বাচন করুন",
@@ -81,6 +82,8 @@
     "subcategories": "উপবিভাগ",
     "noSubcategories": "কোনো উপবিভাগ উপলব্ধ নেই",
     "price": "দাম",
+    "buy": "কিনুন",
+    "sell": "বিক্রয়",
     "defaultPrice": "ডিফল্ট",
     "noImage": "কোনো ছবি নেই",
     "noCategoriesOperating": "কোনো স্ক্র্যাপ ক্যাটাগরি চালু নেই",
@@ -261,6 +264,8 @@
     "completed": "32% সম্পন্ন",
     "myOrders": "আমার অর্ডার",
     "pickupStatus": "পিকআপ স্ট্যাটাস",
+    "liveScrapRates": "লাইভ স্ক্র্যাপ মূল্য",
+    "bulkSell": "থোক বিক্রয়",
     "appearance": "চেহারা",
     "light": "নেচার গ্রিন",
     "dark": "মিডনাইট ব্ল্যাক",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "ডিলার ড্যাশবোর্ড",
     "liveScrapPrices": "লাইভ স্ক্র্যাপ মূল্য",
+    "asOfToday": "অনুযায়ী",
     "aluminium": "অ্যালুমিনিয়াম",
     "copper": "তামা",
     "daily": "দৈনিক",
@@ -751,6 +757,7 @@
     "locationRequired": "অনুগ্রহ করে লোকেশন পরিষেবা চালু করুন",
     "selectSubcategory": "অনুগ্রহ করে অন্তত একটি উপবিভাগ নির্বাচন করুন",
     "quantityRequired": "অনুগ্রহ করে অন্তত একটি উপবিভাগের জন্য পরিমাণ লিখুন",
+    "minimumQuantityRequired": "থোক বিক্রয় অনুরোধের জন্য ন্যূনতম 100 কেজি পরিমাণ প্রয়োজন।",
     "availabilityImmediate": "তাত্ক্ষণিক",
     "availabilityWithinWeek": "এক সপ্তাহের মধ্যে",
     "availabilityWithinMonth": "এক মাসের মধ্যে",
@@ -758,7 +765,8 @@
     "pickupLocation": "পিকআপের স্থান এবং অতিরিক্ত তথ্য",
     "pickupLocationLabel": "আপনার বর্তমান অবস্থানে পিকআপ হবে",
     "locationNotAvailable": "অবস্থান উপলব্ধ নয়। অনুগ্রহ করে লোকেশন পরিষেবা চালু করুন।",
-    "averageSellingPrice": "গড় বিক্রয় মূল্য"
+    "averageSellingPrice": "গড় বিক্রয় মূল্য",
+    "submitRequest": "অনুরোধ জমা দিন"
   },
   "subcategoryRequests": {
     "title": "উপবিভাগ অনুরোধ",
@@ -884,5 +892,19 @@
     "privacyText": "আপনার অবস্থান ডেটা কেবল অর্ডার ট্র্যাকিংয়ের জন্য ব্যবহার করা হয় এবং তৃতীয় পক্ষের সাথে শেয়ার করা হয় না। আপনি যে কোনও সময় আপনার ডিভাইস সেটিংসে এই অনুমতি বাতিল করতে পারেন।",
     "accept": "চালিয়ে যান",
     "decline": "এখন না"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "অবস্থান, আইটেম, বিভাগ, মূল্য অনুসারে অনুসন্ধান করুন...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

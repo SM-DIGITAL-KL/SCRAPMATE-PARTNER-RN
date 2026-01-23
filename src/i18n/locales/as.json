@@ -39,7 +39,8 @@
     "loginRequired": "লগইন প্ৰয়োজন",
     "reject": "প্ৰত্যাখ্যান কৰক",
     "retry": "পুনৰ চেষ্টা কৰক",
-    "errorLoadingData": "ডাটা ল'ড কৰোতে ত্ৰুটি"
+    "errorLoadingData": "ডাটা ল'ড কৰোতে ত্ৰুটি",
+    "viewAll": "সকলো চাওক"
   },
   "selectLanguage": {
     "title": "ভাষা নিৰ্বাচন কৰক",
@@ -81,6 +82,8 @@
     "subcategories": "উপ-শ্ৰেণীসমূহ",
     "noSubcategories": "কোনো উপ-শ্ৰেণী উপলব্ধ নাই",
     "price": "মূল্য",
+    "buy": "ক্ৰয়",
+    "sell": "বিক্ৰী",
     "defaultPrice": "ডিফল্ট",
     "noImage": "কোনো ছবি নাই",
     "noCategoriesOperating": "কোনো স্ক্ৰেপ শ্ৰেণী চলি থকা নাই",
@@ -261,6 +264,8 @@
     "completed": "32% সম্পূৰ্ণ",
     "myOrders": "মোৰ অৰ্ডাৰ",
     "pickupStatus": "পিকআপ স্থিতি",
+    "liveScrapRates": "লাইভ স্ক্ৰেপ মূল্য",
+    "bulkSell": "থোক বিক্ৰী",
     "appearance": "দৃশ্য",
     "light": "নেচাৰ গ্ৰীন",
     "dark": "মিডনাইট ব্লেক",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "ডিলাৰ ড্যাশবৰ্ড",
     "liveScrapPrices": "লাইভ স্ক্ৰেপ মূল্য",
+    "asOfToday": "অনুযায়ী",
     "aluminium": "এলুমিনিয়াম",
     "copper": "তাম",
     "daily": "দৈনিক",
@@ -522,6 +528,7 @@
     "locationRequired": "স্থান প্ৰয়োজনীয়। অনুগ্ৰহ কৰি স্থান সেৱা সক্ষম কৰক।",
     "userNotFound": "ব্যৱহাৰকাৰী পোৱা নগল। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক।",
     "quantityRequired": "অনুগ্ৰহ কৰি অন্তত এটা উপ-শ্ৰেণীৰ বাবে বৈধ পৰিমাণ লিখক।",
+    "minimumQuantityRequired": "থোক অনুৰোধৰ বাবে ন্যূনতম 100 কিলোগ্ৰাম পৰিমাণ প্ৰয়োজন।",
     "selectSubcategoryRequired": "অনুগ্ৰহ কৰি অন্তত এটা উপ-শ্ৰেণী বাছনি কৰক।",
     "requestSubmitted": "আপোনাৰ বাল্ক স্ক্ৰেপ ক্ৰয় অনুৰোধ দাখিল কৰা হৈছে! {count} জন ওচৰৰ ব্যৱহাৰকাৰীলৈ জাননী প্ৰেৰণ কৰা হৈছে।",
     "submitError": "অনুৰোধ দাখিল কৰিবলৈ ব্যৰ্থ হ'ল। অনুগ্ৰহ কৰি পুনৰ চেষ্টা কৰক।",
@@ -751,6 +758,7 @@
     "locationRequired": "অনুগ্ৰহ কৰি স্থান সেৱা সক্ষম কৰক",
     "selectSubcategory": "অনুগ্ৰহ কৰি অন্তত এটা উপ-শ্ৰেণী বাছনি কৰক",
     "quantityRequired": "অনুগ্ৰহ কৰি অন্তত এটা উপ-শ্ৰেণীৰ বাবে পৰিশোধ দিয়ক",
+    "minimumQuantityRequired": "থোক বিক্ৰী অনুৰোধৰ বাবে ন্যূনতম 100 কিলোগ্ৰাম পৰিমাণ প্ৰয়োজন।",
     "availabilityImmediate": "তাৎক্ষণিক",
     "availabilityWithinWeek": "এসপ্তাহৰ ভিতৰত",
     "availabilityWithinMonth": "এমাহৰ ভিতৰত",
@@ -758,7 +766,8 @@
     "pickupLocation": "পিকআপ স্থান আৰু অতিৰিক্ত তথ্য",
     "pickupLocationLabel": "পিকআপ আপোনাৰ বৰ্তমান স্থানত হ'ব",
     "locationNotAvailable": "স্থান উপলব্ধ নহয়। অনুগ্ৰহ কৰি স্থান সেৱা সক্ষম কৰক।",
-    "averageSellingPrice": "গড় বিক্ৰী মূল্য"
+    "averageSellingPrice": "গড় বিক্ৰী মূল্য",
+    "submitRequest": "অনুৰোধ দাখিল কৰক"
   },
   "subcategoryRequests": {
     "title": "উপ-শ্ৰেণী অনুৰোধ",
@@ -884,5 +893,19 @@
     "privacyText": "আপোনাৰ অৱস্থান ডাটা কেৱল অৰ্ডাৰ ট্ৰেকিংৰ বাবে ব্যৱহাৰ কৰা হয় আৰু ইয়াক তৃতীয় পক্ষৰ সৈতে শ্বেয়াৰ কৰা নহয়। আপুনি যিকোনো সময়ত আপোনাৰ ডিভাইচ ছেটিংছত এই অনুমতি ৰদ্দ কৰিব পাৰে।",
     "accept": "অব্যাহত ৰাখক",
     "decline": "এতিয়া নহয়"
+  },
+  "livePrices": {
+    "location": "Location",
+    "category": "Category",
+    "item": "Item",
+    "city": "City",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "status": "Status",
+    "liveData": "Live Data",
+    "noDataAvailable": "No data available",
+    "searchPlaceholder": "স্থান, বস্তু, শ্ৰেণী, মূল্য অনুসৰি সন্ধান কৰক...",
+    "loadingSubtext": "Please wait while we fetch the latest prices from Redis cache",
+    "failedToLoad": "Failed to load live prices"
   }
 }

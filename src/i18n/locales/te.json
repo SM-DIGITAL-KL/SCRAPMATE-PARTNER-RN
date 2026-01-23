@@ -39,7 +39,8 @@
     "loginRequired": "లాగిన్ అవసరం",
     "reject": "తిరస్కరించండి",
     "retry": "మళ్లీ ప్రయత్నించండి",
-    "errorLoadingData": "డేటా లోడ్ చేయడంలో దోషం"
+    "errorLoadingData": "డేటా లోడ్ చేయడంలో దోషం",
+    "viewAll": "అన్నీ చూడండి"
   },
   "selectLanguage": {
     "title": "భాషను ఎంచుకోండి",
@@ -81,6 +82,8 @@
     "subcategories": "ఉప వర్గాలు",
     "noSubcategories": "ఉప వర్గాలు అందుబాటులో లేవు",
     "price": "ధర",
+    "buy": "కొనుగోలు",
+    "sell": "విక్రయం",
     "defaultPrice": "డిఫాల్ట్",
     "noImage": "చిత్రం లేదు",
     "noCategoriesOperating": "ఏ స్క్రాప్ వర్గం పనిచేయడం లేదు",
@@ -261,6 +264,8 @@
     "completed": "32% పూర్తయింది",
     "myOrders": "నా ఆర్డర్‌లు",
     "pickupStatus": "పికప్ స్థితి",
+    "liveScrapRates": "లైవ్ స్క్రాప్ రేట్లు",
+    "bulkSell": "బల్క్ విక్రయం",
     "appearance": "దృశ్యం",
     "light": "నేచర్ గ్రీన్",
     "dark": "మిడ్‌నైట్ బ్లాక్",
@@ -470,6 +475,7 @@
   "dealerDashboard": {
     "title": "డీలర్ డాష్‌బోర్డ్",
     "liveScrapPrices": "లైవ్ స్క్రాప్ ధరలు",
+    "asOfToday": "ప్రకారం",
     "aluminium": "అల్యూమినియం",
     "copper": "తామ్రం",
     "daily": "రోజువారీ",
@@ -512,6 +518,7 @@
     "selectCategoryFirst": "దయచేసి ముందుగా వర్గాన్ని ఎంచుకోండి",
     "selectSubcategoryRequired": "దయచేసి కనీసం ఒక ఉప వర్గాన్ని ఎంచుకోండి.",
     "quantityRequired": "దయచేసి కనీసం ఒక ఉప వర్గానికి సరైన పరిమాణాన్ని నమోదు చేయండి.",
+    "minimumQuantityRequired": "మొత్తం అభ్యర్థనలకు కనీసం 100 కిలోల పరిమాణం అవసరం.",
     "documentPickError": "పత్రం ఎంచుకోవడంలో విఫలమైంది",
     "summary": "సారాంశం",
     "totalSubcategories": "మొత్తం ఉప వర్గాలు",
@@ -751,6 +758,7 @@
     "locationRequired": "దయచేసి స్థాన సేవలను ప్రారంభించండి",
     "selectSubcategory": "దయచేసి కనీసం ఒక ఉప వర్గాన్ని ఎంచుకోండి",
     "quantityRequired": "దయచేసి కనీసం ఒక ఉప వర్గానికి పరిమాణాన్ని నమోదు చేయండి",
+    "minimumQuantityRequired": "మొత్తం విక్రయ అభ్యర్థనలకు కనీసం 100 కిలోల పరిమాణం అవసరం.",
     "availabilityImmediate": "వెంటనే",
     "availabilityWithinWeek": "ఒక వారంలో",
     "availabilityWithinMonth": "ఒక నెలలో",
@@ -758,7 +766,8 @@
     "pickupLocation": "పికప్ స్థానం మరియు అదనపు సమాచారం",
     "pickupLocationLabel": "పికప్ మీ ప్రస్తుత స్థానంలో ఉంటుంది",
     "locationNotAvailable": "స్థానం అందుబాటులో లేదు. దయచేసి స్థాన సేవలను ప్రారంభించండి.",
-    "averageSellingPrice": "సగటు అమ్మకం ధర"
+    "averageSellingPrice": "సగటు అమ్మకం ధర",
+    "submitRequest": "అభ్యర్థనను సమర్పించండి"
   },
   "subcategoryRequests": {
     "title": "ఉప వర్గం అభ్యర్థనలు",
@@ -884,5 +893,19 @@
     "privacyText": "మీ స్థాన డేటా ఆర్డర్ ట్రాకింగ్ కోసం మాత్రమే ఉపయోగించబడుతుంది మరియు మూడవ పక్షాలతో భాగస్వామ్యం చేయబడదు। మీరు ఎప్పుడైనా మీ పరికర సెట్టింగ్‌లలో ఈ అనుమతిని రద్దు చేయవచ్చు।",
     "accept": "కొనసాగించు",
     "decline": "ఇప్పుడు కాదు"
+  },
+  "livePrices": {
+    "location": "స్థానం",
+    "category": "వర్గం",
+    "item": "అంశం",
+    "city": "నగరం",
+    "buyPrice": "కొనుగోలు ధర",
+    "sellPrice": "విక్రయ ధర",
+    "status": "స్థితి",
+    "liveData": "లైవ్ డేటా",
+    "noDataAvailable": "డేటా అందుబాటులో లేదు",
+    "searchPlaceholder": "స్థానం, అంశం, వర్గం, ధర ద్వారా శోధించండి...",
+    "loadingSubtext": "Redis క్యాష్ నుండి తాజా ధరలను పొందే వరకు దయచేసి వేచి ఉండండి",
+    "failedToLoad": "లైవ్ ధరలను లోడ్ చేయడంలో విఫలమైంది"
   }
 }

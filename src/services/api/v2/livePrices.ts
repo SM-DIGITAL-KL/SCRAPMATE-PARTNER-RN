@@ -40,10 +40,12 @@ export interface LivePricesResponse {
  * Get all live prices
  * @param location - Optional filter by location
  * @param category - Optional filter by category
+ * @param refresh - Optional flag to force refresh from server (bypass cache)
  */
 export const getLivePrices = async (
   location?: string,
-  category?: string
+  category?: string,
+  refresh?: boolean
 ): Promise<LivePricesResponse> => {
   const params = new URLSearchParams();
   if (location) {
@@ -51,6 +53,9 @@ export const getLivePrices = async (
   }
   if (category) {
     params.append('category', category);
+  }
+  if (refresh) {
+    params.append('refresh', '1');
   }
 
   const url = buildApiUrl('/v2/live-prices');
