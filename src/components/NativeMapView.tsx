@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Platform, PermissionsAndroid, Alert, UIManager } from 'react-native';
 import { requireNativeComponent, NativeModules, findNodeHandle } from 'react-native';
 import { WebView } from 'react-native-webview';
+import Geolocation from '@react-native-community/geolocation';
 
 const { NativeMapViewModule } = NativeModules;
 
@@ -132,7 +133,7 @@ export const getCurrentLocationWithAddress = async (): Promise<{
   // For iOS, use Geolocation API
   if (Platform.OS === 'ios') {
     return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
+      Geolocation.getCurrentPosition(
         async (position) => {
           const location = {
             latitude: position.coords.latitude,
@@ -806,17 +807,88 @@ export const NativeMapView: React.FC<{
     const webViewRef = useRef<WebView>(null);
     const [mapReady, setMapReady] = useState(false);
     const iosLocationWatchIdRef = useRef<number | null>(null);
+    const [hasLocationPermission, setHasLocationPermission] = useState(false);
 
-    // Request location permission for iOS
+    // Request location permission for iOS using React Native Geolocation
     useEffect(() => {
       if (!disableLocationTracking) {
-        requestLocationPermission();
+        // Permission will be requested automatically when we call getCurrentPosition
+        // Just set the flag to trigger location fetching
+        setHasLocationPermission(true);
       }
-    }, [disableLocationTracking, requestLocationPermission]);
+    }, [disableLocationTracking]);
 
-    // Handle location updates from WebView
+    // Get location using React Native Geolocation API (more reliable than WebView)
+    useEffect(() => {
+      if (hasLocationPermission && !disableLocationTracking && mapReady) {
+        console.log('📍 iOS: Getting location via @react-native-community/geolocation');
+        
+        Geolocation.getCurrentPosition(
+          (position) => {
+            const location: LocationData = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy || 0,
+              timestamp: position.timestamp,
+            };
+            console.log('✅ iOS: Location obtained via Geolocation:', location);
+            setCurrentLocation(location);
+            onLocationUpdate?.(location);
+          },
+          (error) => {
+            console.warn('⚠️ iOS: Geolocation error:', error);
+            // Still call onLocationUpdate with error so parent can handle it
+            onLocationUpdate?.({
+              latitude: 0,
+              longitude: 0,
+              accuracy: 0,
+              timestamp: Date.now(),
+            });
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 10000,
+          }
+        );
+
+        // Also set up a watch for continuous updates
+        const watchId = Geolocation.watchPosition(
+          (position) => {
+            const location: LocationData = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy || 0,
+              timestamp: position.timestamp,
+            };
+            setCurrentLocation(location);
+            onLocationUpdate?.(location);
+          },
+          (error) => {
+            console.warn('⚠️ iOS: Watch position error:', error);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 10000,
+            distanceFilter: 10,
+          }
+        );
+
+        iosLocationWatchIdRef.current = watchId;
+
+        return () => {
+          if (watchId !== null) {
+            Geolocation.clearWatch(watchId);
+          }
+        };
+      }
+    }, [hasLocationPermission, disableLocationTracking, mapReady, onLocationUpdate]);
+
+    // Inject location into WebView when both map and location are ready
     useEffect(() => {
       if (currentLocation && mapReady && webViewRef.current) {
+        console.log('📍 iOS: Injecting location into WebView:', currentLocation);
         webViewRef.current.injectJavaScript(`
           if (window.updateLocation) {
             window.updateLocation(${currentLocation.latitude}, ${currentLocation.longitude});
@@ -845,8 +917,8 @@ export const NativeMapView: React.FC<{
     // Cleanup location watch on unmount
     useEffect(() => {
       return () => {
-        if (iosLocationWatchIdRef.current !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
-          navigator.geolocation.clearWatch(iosLocationWatchIdRef.current);
+        if (iosLocationWatchIdRef.current !== null) {
+          Geolocation.clearWatch(iosLocationWatchIdRef.current);
         }
       };
     }, []);
@@ -859,23 +931,17 @@ export const NativeMapView: React.FC<{
           style={{ flex: 1 }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
-          geolocationEnabled={true}
+          // Note: geolocationEnabled is not reliable for inline HTML on iOS
+          // We use React Native Geolocation API instead
           onMessage={(event) => {
             try {
               const data = JSON.parse(event.nativeEvent.data);
               if (data.type === 'mapReady') {
+                console.log('🗺️ iOS: WebView map ready');
                 setMapReady(true);
                 handleMapReady();
-              } else if (data.type === 'locationUpdate') {
-                const location: LocationData = {
-                  latitude: data.latitude,
-                  longitude: data.longitude,
-                  accuracy: data.accuracy || 0,
-                  timestamp: data.timestamp || Date.now(),
-                };
-                setCurrentLocation(location);
-                onLocationUpdate?.(location);
               }
+              // Location updates now come from RN Geolocation API, not WebView
             } catch (error) {
               console.warn('Error parsing WebView message:', error);
             }

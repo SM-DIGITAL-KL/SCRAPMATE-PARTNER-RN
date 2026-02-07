@@ -131,6 +131,7 @@
     "estimatedPrice": "Estimated Price",
     "orderImages": "Order Images",
     "orderDetails": "Order Details",
+    "orderPreview": "Order Preview",
     "noLocationAvailable": "Location not available",
     "orderStatus": "Order Status",
     "orderAcceptedByOther": "Order Accepted",
@@ -240,7 +241,18 @@
     "upgradeError": "Failed to upgrade account. Please try again.",
     "modeSwitchError": "Failed to switch mode. Please try again.",
     "useVendorButton": "Use the buttons on each vendor card to mark arrived/complete",
-    "orderCompleted": "Order Completed - All vendors have completed pickup from their locations"
+    "orderCompleted": "Order Completed - All vendors have completed pickup from their locations",
+    "orderNumberLabel": "Order #",
+    "itemsLabel": "Items",
+    "categoryLabel": "Category",
+    "estimatedWeight": "Est. Weight",
+    "estimatedPriceLabel": "Est. Price",
+    "pickupAddressLabel": "Pickup Address",
+    "pickupTimeLabel": "Pickup Time",
+    "distanceLabel": "Distance",
+    "subscriptionPrompt": "Subscribe now to accept this order and start earning!",
+    "redirectingIn": "Redirecting in {countdown}s",
+    "notAvailableShort": "N/A"
   },
   "sort": {
     "sortBy": "Sort By",

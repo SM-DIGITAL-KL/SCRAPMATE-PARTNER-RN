@@ -121,11 +121,23 @@ class IAPService {
       }
     }
 
+    // Verify product exists in fetched products
+    const product = this.products.find(p => p.productId === productId);
+    if (!product) {
+      console.error('❌ Product not found in fetched products:', productId);
+      console.error('📦 Available products:', this.products.map(p => p.productId));
+      throw new Error(`Product ${productId} not available. Please check App Store Connect configuration.`);
+    }
+
     try {
-      console.log('💳 Initiating purchase:', { productId, packageId });
+      console.log('💳 Initiating purchase:', { productId, packageId, product: product.title });
       
       // Request purchase - this will trigger the purchaseUpdatedListener
-      await requestPurchase({ sku: productId });
+      // For iOS, we need to use the correct API format for react-native-iap v12+
+      await requestPurchase({
+        sku: productId,
+        andDangerouslyFinishTransactionAutomaticallyIOS: false,
+      });
       
       // The purchase result will be handled by the existing listeners
       // Return a promise that resolves when purchase is complete

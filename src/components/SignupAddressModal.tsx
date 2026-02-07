@@ -10,7 +10,9 @@ import {
   Modal,
   NativeModules,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Geolocation from '@react-native-community/geolocation';
 import { useTheme } from './ThemeProvider';
 import { AutoText } from './AutoText';
 import { ScaledSheet } from 'react-native-size-matters';
@@ -63,6 +65,7 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
   initialLongitude,
 }) => {
   const { theme, themeName } = useTheme();
+  const insets = useSafeAreaInsets();
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [currentAddress, setCurrentAddress] = useState<string>(initialAddress || 'Shop No 15, Katraj');
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(
@@ -133,6 +136,17 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
       // Check if location is enabled
       checkLocationEnabled();
       
+      // iOS-specific: Set a shorter fallback timeout to prevent stuck loading
+      // This handles cases where WebView geolocation doesn't work
+      if (Platform.OS === 'ios') {
+        locationTimeoutRef.current = setTimeout(() => {
+          if (!locationFetchedRef.current && isLocationLoading) {
+            console.log('⏰ iOS: Location fetch timeout - hiding loader and allowing manual entry');
+            setIsLocationLoading(false);
+          }
+        }, 12000); // 12 seconds for iOS (shorter than the 15s in onMapReady)
+      }
+      
       // If we have initial coordinates and address, auto-save immediately
       if (initialLoc && initialAddress && initialAddress !== 'Shop No 15, Katraj' && onAutoSave && !autoSavedRef.current) {
         // Validate coordinates
@@ -188,6 +202,9 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
       locationTimeoutRef.current = null;
     }
     
+    // Always hide loading when user clicks Continue
+    setIsLocationLoading(false);
+    
     // If we don't have location yet, try to get it one more time
     if (!currentLocation && Platform.OS === 'android' && NativeMapViewModule) {
       try {
@@ -230,6 +247,55 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
       } catch (error) {
         console.warn('Failed to get location:', error);
       }
+    }
+    
+    // For iOS, also try to get location via Geolocation when user clicks Continue
+    if (!currentLocation && Platform.OS === 'ios') {
+      console.log('📍 iOS: Trying to get location when Continue clicked');
+      Geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          console.log('✅ iOS: Location obtained on Continue:', location);
+          setCurrentLocation(location);
+          
+          // Get address from coordinates
+          getAddressFromCoordinates(location.latitude, location.longitude)
+            .then(address => {
+              const addressText = address.address || address.formattedAddress || 'Current Location';
+              setCurrentAddress(addressText);
+              
+              const details: any = {};
+              if (address.postcode) details.pincode = address.postcode;
+              if (address.state) details.state = address.state;
+              if (address.city) details.city = address.city;
+              if (address.city) details.place = address.city;
+              
+              const locationParts = [];
+              if (address.city) locationParts.push(address.city);
+              if (address.state) locationParts.push(address.state);
+              if (address.country) locationParts.push(address.country);
+              if (locationParts.length > 0) {
+                details.location = locationParts.join(', ');
+              }
+              
+              setAddressDetails(details);
+            })
+            .catch(error => {
+              console.warn('Failed to get address on Continue:', error);
+            });
+        },
+        (error) => {
+          console.warn('⚠️ iOS: Could not get location on Continue:', error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 10000,
+        }
+      );
     }
     
     // Show form - user can still proceed even without location
@@ -292,7 +358,7 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
           activeOpacity={1}
           onPress={handleClose}
         />
-        <View style={styles.locationHistoryModalContent}>
+        <View style={[styles.locationHistoryModalContent, { paddingTop: Platform.OS === 'ios' ? insets.top : 0 }]}>
           <View style={styles.locationHistoryModalHeader}>
             <TouchableOpacity onPress={handleClose}>
               <MaterialCommunityIcons

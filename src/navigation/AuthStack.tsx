@@ -2,6 +2,7 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, NativeModules } from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
 import { useTheme } from '../components/ThemeProvider';
 import SelectLanguageScreen from '../screens/B2C/SelectLanguageScreen';
 import JoinAsScreen from '../screens/Auth/JoinAsScreen';
@@ -118,11 +119,11 @@ export const AuthStack: React.FC<AuthStackProps> = ({
             }
           }
 
-          // If location not available from native module on Android, try iOS geolocation (only if available)
-          if (!location && Platform.OS === 'ios' && typeof navigator !== 'undefined' && navigator.geolocation) {
+          // If location not available from native module on Android, try iOS geolocation
+          if (!location && Platform.OS === 'ios') {
             try {
               const position = await new Promise<any>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                Geolocation.getCurrentPosition(resolve, reject, {
                   enableHighAccuracy: true,
                   timeout: 10000,
                   maximumAge: 60000,
@@ -134,7 +135,7 @@ export const AuthStack: React.FC<AuthStackProps> = ({
                   latitude: position.coords.latitude,
                   longitude: position.coords.longitude,
                 };
-                console.log('✅ AuthStack: Got location from iOS geolocation API:', location);
+                console.log('✅ AuthStack: Got location from Geolocation API:', location);
               }
             } catch (geoError) {
               console.warn('⚠️ AuthStack: Failed to get location from geolocation API:', geoError);
