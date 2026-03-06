@@ -126,6 +126,11 @@ export const API_ROUTES = {
       bySeller: (sellerId: string | number) => `/v2/bulk-sell/requests/by-seller/${sellerId}`,
       accept: (requestId: string | number) => `/v2/bulk-sell/requests/${requestId}/accept`,
       reject: (requestId: string | number) => `/v2/bulk-sell/requests/${requestId}/reject`,
+      cancel: (requestId: string | number) => `/v2/bulk-sell/requests/${requestId}/cancel`,
+    },
+    // Media Routes
+    media: {
+      presignUpload: '/v2/media/presign-upload',
     },
     // Live Prices Routes
     livePrices: {
@@ -294,4 +299,3 @@ if (__DEV__) {
     },
   });
 }
-

@@ -16,17 +16,20 @@ type RootStackParamList = {
 };
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
+type DashboardType = 'b2b' | 'b2c' | 'delivery' | 'marketplace';
+const toRouteMode = (dashboard: DashboardType): 'b2b' | 'b2c' | 'delivery' =>
+  dashboard === 'marketplace' ? 'b2c' : dashboard;
 
 const MainAppScreen = () => {
   const { mode, isModeReady, setMode } = useUserMode();
   const [userData, setUserData] = useState<any>(null);
-  const [allowedDashboards, setAllowedDashboards] = useState<('b2b' | 'b2c' | 'delivery')[]>([]);
+  const [allowedDashboards, setAllowedDashboards] = useState<DashboardType[]>([]);
   const [selectedJoinType, setSelectedJoinType] = useState<string | null>(null);
 
   const updateAllowedDashboards = React.useCallback(async () => {
     // Load allowed dashboards from AsyncStorage (set during login)
     const storedDashboards = await AsyncStorage.getItem('@allowed_dashboards');
-    let dashboards: ('b2b' | 'b2c' | 'delivery')[] = [];
+    let dashboards: DashboardType[] = [];
     
     if (storedDashboards) {
       try {
@@ -40,9 +43,9 @@ const MainAppScreen = () => {
     // New users should NOT have access to dashboards until signup is complete
     const currentUserData = await getUserData();
     if (currentUserData?.user_type === 'N' && dashboards.length === 0) {
-      dashboards = ['b2b', 'b2c', 'delivery'];
+      dashboards = ['b2b', 'b2c', 'delivery', 'marketplace'];
       await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(dashboards));
-      console.log('✅ AppNavigator: New user with empty allowedDashboards - set to all three dashboards');
+      console.log('✅ AppNavigator: New user with empty allowedDashboards - set to all dashboards');
     }
     
     // Check B2B status - if approved, allow B2C access
@@ -91,12 +94,16 @@ const MainAppScreen = () => {
     // For new users (user_type 'N'), allow access to selected join type for signup
     // New users should have all dashboards allowed, so we don't restrict them
     if (userType === 'N') {
-      if (selectedJoinType && selectedJoinType === mode) {
+      if (
+        selectedJoinType &&
+        (selectedJoinType === mode ||
+          (selectedJoinType === 'marketplace' && mode === 'b2c'))
+      ) {
         console.log(`✅ AppNavigator: User type is N, allowing access to selected join type: ${mode} for signup`);
         return; // Allow access to selected join type for signup - don't redirect
       }
-      // If no selectedJoinType but allowedDashboards has all three, allow current mode
-      if (allowedDashboards.length >= 3 && ['b2b', 'b2c', 'delivery'].every(d => allowedDashboards.includes(d as any))) {
+      // If no selectedJoinType but allowedDashboards has all core dashboards, allow current mode
+      if (['b2b', 'b2c', 'delivery'].every(d => allowedDashboards.includes(d as DashboardType))) {
         console.log(`✅ AppNavigator: User type is N with all dashboards allowed, allowing access to: ${mode}`);
         return; // Allow access - new users can access any dashboard
       }
@@ -104,14 +111,16 @@ const MainAppScreen = () => {
     
     // For existing users, validate against allowedDashboards
     if (allowedDashboards.length > 0) {
-      const isModeAllowed = allowedDashboards.includes(mode);
+      const allowedRouteModes = allowedDashboards.map(toRouteMode);
+      const isModeAllowed = allowedRouteModes.includes(mode);
       
       if (!isModeAllowed) {
         // User doesn't have access to current mode - redirect immediately to first allowed dashboard
         const firstAllowed = allowedDashboards[0];
         if (firstAllowed) {
-          console.log(`⚠️ Mode ${mode} not allowed. Redirecting to ${firstAllowed}`);
-          setMode(firstAllowed);
+          const firstAllowedRouteMode = toRouteMode(firstAllowed);
+          console.log(`⚠️ Mode ${mode} not allowed. Redirecting to ${firstAllowedRouteMode}`);
+          setMode(firstAllowedRouteMode);
         }
       }
     }
@@ -146,9 +155,14 @@ const MainAppScreen = () => {
   // 2. Or if allowedDashboards is empty (fallback for backward compatibility)
   // 3. OR if user_type is 'N' and @selected_join_type is 'b2c' (for signup)
   if (mode === 'b2c') {
-    if (allowedDashboards.length > 0 && !allowedDashboards.includes('b2c')) {
+    const b2cAllowedViaMarketplace =
+      allowedDashboards.includes('b2c') || allowedDashboards.includes('marketplace');
+    if (allowedDashboards.length > 0 && !b2cAllowedViaMarketplace) {
       // Check if user is new (user_type 'N') and selected B2C
-      if (userData?.user_type === 'N' && selectedJoinType === 'b2c') {
+      if (
+        userData?.user_type === 'N' &&
+        (selectedJoinType === 'b2c' || selectedJoinType === 'marketplace')
+      ) {
         console.log('✅ AppNavigator: Allowing B2C access for new user signup');
         return <B2CStack key="b2c" />;
       }

@@ -11,7 +11,7 @@ export interface LoginResponse {
   data: {
     otp: string;
     isNewUser: boolean;
-    userType: 'b2b' | 'b2c' | 'delivery' | null;
+    userType: 'b2b' | 'b2c' | 'delivery' | 'marketplace' | null;
     userId: number | null;
   } | null;
 }
@@ -22,8 +22,8 @@ export interface VerifyOtpResponse {
   data: {
     user: any;
     token: string;
-    dashboardType: 'b2b' | 'b2c' | 'delivery';
-    allowedDashboards: ('b2b' | 'b2c' | 'delivery')[];
+    dashboardType: 'b2b' | 'b2c' | 'delivery' | 'marketplace';
+    allowedDashboards: ('b2b' | 'b2c' | 'delivery' | 'marketplace')[];
     b2bStatus?: 'new_user' | 'pending' | 'approved' | 'rejected' | null; // B2B signup status
   } | null;
 }
@@ -94,7 +94,7 @@ export const sendOtp = async (phoneNumber: string, appType?: 'customer_app' | 'v
 export const verifyOtp = async (
   phoneNumber: string,
   otp: string,
-  joinType?: 'b2b' | 'b2c' | 'delivery',
+  joinType?: 'b2b' | 'b2c' | 'delivery' | 'marketplace',
   appType?: 'customer_app' | 'vendor_app'
 ): Promise<VerifyOtpResponse> => {
   try {
@@ -135,4 +135,3 @@ export const verifyOtp = async (
     throw new Error(error.message || 'Network error occurred');
   }
 };
-

@@ -34,7 +34,11 @@ export type DeliveryStackParamList = {
   PrivacyPolicy: undefined;
   Terms: undefined;
   ApprovalWorkflow: { fromProfile?: boolean } | undefined;
-  SubscriptionPlans: undefined;
+  SubscriptionPlans:
+    | {
+        subscriptionContext?: 'b2b' | 'b2c' | 'marketplace';
+      }
+    | undefined;
 };
 
 const Stack = createNativeStackNavigator<DeliveryStackParamList>();
@@ -185,4 +189,3 @@ export const DeliveryStack = () => {
     </Stack.Navigator>
   );
 };
-

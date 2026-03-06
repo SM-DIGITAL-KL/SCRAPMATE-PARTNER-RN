@@ -26,7 +26,14 @@ import SubcategoryRequestsScreen from '../screens/B2C/SubcategoryRequestsScreen'
 import ParticipateBulkRequestScreen from '../screens/B2C/ParticipateBulkRequestScreen';
 import BulkRequestTrackingScreen from '../screens/B2C/BulkRequestTrackingScreen';
 import LivePricesScreen from '../screens/B2B/LivePricesScreen';
+import BulkScrapRequestScreen from '../screens/B2B/BulkScrapRequestScreen';
 import BulkSellRequestScreen from '../screens/B2B/BulkSellRequestScreen';
+import BulkSellRequestDetailsScreen from '../screens/B2B/BulkSellRequestDetailsScreen';
+import MyBulkSellOrdersScreen from '../screens/B2B/MyBulkSellOrdersScreen';
+import MyBulkSellOrderDetailScreen from '../screens/B2B/MyBulkSellOrderDetailScreen';
+import MarketplaceDashboardScreen from '../screens/Marketplace/MarketplaceDashboardScreen';
+import MarketplaceTenderDetailsScreen from '../screens/Marketplace/MarketplaceTenderDetailsScreen';
+import MarketplaceProfileSettingsScreen from '../screens/Marketplace/MarketplaceProfileSettingsScreen';
 import { useTheme } from '../components/ThemeProvider';
 import { getUserData } from '../services/auth/authService';
 
@@ -49,13 +56,36 @@ export type B2CStackParamList = {
   DealerSignup: undefined;
   DocumentUpload: undefined;
   ApprovalWorkflow: { fromProfile?: boolean } | undefined;
-  SubscriptionPlans: undefined;
+  SubscriptionPlans:
+    | {
+        subscriptionContext?: 'b2b' | 'b2c' | 'marketplace';
+      }
+    | undefined;
   B2CSignup: undefined;
   SubcategoryRequests: undefined;
   ParticipateBulkRequest: { request: any };
   BulkRequestTracking: { bulkRequest: any; orderId?: string | number };
   LivePrices: undefined;
+  BulkScrapRequest:
+    | {
+        entryMode?: 'buy_post';
+        source?: 'marketplace_plus';
+      }
+    | undefined;
   BulkSellRequest: undefined;
+  BulkSellRequestDetails: { request: any };
+  MarketplaceDashboard:
+    | {
+        prefillMarketplacePost?: {
+          type: 'buy' | 'sell';
+          request: any;
+        };
+      }
+    | undefined;
+  MarketplaceTenderDetails: { post: any; allTenders?: any[] };
+  MarketplaceProfileSettings: undefined;
+  MyBulkSellOrders: undefined;
+  MyBulkSellOrderDetail: { request: any };
 };
 
 const Stack = createNativeStackNavigator<B2CStackParamList>();
@@ -78,6 +108,8 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
         
         // Also check user_type as fallback - if user_type is 'N', route to signup
         let userType: string | null = null;
+        const requestedInitialRoute = await AsyncStorage.getItem('@b2c_initial_route');
+        const persistedHomeRoute = await AsyncStorage.getItem('@b2c_home_route');
         try {
           const userData = await getUserData();
           userType = userData?.user_type || null;
@@ -121,8 +153,18 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
               console.log('✅ B2CStack: User type is not N, clearing @b2c_signup_needed flag');
               await AsyncStorage.removeItem('@b2c_signup_needed');
             }
-            console.log('✅ B2CStack: Setting initial route to Dashboard (signup complete, user_type: ' + userType + ')');
-            route = 'Dashboard';
+            if (requestedInitialRoute === 'MarketplaceDashboard') {
+              console.log('✅ B2CStack: Setting initial route to MarketplaceDashboard (requested from JoinAs)');
+              route = 'MarketplaceDashboard';
+              await AsyncStorage.removeItem('@b2c_initial_route');
+              await AsyncStorage.setItem('@b2c_home_route', 'MarketplaceDashboard');
+            } else if (persistedHomeRoute === 'MarketplaceDashboard') {
+              console.log('✅ B2CStack: Setting initial route to MarketplaceDashboard (persisted home route)');
+              route = 'MarketplaceDashboard';
+            } else {
+              console.log('✅ B2CStack: Setting initial route to Dashboard (signup complete, user_type: ' + userType + ')');
+              route = 'Dashboard';
+            }
           }
         }
         
@@ -184,8 +226,14 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="ParticipateBulkRequest" component={ParticipateBulkRequestScreen} />
       <Stack.Screen name="BulkRequestTracking" component={BulkRequestTrackingScreen} />
       <Stack.Screen name="LivePrices" component={LivePricesScreen} />
+      <Stack.Screen name="BulkScrapRequest" component={BulkScrapRequestScreen} />
       <Stack.Screen name="BulkSellRequest" component={BulkSellRequestScreen} />
+      <Stack.Screen name="BulkSellRequestDetails" component={BulkSellRequestDetailsScreen} />
+      <Stack.Screen name="MarketplaceDashboard" component={MarketplaceDashboardScreen} />
+      <Stack.Screen name="MarketplaceTenderDetails" component={MarketplaceTenderDetailsScreen} />
+      <Stack.Screen name="MarketplaceProfileSettings" component={MarketplaceProfileSettingsScreen} />
+      <Stack.Screen name="MyBulkSellOrders" component={MyBulkSellOrdersScreen} />
+      <Stack.Screen name="MyBulkSellOrderDetail" component={MyBulkSellOrderDetailScreen} />
     </Stack.Navigator>
   );
 });
-

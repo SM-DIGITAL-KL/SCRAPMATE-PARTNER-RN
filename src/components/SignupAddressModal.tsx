@@ -36,7 +36,7 @@ interface SignupAddressModalProps {
     place?: string;
     location?: string;
     place_id?: string;
-  }) => void;
+  }) => void | Promise<void>;
   onAutoSave?: (addressData: {
     address: string;
     latitude: number;
@@ -81,6 +81,7 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
   } | null>(null);
   const locationFetchedRef = useRef(false);
   const autoSavedRef = useRef(false); // Track if we've auto-saved the address
+  const [isSelectingAddress, setIsSelectingAddress] = useState(false);
   const [houseName, setHouseName] = useState('');
   const [nearbyLocation, setNearbyLocation] = useState('');
   const locationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -339,8 +340,16 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
       place_id: addressDetails?.place_id,
     };
 
-    onAddressSelect(addressData);
-    handleClose();
+    try {
+      setIsSelectingAddress(true);
+      await Promise.resolve(onAddressSelect(addressData));
+      handleClose();
+    } catch (error) {
+      console.error('❌ Failed to save selected address:', error);
+      Alert.alert('Save Failed', 'Failed to save selected address. Please try again.');
+    } finally {
+      setIsSelectingAddress(false);
+    }
   };
 
   const styles = getStyles(theme, themeName);
@@ -628,8 +637,11 @@ export const SignupAddressModal: React.FC<SignupAddressModalProps> = ({
                   <TouchableOpacity
                     style={[styles.addressFormButton, styles.addressFormButtonSave]}
                     onPress={handleSelectAddress}
+                    disabled={isSelectingAddress}
                   >
-                    <AutoText style={styles.addressFormButtonSaveText}>Select Address</AutoText>
+                    <AutoText style={styles.addressFormButtonSaveText}>
+                      {isSelectingAddress ? 'Saving...' : 'Select Address'}
+                    </AutoText>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -820,4 +832,3 @@ const getStyles = (theme: any, themeName?: string) =>
       color: theme.textSecondary,
     },
   });
-

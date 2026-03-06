@@ -43,7 +43,11 @@ export type B2BStackParamList = {
   BulkScrapRequest: undefined;
   BulkSellRequest: undefined;
   UserProfile: undefined;
-  SubscriptionPlans: undefined;
+  SubscriptionPlans:
+    | {
+        subscriptionContext?: 'b2b' | 'b2c' | 'marketplace';
+      }
+    | undefined;
   EditProfile: undefined;
   SelectLanguage: undefined;
   AddCategory: undefined;
@@ -292,4 +296,3 @@ export const B2BStack = forwardRef<any, {}>((props, ref) => {
     </Stack.Navigator>
   );
 });
-

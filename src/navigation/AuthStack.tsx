@@ -34,8 +34,8 @@ export const AuthStack: React.FC<AuthStackProps> = ({
   const { theme } = useTheme();
   const { setMode } = useUserMode();
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [pendingDashboardType, setPendingDashboardType] = useState<'b2b' | 'b2c' | 'delivery' | null>(null);
-  const [pendingAllowedDashboards, setPendingAllowedDashboards] = useState<('b2b' | 'b2c' | 'delivery')[] | undefined>(undefined);
+  const [pendingDashboardType, setPendingDashboardType] = useState<'b2b' | 'b2c' | 'delivery' | 'marketplace' | null>(null);
+  const [pendingAllowedDashboards, setPendingAllowedDashboards] = useState<('b2b' | 'b2c' | 'delivery' | 'marketplace')[] | undefined>(undefined);
   const [initialLocation, setInitialLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const screenOptions = useMemo(
@@ -51,13 +51,15 @@ export const AuthStack: React.FC<AuthStackProps> = ({
   const handleLoginSuccess = useCallback(
     async (
       phoneNumber: string,
-      dashboardType: 'b2b' | 'b2c' | 'delivery',
-      allowedDashboards?: ('b2b' | 'b2c' | 'delivery')[]
+      dashboardType: 'b2b' | 'b2c' | 'delivery' | 'marketplace',
+      allowedDashboards?: ('b2b' | 'b2c' | 'delivery' | 'marketplace')[]
     ) => {
       // IMPORTANT: For SR users, read original join type selection BEFORE it gets overwritten
       // This is the selection from JoinAsScreen, which LoginScreen might have overwritten
       const storedJoinTypeBeforeProcessing = await AsyncStorage.getItem('@selected_join_type');
-      const originalJoinTypeFromJoinAs = storedJoinTypeBeforeProcessing as 'b2b' | 'b2c' | 'delivery' | null;
+      const originalJoinTypeFromJoinAs = storedJoinTypeBeforeProcessing as 'b2b' | 'b2c' | 'delivery' | 'marketplace' | null;
+      const marketplaceRequested =
+        originalJoinTypeFromJoinAs === 'marketplace' || dashboardType === 'marketplace';
       
       // IMPORTANT: Check user_type first to determine correct dashboard
       const { getUserData } = await import('../services/auth/authService');
@@ -85,7 +87,7 @@ export const AuthStack: React.FC<AuthStackProps> = ({
           console.log('✅ AuthStack: Stored allowed dashboards for new user:', allowedDashboards);
         } else {
           // Fallback: if API didn't return allowedDashboards, set all three for new users
-          const allDashboards = ['b2b', 'b2c', 'delivery'];
+          const allDashboards = ['b2b', 'b2c', 'delivery', 'marketplace'];
           await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(allDashboards));
           console.log('⚠️ AuthStack: API didn\'t return allowedDashboards, using fallback:', allDashboards);
         }
@@ -204,19 +206,27 @@ export const AuthStack: React.FC<AuthStackProps> = ({
       // For registered users (not 'N'), store data normally
       // Store allowed dashboards in AsyncStorage for immediate access
       if (allowedDashboards && allowedDashboards.length > 0) {
+        const normalizedDashboards = [...new Set([
+          ...allowedDashboards,
+          ...(marketplaceRequested && userType !== 'D' ? ['marketplace', 'b2c'] : []),
+        ])] as ('b2b' | 'b2c' | 'delivery' | 'marketplace')[];
         // For SR users, ensure they have both 'b2b' and 'b2c' in allowed dashboards
         if (userType === 'SR') {
-          const srDashboards = [...new Set([...allowedDashboards, 'b2b', 'b2c'])];
+          const srDashboards = [...new Set([...normalizedDashboards, 'b2b', 'b2c'])];
           await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(srDashboards));
           console.log('✅ AuthStack: SR user - added both B2B and B2C to allowed dashboards:', srDashboards);
         } else {
-          await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(allowedDashboards));
+          await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(normalizedDashboards));
         }
       } else if (userType === 'SR') {
         // If no allowed dashboards from API, set both for SR users
-        const srDashboards = ['b2b', 'b2c'];
+        const srDashboards = marketplaceRequested ? ['b2b', 'b2c', 'marketplace'] : ['b2b', 'b2c'];
         await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(srDashboards));
         console.log('✅ AuthStack: SR user with no API dashboards - set both B2B and B2C:', srDashboards);
+      } else if (marketplaceRequested && userType !== 'D') {
+        const marketplaceDashboards = ['b2c', 'marketplace'];
+        await AsyncStorage.setItem('@allowed_dashboards', JSON.stringify(marketplaceDashboards));
+        console.log('✅ AuthStack: Marketplace requested - setting dashboard access:', marketplaceDashboards);
       }
 
       // For SR users, use the original join type from JoinAsScreen (read before processing)
@@ -302,8 +312,13 @@ export const AuthStack: React.FC<AuthStackProps> = ({
         } else {
           // For other user types (like 'N'), use stored join type or API dashboardType
           const storedJoinType = await AsyncStorage.getItem('@selected_join_type');
-          if (storedJoinType === 'b2b' || storedJoinType === 'b2c' || storedJoinType === 'delivery') {
-            finalDashboardType = storedJoinType as 'b2b' | 'b2c' | 'delivery';
+          if (
+            storedJoinType === 'b2b' ||
+            storedJoinType === 'b2c' ||
+            storedJoinType === 'delivery' ||
+            storedJoinType === 'marketplace'
+          ) {
+            finalDashboardType = storedJoinType as 'b2b' | 'b2c' | 'delivery' | 'marketplace';
             console.log(`📝 AuthStack: Using stored join type: ${finalDashboardType} (instead of API dashboardType: ${dashboardType})`);
           } else {
             console.log(`📝 AuthStack: No stored join type, using API dashboardType: ${dashboardType}`);
@@ -313,8 +328,13 @@ export const AuthStack: React.FC<AuthStackProps> = ({
         // app_type is not V2 - use stored join type or API dashboardType
         console.log(`⚠️ AuthStack: app_type is not V2 - using stored/API dashboardType`);
         const storedJoinType = await AsyncStorage.getItem('@selected_join_type');
-        if (storedJoinType === 'b2b' || storedJoinType === 'b2c' || storedJoinType === 'delivery') {
-          finalDashboardType = storedJoinType as 'b2b' | 'b2c' | 'delivery';
+        if (
+          storedJoinType === 'b2b' ||
+          storedJoinType === 'b2c' ||
+          storedJoinType === 'delivery' ||
+          storedJoinType === 'marketplace'
+        ) {
+          finalDashboardType = storedJoinType as 'b2b' | 'b2c' | 'delivery' | 'marketplace';
         }
       }
 
@@ -406,10 +426,21 @@ export const AuthStack: React.FC<AuthStackProps> = ({
         }
       }
 
-      // Set the mode based on validated dashboard type
-      if (finalDashboardType === 'b2b' || finalDashboardType === 'b2c' || finalDashboardType === 'delivery') {
-        await setMode(finalDashboardType as UserMode);
+      // Marketplace is rendered from B2C stack. Preserve explicit marketplace choice
+      // (especially for users who also have B2B) before setting mode.
+      if (marketplaceRequested && userType !== 'D') {
+        finalDashboardType = 'marketplace';
+        await AsyncStorage.setItem('@selected_join_type', 'marketplace');
+        await AsyncStorage.setItem('@b2c_initial_route', 'MarketplaceDashboard');
+        await AsyncStorage.setItem('@b2c_home_route', 'MarketplaceDashboard');
+        console.log('✅ AuthStack: Marketplace selected - forcing MarketplaceDashboard via B2C stack');
       }
+
+      const routeMode: UserMode =
+        finalDashboardType === 'marketplace'
+          ? 'b2c'
+          : (finalDashboardType as UserMode);
+      await setMode(routeMode);
       onAuthComplete();
     },
     [onAuthComplete, setMode],
@@ -609,7 +640,8 @@ export const AuthStack: React.FC<AuthStackProps> = ({
       
       // Use dashboardType directly for routing (from joinType selection or API)
       // setMode will set it in memory only, not in AsyncStorage for new users
-      await setMode(dashboardType as UserMode);
+      const routeMode: UserMode = dashboardType === 'marketplace' ? 'b2c' : (dashboardType as UserMode);
+      await setMode(routeMode);
       onAuthComplete();
       
       // Clear pending data
@@ -623,7 +655,8 @@ export const AuthStack: React.FC<AuthStackProps> = ({
       setAddressSelected(false);
       
       const dashboardType = pendingDashboardType || 'b2c';
-      await setMode(dashboardType as UserMode);
+      const routeMode: UserMode = dashboardType === 'marketplace' ? 'b2c' : (dashboardType as UserMode);
+      await setMode(routeMode);
       onAuthComplete();
       
       setPendingDashboardType(null);
@@ -670,4 +703,3 @@ export const AuthStack: React.FC<AuthStackProps> = ({
     </>
   );
 };
-

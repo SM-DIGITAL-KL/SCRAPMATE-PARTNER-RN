@@ -34,12 +34,39 @@ const InstamojoWebView: React.FC<InstamojoWebViewProps> = ({
   redirectUrl,
 }) => {
   const webViewRef = useRef<WebView>(null);
+  const handledPaymentRef = useRef(false);
+  const handledPaymentKeyRef = useRef<string>('');
   const { theme, isDark } = useTheme();
   
   const backgroundColor = theme?.background || '#FFFFFF';
   const surfaceColor = theme?.surface || '#F5F5F5';
   const textColor = theme?.text || theme?.textPrimary || '#000000';
   const primaryColor = theme?.primary || '#4CAF50';
+
+  useEffect(() => {
+    if (visible) {
+      handledPaymentRef.current = false;
+      handledPaymentKeyRef.current = '';
+    }
+  }, [visible, paymentUrl]);
+
+  const emitPaymentResponseOnce = (response: InstamojoPaymentResponse, key?: string) => {
+    const stableKey = String(
+      key ||
+      [
+        response.status || '',
+        response.paymentRequestId || '',
+        response.paymentId || '',
+      ].join(':')
+    );
+    if (handledPaymentRef.current && handledPaymentKeyRef.current === stableKey) {
+      console.log('⚠️ Duplicate Instamojo callback ignored:', stableKey);
+      return;
+    }
+    handledPaymentRef.current = true;
+    handledPaymentKeyRef.current = stableKey;
+    onPaymentResponse(response);
+  };
 
   // Get payment details from Instamojo API using payment request ID
   const getPaymentDetails = async (paymentRequestId: string) => {
@@ -52,7 +79,7 @@ const InstamojoWebView: React.FC<InstamojoWebViewProps> = ({
         console.log('✅ Payment details:', payment);
         
         // Payment was successful
-        onPaymentResponse({
+        emitPaymentResponseOnce({
           status: payment.status === 'Credit' ? 'success' : 'failure',
           paymentId: payment.payment_id,
           paymentRequestId: paymentRequestId,
@@ -61,24 +88,24 @@ const InstamojoWebView: React.FC<InstamojoWebViewProps> = ({
           buyerEmail: payment.buyer_email,
           buyerPhone: payment.buyer_phone,
           message: payment.status === 'Credit' ? 'Payment successful' : `Payment status: ${payment.status}`,
-        });
+        }, `details:${paymentRequestId}:${payment.payment_id}:${payment.status}`);
       } else {
         // No payments found - payment might be pending or failed
         console.log('⚠️ No payments found for request ID:', paymentRequestId);
-        onPaymentResponse({
+        emitPaymentResponseOnce({
           status: 'failure',
           paymentRequestId: paymentRequestId,
           message: 'No payment found. Payment may be pending or failed.',
-        });
+        }, `details:${paymentRequestId}:no-payment`);
       }
     } catch (error: any) {
       console.error('❌ Error fetching payment details:', error);
-      onPaymentResponse({
+      emitPaymentResponseOnce({
         status: 'failure',
         paymentRequestId: paymentRequestId,
         message: 'Failed to verify payment status',
         error: error.message,
-      });
+      }, `details:${paymentRequestId}:error`);
     }
   };
 
@@ -145,20 +172,20 @@ const InstamojoWebView: React.FC<InstamojoWebViewProps> = ({
           // Otherwise, fetch full payment details from API
           if (paymentStatus === 'Credit' && paymentId) {
             console.log('✅ Payment successful (from URL parameters)');
-            onPaymentResponse({
+            emitPaymentResponseOnce({
               status: 'success',
               paymentId: paymentId,
               paymentRequestId: paymentRequestId,
-            });
+            }, `url:${paymentRequestId}:${paymentId}:Credit`);
           } else if (paymentStatus && paymentStatus !== 'Credit') {
             console.log('❌ Payment failed (from URL parameters):', paymentStatus);
-            onPaymentResponse({
+            emitPaymentResponseOnce({
               status: 'failure',
               paymentId: paymentId || undefined,
               paymentRequestId: paymentRequestId,
               message: `Payment status: ${paymentStatus}`,
               error: `Payment ${paymentStatus}`,
-            });
+            }, `url:${paymentRequestId}:${paymentId || 'na'}:${paymentStatus}`);
           } else {
             // Fetch full payment details from API to get complete information
             console.log('🔍 Fetching full payment details from API...');
@@ -166,18 +193,18 @@ const InstamojoWebView: React.FC<InstamojoWebViewProps> = ({
           }
         } else {
           console.error('❌ Could not extract payment_request_id from URL:', url);
-          onPaymentResponse({
+          emitPaymentResponseOnce({
             status: 'failure',
             message: 'Could not extract payment request ID from redirect URL',
-          });
+          }, `url:no-request-id:${url}`);
         }
       } catch (error: any) {
         console.error('❌ Error parsing redirect URL:', error);
-        onPaymentResponse({
+        emitPaymentResponseOnce({
           status: 'failure',
           message: 'Error processing payment redirect',
           error: error.message,
-        });
+        }, `url:parse-error:${url}`);
       }
     }
   };
@@ -200,11 +227,11 @@ const InstamojoWebView: React.FC<InstamojoWebViewProps> = ({
       errorMessage = 'No internet connection. Please check your network settings.';
     }
     
-    onPaymentResponse({
+    emitPaymentResponseOnce({
       status: 'failure',
       message: errorMessage,
       error: errorDescription || nativeEvent.message,
-    });
+    }, `webview-error:${errorCode || 'unknown'}:${errorDescription || nativeEvent.message || 'na'}`);
   };
 
   return (
@@ -276,11 +303,11 @@ const InstamojoWebView: React.FC<InstamojoWebViewProps> = ({
               errorMessage = 'Server error. Please try again later.';
             }
             
-            onPaymentResponse({
+            emitPaymentResponseOnce({
               status: 'failure',
               message: errorMessage,
               error: `Status: ${statusCode}`,
-            });
+            }, `http-error:${statusCode}:${url || 'na'}`);
           }}
           renderLoading={() => (
             <View style={styles.loadingContainer}>
@@ -336,4 +363,3 @@ const styles = ScaledSheet.create({
 });
 
 export default InstamojoWebView;
-

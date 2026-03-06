@@ -1,9 +1,10 @@
 /**
  * V2 Subscription Packages API Service
- * Handles fetching subscription packages for B2B and B2C users
+ * Handles fetching subscription packages for B2B, B2C, and Marketplace users
  */
 
 import { buildApiUrl, getApiHeaders, fetchWithLogging, API_ROUTES } from '../apiConfig';
+import { getUserData } from '../../auth/authService';
 
 export interface SubscriptionPackage {
   id: string;
@@ -14,7 +15,7 @@ export interface SubscriptionPackage {
   description?: string;
   features?: string[];
   popular?: boolean;
-  userType?: 'B2B' | 'B2C';
+  userType?: 'B2B' | 'B2C' | 'M' | 'MARKETPLACE';
   upiId?: string;
   merchantName?: string;
   isActive?: boolean;
@@ -32,19 +33,32 @@ export interface SubscriptionPackagesResponse {
 
 /**
  * Get subscription packages for a specific user type
- * @param userType - 'b2b' or 'b2c' (lowercase as required by API)
+ * @param userType - 'b2b' | 'b2c' | 'marketplace' (lowercase as required by API)
  * @param language - Language code (e.g., 'en', 'hi', 'ta', etc.) - optional, defaults to 'en'
  * @returns Promise with subscription packages
  */
 export const getSubscriptionPackages = async (
-  userType: 'b2b' | 'b2c' = 'b2c',
+  userType: 'b2b' | 'b2c' | 'marketplace' = 'b2c',
   language: string = 'en'
 ): Promise<SubscriptionPackagesResponse> => {
   try {
-    const url = buildApiUrl(`${API_ROUTES.V2}/subscription-packages?userType=${userType}&language=${language}`);
-    const headers = getApiHeaders();
+    const userData = await getUserData();
+    const userId = userData?.id ? String(userData.id) : '';
+    const params = new URLSearchParams({
+      userType,
+      language,
+    });
+    if (userId) {
+      params.set('user_id', userId);
+    }
 
-    console.log('📦 Fetching subscription packages for:', userType);
+    const url = buildApiUrl(`${API_ROUTES.V2}/subscription-packages?${params.toString()}`);
+    const headers = getApiHeaders();
+    if (userId) {
+      headers['x-user-id'] = userId;
+    }
+
+    console.log('📦 Fetching subscription packages for:', userType, 'user_id:', userId || 'N/A');
 
     const response = await fetchWithLogging(url, {
       method: 'GET',
@@ -130,6 +144,7 @@ export const saveUserSubscription = async (
   packageId: string,
   paymentDetails: {
     transactionId: string;
+    paymentRequestId?: string | null;
     responseCode?: string;
     approvalRefNo?: string;
     amount: string;
@@ -144,8 +159,8 @@ export const saveUserSubscription = async (
     const requestBody = {
       user_id: String(userId),
       package_id: packageId,
-      payment_moj_id: paymentDetails.transactionId, // UPI transaction ID
-      payment_req_id: paymentDetails.approvalRefNo || paymentDetails.transactionId, // Use approval ref or transaction ID
+      payment_moj_id: paymentDetails.transactionId, // Instamojo payment ID
+      payment_req_id: paymentDetails.paymentRequestId || paymentDetails.approvalRefNo || paymentDetails.transactionId, // Use payment request ID from Instamojo
       pay_details: JSON.stringify({
         transactionId: paymentDetails.transactionId,
         responseCode: paymentDetails.responseCode,

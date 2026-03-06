@@ -84,17 +84,23 @@ export const submitB2BSignup = async (
 export const uploadB2BDocument = async (
   userId: string | number,
   fileUri: string,
-  documentType: 'business-license' | 'gst-certificate' | 'address-proof' | 'kyc-owner'
+  documentType: 'business-license' | 'gst-certificate' | 'address-proof' | 'kyc-owner',
+  fileType: string = 'application/pdf',
+  fileName?: string
 ): Promise<{ document_url: string }> => {
   const url = buildApiUrl(API_ROUTES.v2.b2bSignup.uploadDocument(userId));
   const headers = getApiHeaders();
 
   // Create FormData for multipart/form-data upload
   const formData = new FormData();
+  const resolvedFileName =
+    fileName && String(fileName).trim() !== ''
+      ? fileName
+      : `${documentType}.${fileType.includes('pdf') ? 'pdf' : 'jpg'}`;
   formData.append('file', {
     uri: fileUri,
-    type: 'application/pdf',
-    name: `${documentType}.pdf`,
+    type: fileType || 'application/octet-stream',
+    name: resolvedFileName,
   } as any);
   formData.append('documentType', documentType);
 
@@ -122,4 +128,3 @@ export const uploadB2BDocument = async (
     document_url: result.data.document_url,
   };
 };
-

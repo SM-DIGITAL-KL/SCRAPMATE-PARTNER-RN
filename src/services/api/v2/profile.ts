@@ -183,8 +183,16 @@ export interface ProfileResponse {
 /**
  * Get user profile
  */
-export const getProfile = async (userId: string | number): Promise<ProfileData> => {
-  const url = buildApiUrl(API_ROUTES.v2.profile.get(userId));
+export const getProfile = async (
+  userId: string | number,
+  options?: { fresh?: boolean; appType?: string }
+): Promise<ProfileData> => {
+  const queryParts: string[] = [];
+  if (options?.fresh) queryParts.push('fresh=1');
+  if (options?.appType) queryParts.push(`app_type=${encodeURIComponent(options.appType)}`);
+
+  const baseUrl = buildApiUrl(API_ROUTES.v2.profile.get(userId));
+  const url = queryParts.length > 0 ? `${baseUrl}?${queryParts.join('&')}` : baseUrl;
   const headers = getApiHeaders();
 
   const response = await fetchWithLogging(url, {
@@ -766,4 +774,3 @@ export const upgradeToSR = async (
 
   return result;
 };
-

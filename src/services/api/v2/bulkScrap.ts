@@ -14,6 +14,7 @@ export interface SubcategoryDetail {
 }
 
 export interface BulkScrapPurchaseRequest {
+  request_id?: number | string;
   buyer_id: number;
   latitude: number;
   longitude: number;
@@ -28,6 +29,7 @@ export interface BulkScrapPurchaseRequest {
   additional_notes?: string;
   documents?: Array<{ uri: string; name: string; type: string }>; // Array of document URIs
   pending_order_id?: string | number; // ID of the pending order being submitted
+  post_star?: number;
 }
 
 export interface BulkScrapPurchaseResponse {
@@ -85,6 +87,9 @@ export const createBulkPurchaseRequest = async (
     
     // Add all non-document fields
     formData.append('buyer_id', request.buyer_id.toString());
+    if (request.request_id !== undefined && request.request_id !== null && request.request_id !== '') {
+      formData.append('request_id', request.request_id.toString());
+    }
     formData.append('latitude', request.latitude.toString());
     formData.append('longitude', request.longitude.toString());
     formData.append('quantity', request.quantity.toString());
@@ -168,6 +173,7 @@ export interface BulkScrapRequest {
   location?: string | null;
   additional_notes?: string | null;
   documents?: string[] | null;
+  post_star?: number;
   status: string;
   created_at: string;
   updated_at: string;
@@ -190,6 +196,26 @@ export interface BulkScrapRequestsResponse {
   status: 'success' | 'error';
   msg: string;
   data: BulkScrapRequest[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total_items: number;
+    total_pages: number;
+    has_next: boolean;
+    has_prev: boolean;
+  };
+}
+
+export interface BulkScrapFeedQueryOptions {
+  page?: number;
+  limit?: number;
+  state?: string;
+  sortBy?: 'created_at' | 'price' | 'post_star' | 'distance';
+  sortOrder?: 'asc' | 'desc';
+  minStar?: number;
+  maxStar?: number;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 /**
@@ -200,7 +226,8 @@ export const getBulkScrapRequests = async (
   userId: number,
   latitude?: number,
   longitude?: number,
-  userType?: string
+  userType?: string,
+  options?: BulkScrapFeedQueryOptions
 ): Promise<BulkScrapRequest[]> => {
   let url = `${buildApiUrl(API_ROUTES.v2.bulkScrap.requests)}?user_id=${userId}`;
   
@@ -211,6 +238,33 @@ export const getBulkScrapRequests = async (
   
   if (userType) {
     url += `&user_type=${userType}`;
+  }
+  if (options?.page !== undefined) {
+    url += `&page=${options.page}`;
+  }
+  if (options?.limit !== undefined) {
+    url += `&limit=${options.limit}`;
+  }
+  if (options?.state) {
+    url += `&state=${encodeURIComponent(options.state)}`;
+  }
+  if (options?.sortBy) {
+    url += `&sort_by=${encodeURIComponent(options.sortBy)}`;
+  }
+  if (options?.sortOrder) {
+    url += `&sort_order=${encodeURIComponent(options.sortOrder)}`;
+  }
+  if (options?.minStar !== undefined) {
+    url += `&min_star=${options.minStar}`;
+  }
+  if (options?.maxStar !== undefined) {
+    url += `&max_star=${options.maxStar}`;
+  }
+  if (options?.minPrice !== undefined) {
+    url += `&min_price=${options.minPrice}`;
+  }
+  if (options?.maxPrice !== undefined) {
+    url += `&max_price=${options.maxPrice}`;
   }
 
   const headers = getApiHeaders();
@@ -838,4 +892,3 @@ export const getPendingBulkBuyOrders = async (
   console.log(`✅ Fetched ${data.data?.length || 0} pending bulk buy orders`);
   return data.data || [];
 };
-

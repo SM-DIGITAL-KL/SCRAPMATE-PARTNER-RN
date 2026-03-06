@@ -1,7 +1,7 @@
 /**
  * V2 Bulk Sell API
  * Handles bulk scrap sell requests
- * Only 'S' type users can see and accept these requests
+ * Both 'S' and 'R' type users can see and accept these requests
  */
 
 import { buildApiUrl, getApiHeaders } from '../apiConfig';
@@ -15,6 +15,7 @@ export interface SubcategoryDetail {
 }
 
 export interface BulkSellRequest {
+  request_id?: number | string;
   seller_id: number;
   latitude: number;
   longitude: number;
@@ -27,7 +28,15 @@ export interface BulkSellRequest {
   when_available?: string;
   location?: string;
   additional_notes?: string;
-  documents?: Array<{ uri: string; name: string; type: string }>;
+  documents?: Array<{ uri?: string; name: string; type: string; size?: number; s3Url?: string }>;
+  // Payment fields
+  payment_status?: string;
+  payment_amount?: number;
+  payment_moj_id?: string;
+  payment_req_id?: string;
+  invoice_id?: string;
+  order_value?: number;
+  post_star?: number;
 }
 
 export interface BulkSellResponse {
@@ -44,11 +53,14 @@ export interface BulkSellResponse {
 
 /**
  * Create a bulk sell request
- * This will notify nearby 'S' type users about the sell request
+ * This will notify nearby 'S' and 'R' type users about the sell request
  */
 export const createBulkSellRequest = async (
   request: BulkSellRequest
 ): Promise<BulkSellResponse> => {
+  // AWS Lambda synchronous invoke payload hard-limit is 6MB.
+  // Keep a safety margin for multipart boundaries and JSON fields.
+  const MAX_LAMBDA_UPLOAD_BYTES = 5.5 * 1024 * 1024;
   const url = buildApiUrl(API_ROUTES.v2.bulkSell.create);
   const headers = getApiHeaders();
 
@@ -66,9 +78,32 @@ export const createBulkSellRequest = async (
   let finalHeaders: any = headers;
 
   if (request.documents && request.documents.length > 0) {
+    const preUploadedUrls = request.documents
+      .map((doc) => String(doc.s3Url || '').trim())
+      .filter((url) => url.startsWith('http://') || url.startsWith('https://'));
+
+    // If all documents are pre-uploaded to S3, send lightweight JSON payload.
+    if (preUploadedUrls.length === request.documents.length) {
+      const jsonPayload: Record<string, any> = {
+        ...request,
+        documents: undefined,
+        document_urls: preUploadedUrls,
+      };
+      body = JSON.stringify(jsonPayload);
+    } else {
+    const totalFileBytes = request.documents.reduce((sum, doc) => sum + (doc.size || 0), 0);
+    if (totalFileBytes > MAX_LAMBDA_UPLOAD_BYTES) {
+      throw new Error(
+        'Selected files are too large for upload. Keep total media under ~5.5MB or reduce video size.'
+      );
+    }
+
     const formData = new FormData();
     
     formData.append('seller_id', request.seller_id.toString());
+    if (request.request_id !== undefined && request.request_id !== null && request.request_id !== '') {
+      formData.append('request_id', request.request_id.toString());
+    }
     formData.append('latitude', request.latitude.toString());
     formData.append('longitude', request.longitude.toString());
     formData.append('quantity', request.quantity.toString());
@@ -100,6 +135,7 @@ export const createBulkSellRequest = async (
 
     // Add documents
     request.documents.forEach((doc, index) => {
+      if (!doc.uri) return;
       formData.append(`document${index + 1}`, {
         uri: doc.uri,
         type: doc.type || 'application/pdf',
@@ -107,9 +143,14 @@ export const createBulkSellRequest = async (
       } as any);
     });
 
+    if (preUploadedUrls.length > 0) {
+      formData.append('document_urls', JSON.stringify(preUploadedUrls));
+    }
+
     body = formData;
     const { 'Content-Type': _, ...headersWithoutContentType } = headers;
     finalHeaders = headersWithoutContentType;
+    }
   } else {
     body = JSON.stringify(request);
   }
@@ -124,6 +165,15 @@ export const createBulkSellRequest = async (
 
   if (!response.ok) {
     console.error('❌ Bulk sell request failed:', data);
+    const rawMessage = data?.msg || data?.message || '';
+    if (
+      typeof rawMessage === 'string' &&
+      rawMessage.includes('Request must be smaller than 6291456 bytes')
+    ) {
+      throw new Error(
+        'Upload is too large for server limit (6MB). Reduce images/video size and try again.'
+      );
+    }
     throw new Error(data.msg || 'Failed to create bulk sell request');
   }
 
@@ -147,6 +197,7 @@ export interface BulkSellRequestItem {
   location?: string | null;
   additional_notes?: string | null;
   documents?: string[] | null;
+  post_star?: number;
   status: string;
   created_at: string;
   updated_at: string;
@@ -169,17 +220,38 @@ export interface BulkSellRequestsResponse {
   status: 'success' | 'error';
   msg: string;
   data: BulkSellRequestItem[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total_items: number;
+    total_pages: number;
+    has_next: boolean;
+    has_prev: boolean;
+  };
+}
+
+export interface BulkFeedQueryOptions {
+  page?: number;
+  limit?: number;
+  state?: string;
+  sortBy?: 'created_at' | 'price' | 'post_star' | 'distance';
+  sortOrder?: 'asc' | 'desc';
+  minStar?: number;
+  maxStar?: number;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 /**
  * Get bulk sell requests available for the user
- * Only 'S' type users can see these requests
+ * Both 'S' and 'R' type users can see these requests
  */
 export const getBulkSellRequests = async (
   userId: number,
   latitude?: number,
   longitude?: number,
-  userType?: string
+  userType?: string,
+  options?: BulkFeedQueryOptions
 ): Promise<BulkSellRequestItem[]> => {
   let url = `${buildApiUrl(API_ROUTES.v2.bulkSell.requests)}?user_id=${userId}`;
   
@@ -191,6 +263,33 @@ export const getBulkSellRequests = async (
   }
   if (longitude !== undefined) {
     url += `&longitude=${longitude}`;
+  }
+  if (options?.page !== undefined) {
+    url += `&page=${options.page}`;
+  }
+  if (options?.limit !== undefined) {
+    url += `&limit=${options.limit}`;
+  }
+  if (options?.state) {
+    url += `&state=${encodeURIComponent(options.state)}`;
+  }
+  if (options?.sortBy) {
+    url += `&sort_by=${encodeURIComponent(options.sortBy)}`;
+  }
+  if (options?.sortOrder) {
+    url += `&sort_order=${encodeURIComponent(options.sortOrder)}`;
+  }
+  if (options?.minStar !== undefined) {
+    url += `&min_star=${options.minStar}`;
+  }
+  if (options?.maxStar !== undefined) {
+    url += `&max_star=${options.maxStar}`;
+  }
+  if (options?.minPrice !== undefined) {
+    url += `&min_price=${options.minPrice}`;
+  }
+  if (options?.maxPrice !== undefined) {
+    url += `&max_price=${options.maxPrice}`;
   }
 
   const headers = getApiHeaders();
@@ -331,7 +430,7 @@ export interface AcceptBulkSellResponse {
 
 /**
  * Accept/buy from a bulk sell request
- * Only 'S' type users can accept
+ * Both 'S' and 'R' type users can accept
  */
 export const acceptBulkSellRequest = async (
   requestId: number,
@@ -438,3 +537,27 @@ export const rejectBulkSellRequest = async (
 
 
 
+
+/**
+ * Cancel a bulk sell request
+ */
+export const cancelBulkSellRequest = async (
+  requestId: number
+): Promise<{ status: string; msg: string }> => {
+  const url = buildApiUrl(API_ROUTES.v2.bulkSell.cancel(requestId));
+  const headers = getApiHeaders();
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error('❌ Cancel bulk sell request failed:', data);
+    throw new Error(data.msg || 'Failed to cancel bulk sell request');
+  }
+
+  return data;
+};

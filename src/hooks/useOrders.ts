@@ -289,7 +289,7 @@ export const useBulkScrapRequestsByBuyer = (
 
 /**
  * Hook to fetch bulk sell requests for a user
- * Only 'S' type users can see these requests
+ * Both 'S' and 'R' type users can see these requests
  */
 export const useBulkSellRequests = (
   userId: number | undefined,
