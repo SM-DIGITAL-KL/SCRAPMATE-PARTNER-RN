@@ -91,6 +91,43 @@ export interface InstamojoPaymentDetailsResponse {
   } | null;
 }
 
+const extractReadableError = (value: any, fallback: string): string => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || fallback;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value instanceof Error) return extractReadableError(value.message, fallback);
+  if (Array.isArray(value)) {
+    const merged = value
+      .map((item) => extractReadableError(item, ''))
+      .filter(Boolean)
+      .join(', ');
+    return merged || fallback;
+  }
+  if (typeof value === 'object') {
+    const preferredKeys = ['msg', 'message', 'error', 'description', 'detail', 'details', 'reason', 'non_field_errors'];
+    for (const key of preferredKeys) {
+      if (value[key] !== undefined && value[key] !== null) {
+        const parsed = extractReadableError(value[key], '');
+        if (parsed) return parsed;
+      }
+    }
+    const nestedValues = Object.values(value)
+      .map((item) => extractReadableError(item, ''))
+      .filter(Boolean)
+      .join(', ');
+    if (nestedValues) return nestedValues;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+};
+
 /**
  * Create Instamojo payment request (for WebView)
  * This creates a payment request on the backend and returns longurl
@@ -118,14 +155,25 @@ export const createInstamojoPaymentRequest = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.msg || 'Failed to create payment request');
+      const rawErrorText = await response.text().catch(() => '');
+      let errorData: any = {};
+      try {
+        errorData = rawErrorText ? JSON.parse(rawErrorText) : {};
+      } catch {
+        errorData = { msg: rawErrorText };
+      }
+      throw new Error(
+        extractReadableError(
+          errorData?.msg ?? errorData?.message ?? errorData?.error ?? errorData,
+          'Failed to create payment request'
+        )
+      );
     }
 
     const result: InstamojoPaymentRequestResponse = await response.json();
 
     if (result.status === 'error' || !result.data) {
-      throw new Error(result.msg || 'Failed to create payment request');
+      throw new Error(extractReadableError(result.msg, 'Failed to create payment request'));
     }
 
     console.log('✅ Instamojo payment request created:', {
@@ -160,14 +208,25 @@ export const getInstamojoPaymentDetails = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.msg || 'Failed to fetch payment details');
+      const rawErrorText = await response.text().catch(() => '');
+      let errorData: any = {};
+      try {
+        errorData = rawErrorText ? JSON.parse(rawErrorText) : {};
+      } catch {
+        errorData = { msg: rawErrorText };
+      }
+      throw new Error(
+        extractReadableError(
+          errorData?.msg ?? errorData?.message ?? errorData?.error ?? errorData,
+          'Failed to fetch payment details'
+        )
+      );
     }
 
     const result: InstamojoPaymentDetailsResponse = await response.json();
 
     if (result.status === 'error' || !result.data) {
-      throw new Error(result.msg || 'Failed to fetch payment details');
+      throw new Error(extractReadableError(result.msg, 'Failed to fetch payment details'));
     }
 
     console.log('✅ Instamojo payment details fetched:', {
@@ -181,4 +240,3 @@ export const getInstamojoPaymentDetails = async (
     throw error;
   }
 };
-
