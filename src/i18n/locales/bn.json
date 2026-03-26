@@ -238,7 +238,9 @@
     "bulkSellRequests": "বাল্ক বিক্রয় অনুরোধ",
     "seller": "বিক্রেতা",
     "quantity": "পরিমাণ",
-    "qntity": "পরিমাণ"
+    "qntity": "পরিমাণ",
+    "noBulkSellRequests": "কোনো বাল্ক বিক্রয় অনুরোধ উপলব্ধ নেই",
+    "nobulksellrequests": "কোনো বাল্ক বিক্রয় অনুরোধ উপলব্ধ নেই"
   },
   "deliveryTracking": {
     "title": "অর্ডার ট্র্যাকিং",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "অ্যাকাউন্ট মুছুন",
     "subcategoryRequests": "উপবিভাগ অনুরোধ",
     "pendingOrders": "অপেক্ষমান অর্ডার",
-    "pendingOrdersSubtitle": "পেমেন্ট অনুমোদনের অপেক্ষায় বাল্ক ক্রয়ের অর্ডার"
+    "pendingOrdersSubtitle": "পেমেন্ট অনুমোদনের অপেক্ষায় বাল্ক ক্রয়ের অর্ডার",
+    "postsManage": "পোস্ট ম্যানেজ",
+    "interests": "আগ্রহ"
   },
   "addCategory": {
     "title": "বিভাগ যোগ করুন",
@@ -934,16 +938,16 @@
     "market": "মার্কেট",
     "tenders": "টেন্ডার",
     "allPost": "সব পোস্ট",
-    "buyPost": "ক্রয় পোস্ট",
-    "sellPostTab": "বিক্রয় পোস্ট",
+    "buyPost": "ক্রয় পোস্ট",
+    "sellPostTab": "বিক্রয় পোস্ট",
     "searchPost": "পোস্ট খুঁজুন...",
     "liveTenders": "লাইভ টেন্ডার",
     "tendersSubtitle": "আপনার আশেপাশের সক্রিয় টেন্ডার দেখুন এবং বন্ধ হওয়ার আগে বিড দিন।",
     "activeCount": "{{count}} সক্রিয়",
     "bidsCount": "{{count}} বিড",
     "viewTender": "টেন্ডার দেখুন",
-    "bulkBuy": "বাল্ক কিনুন",
-    "bulkSell": "বাল্ক বিক্রি",
+    "bulkBuy": "ক্রয় পোস্ট তৈরি করুন",
+    "bulkSell": "বিক্রয় পোস্ট তৈরি করুন",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1041,6 +1045,29 @@
     "subscribeToUnlockChats": "চ্যাট আনলক করতে সাবস্ক্রাইব করুন",
     "subscribeToUnlockViewProfile": "প্রোফাইল দেখতে সাবস্ক্রাইব করুন",
     "subscribeToUnlockProfile": "প্রোফাইল আনলক করতে সাবস্ক্রাইব করুন",
-    "videoPlayer": "ভিডিও প্লেয়ার"
+    "videoPlayer": "ভিডিও প্লেয়ার",
+    "myPost": "আমার পোস্ট",
+    "postsManage": "পোস্ট ম্যানেজ",
+    "interests": "আগ্রহ",
+    "marketplace": "মার্কেটপ্লেস",
+    "adminApprovalStatus": "অ্যাডমিন অনুমোদন স্ট্যাটাস",
+    "approved": "অনুমোদিত",
+    "pending": "মুলতুবি",
+    "rejected": "প্রত্যাখ্যাত",
+    "pendingPosts": "মুলতুবি পোস্ট",
+    "noPendingPosts": "কোনো মুলতুবি পোস্ট নেই",
+    "participatedPosts": "অংশগ্রহণ করা পোস্ট",
+    "noParticipatedPosts": "কোনো অংশগ্রহণ করা পোস্ট নেই",
+    "interestedPosts": "আগ্রহের পোস্ট",
+    "noInterestedPosts": "কোনো আগ্রহের পোস্ট নেই",
+    "editPost": "পোস্ট সম্পাদনা",
+    "participated": "অংশগ্রহণ করেছে",
+    "rejectionReason": "প্রত্যাখ্যানের কারণ",
+    "reasonNotProvided": "কারণ দেওয়া হয়নি",
+    "price": "দাম",
+    "total": "মোট",
+    "savedOn": "সংরক্ষিত",
+    "participatedOn": "অংশগ্রহণ",
+    "kgUnit": "কেজি"
   }
 }

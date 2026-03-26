@@ -24,6 +24,7 @@ import SubscriptionPlansScreen from '../screens/B2B/SubscriptionPlansScreen';
 import B2CSignupScreen from '../screens/B2C/B2CSignupScreen';
 import SubcategoryRequestsScreen from '../screens/B2C/SubcategoryRequestsScreen';
 import ParticipateBulkRequestScreen from '../screens/B2C/ParticipateBulkRequestScreen';
+import ParticipateBulkSellRequestScreen from '../screens/B2B/ParticipateBulkSellRequestScreen';
 import BulkRequestTrackingScreen from '../screens/B2C/BulkRequestTrackingScreen';
 import LivePricesScreen from '../screens/B2B/LivePricesScreen';
 import BulkScrapRequestScreen from '../screens/B2B/BulkScrapRequestScreen';
@@ -34,6 +35,8 @@ import MyBulkSellOrderDetailScreen from '../screens/B2B/MyBulkSellOrderDetailScr
 import MarketplaceDashboardScreen from '../screens/Marketplace/MarketplaceDashboardScreen';
 import MarketplaceTenderDetailsScreen from '../screens/Marketplace/MarketplaceTenderDetailsScreen';
 import MarketplaceProfileSettingsScreen from '../screens/Marketplace/MarketplaceProfileSettingsScreen';
+import ProfileScreen from '../screens/Marketplace/ProfileScreen';
+import MarketplaceParticipantsScreen from '../screens/Marketplace/MarketplaceParticipantsScreen';
 import { useTheme } from '../components/ThemeProvider';
 import { getUserData } from '../services/auth/authService';
 
@@ -64,6 +67,7 @@ export type B2CStackParamList = {
   B2CSignup: undefined;
   SubcategoryRequests: undefined;
   ParticipateBulkRequest: { request: any };
+  ParticipateBulkSellRequest: { request: any };
   BulkRequestTracking: { bulkRequest: any; orderId?: string | number };
   LivePrices: undefined;
   BulkScrapRequest:
@@ -80,10 +84,28 @@ export type B2CStackParamList = {
           type: 'buy' | 'sell';
           request: any;
         };
+        openMarketplacePostId?: string;
+        openMarketplacePostDirect?: boolean;
       }
     | undefined;
   MarketplaceTenderDetails: { post: any; allTenders?: any[] };
-  MarketplaceProfileSettings: undefined;
+  MarketplaceProfileSettings:
+    | {
+        initialSection?: 'posts_manage' | 'interests';
+      }
+    | undefined;
+  Profile:
+    | {
+        owner?: any;
+      }
+    | undefined;
+  MarketplaceParticipants:
+    | {
+        request: any;
+        postType: 'buy' | 'sell';
+        postTitle?: string;
+      }
+    | undefined;
   MyBulkSellOrders: undefined;
   MyBulkSellOrderDetail: { request: any };
 };
@@ -224,6 +246,7 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="B2CSignup" component={B2CSignupScreen} />
       <Stack.Screen name="SubcategoryRequests" component={SubcategoryRequestsScreen} />
       <Stack.Screen name="ParticipateBulkRequest" component={ParticipateBulkRequestScreen} />
+      <Stack.Screen name="ParticipateBulkSellRequest" component={ParticipateBulkSellRequestScreen} />
       <Stack.Screen name="BulkRequestTracking" component={BulkRequestTrackingScreen} />
       <Stack.Screen name="LivePrices" component={LivePricesScreen} />
       <Stack.Screen name="BulkScrapRequest" component={BulkScrapRequestScreen} />
@@ -232,6 +255,8 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="MarketplaceDashboard" component={MarketplaceDashboardScreen} />
       <Stack.Screen name="MarketplaceTenderDetails" component={MarketplaceTenderDetailsScreen} />
       <Stack.Screen name="MarketplaceProfileSettings" component={MarketplaceProfileSettingsScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="MarketplaceParticipants" component={MarketplaceParticipantsScreen} />
       <Stack.Screen name="MyBulkSellOrders" component={MyBulkSellOrdersScreen} />
       <Stack.Screen name="MyBulkSellOrderDetail" component={MyBulkSellOrderDetailScreen} />
     </Stack.Navigator>

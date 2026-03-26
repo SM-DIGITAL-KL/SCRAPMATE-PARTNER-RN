@@ -238,7 +238,9 @@
     "bulkSellRequests": "বাল্ক বিক্ৰী অনুৰোধ",
     "seller": "বিক্ৰেতা",
     "quantity": "পৰিমাণ",
-    "qntity": "পৰিমাণ"
+    "qntity": "পৰিমাণ",
+    "noBulkSellRequests": "কোনো বাল্ক বিক্ৰী অনুৰোধ উপলব্ধ নহয়",
+    "nobulksellrequests": "কোনো বাল্ক বিক্ৰী অনুৰোধ উপলব্ধ নহয়"
   },
   "deliveryTracking": {
     "title": "অৰ্ডাৰ ট্ৰেকিং",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "একাউণ্ট মচাওক",
     "subcategoryRequests": "উপ-শ্ৰেণী অনুৰোধ",
     "pendingOrders": "বিচাৰাধীন অৰ্ডাৰ",
-    "pendingOrdersSubtitle": "পৰিশোধ অনুমোদনৰ বাবে অপেক্ষাৰত বাল্ক ক্ৰয় অৰ্ডাৰ"
+    "pendingOrdersSubtitle": "পৰিশোধ অনুমোদনৰ বাবে অপেক্ষাৰত বাল্ক ক্ৰয় অৰ্ডাৰ",
+    "postsManage": "পোষ্ট মেনেজ",
+    "interests": "আগ্ৰহ"
   },
   "addCategory": {
     "title": "শ্ৰেণী যোগ কৰক",
@@ -943,8 +947,8 @@
     "activeCount": "{{count}} সক্ৰিয়",
     "bidsCount": "{{count}} বিড",
     "viewTender": "টেণ্ডাৰ চাওক",
-    "bulkBuy": "বাল্ক ক্ৰয়",
-    "bulkSell": "বাল্ক বিক্ৰী",
+    "bulkBuy": "ক্ৰয় পোষ্ট তৈরি কৰক",
+    "bulkSell": "বিক্ৰী পোষ্ট তৈরি কৰক",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1042,6 +1046,29 @@
     "subscribeToUnlockChats": "চেট আনলক কৰিবলৈ ছাবস্ক্ৰাইব কৰক",
     "subscribeToUnlockViewProfile": "প্ৰফাইল চাবলৈ ছাবস্ক্ৰাইব কৰক",
     "subscribeToUnlockProfile": "প্ৰফাইল আনলক কৰিবলৈ ছাবস্ক্ৰাইব কৰক",
-    "videoPlayer": "ভিডিঅ প্লেয়াৰ"
+    "videoPlayer": "ভিডিঅ প্লেয়াৰ",
+    "myPost": "মোৰ পোষ্ট",
+    "postsManage": "পোষ্ট মেনেজ",
+    "interests": "আগ্ৰহ",
+    "marketplace": "মাৰ্কেটপ্লেছ",
+    "adminApprovalStatus": "এডমিন অনুমোদন স্থিতি",
+    "approved": "অনুমোদিত",
+    "pending": "অপেক্ষাৰত",
+    "rejected": "প্ৰত্যাখ্যাত",
+    "pendingPosts": "অপেক্ষাৰত পোষ্ট",
+    "noPendingPosts": "কোনো অপেক্ষাৰত পোষ্ট নাই",
+    "participatedPosts": "অংশগ্ৰহণ কৰা পোষ্ট",
+    "noParticipatedPosts": "কোনো অংশগ্ৰহণ কৰা পোষ্ট নাই",
+    "interestedPosts": "আগ্ৰহৰ পোষ্ট",
+    "noInterestedPosts": "কোনো আগ্ৰহৰ পোষ্ট নাই",
+    "editPost": "পোষ্ট সম্পাদনা কৰক",
+    "participated": "অংশগ্ৰহণ কৰিছে",
+    "rejectionReason": "প্ৰত্যাখ্যানৰ কাৰণ",
+    "reasonNotProvided": "কাৰণ দিয়া হোৱা নাই",
+    "price": "দাম",
+    "total": "মুঠ",
+    "savedOn": "সংৰক্ষিত",
+    "participatedOn": "অংশগ্ৰহণ",
+    "kgUnit": "কেজি"
   }
 }

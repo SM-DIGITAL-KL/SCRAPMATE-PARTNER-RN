@@ -184,7 +184,7 @@ export const getMarketplaceAddress = async (customerId: string | number): Promis
  * This endpoint also marks user marketplace role as M (additive, does not replace core user_type).
  */
 export const upsertMarketplaceAddress = async (
-  data: Omit<SaveAddressData, 'addres_type'>
+  data: Omit<SaveAddressData, 'addres_type' | 'address'> & { address?: string }
 ): Promise<AddressResponse> => {
   const url = buildApiUrl('/v2/addresses/marketplace/upsert');
 

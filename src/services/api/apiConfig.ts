@@ -125,6 +125,7 @@ export const API_ROUTES = {
       accepted: '/v2/bulk-sell/requests/accepted',
       bySeller: (sellerId: string | number) => `/v2/bulk-sell/requests/by-seller/${sellerId}`,
       accept: (requestId: string | number) => `/v2/bulk-sell/requests/${requestId}/accept`,
+      removeBuyer: (requestId: string | number) => `/v2/bulk-sell/requests/${requestId}/accept/remove-buyer`,
       reject: (requestId: string | number) => `/v2/bulk-sell/requests/${requestId}/reject`,
       cancel: (requestId: string | number) => `/v2/bulk-sell/requests/${requestId}/cancel`,
     },

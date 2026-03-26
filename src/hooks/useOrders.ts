@@ -165,7 +165,7 @@ export const useAcceptBulkScrapRequest = () => {
     }: {
       requestId: number;
       userId: number;
-      userType: 'R' | 'S' | 'SR';
+      userType: 'R' | 'S' | 'SR' | 'M';
       quantity?: number;
       biddingPrice?: number;
       images?: Array<{ uri: string; type?: string; name?: string }>;

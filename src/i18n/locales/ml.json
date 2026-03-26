@@ -238,7 +238,9 @@
     "bulkSellRequests": "ബൾക്ക് വിൽപന അഭ്യർത്ഥന",
     "seller": "വിൽപ്പനക്കാരൻ",
     "quantity": "അളവ്",
-    "qntity": "അളവ്"
+    "qntity": "അളവ്",
+    "noBulkSellRequests": "ബൾക്ക് വിൽപന അഭ്യർത്ഥനകളൊന്നും ലഭ്യമല്ല",
+    "nobulksellrequests": "ബൾക്ക് വിൽപന അഭ്യർത്ഥനകളൊന്നും ലഭ്യമല്ല"
   },
   "deliveryTracking": {
     "title": "ഓർഡർ ട്രാക്കിംഗ്",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "അക്കൗണ്ട് ഇല്ലാതാക്കുക",
     "subcategoryRequests": "ഉപവിഭാഗ അഭ്യർത്ഥനകൾ",
     "pendingOrders": "കാത്തിരിക്കുന്ന ഓർഡറുകൾ",
-    "pendingOrdersSubtitle": "പേയ്‌മെന്റ് അംഗീകാരത്തിനായി കാത്തിരിക്കുന്ന ബൾക്ക് വാങ്ങൽ ഓർഡറുകൾ"
+    "pendingOrdersSubtitle": "പേയ്‌മെന്റ് അംഗീകാരത്തിനായി കാത്തിരിക്കുന്ന ബൾക്ക് വാങ്ങൽ ഓർഡറുകൾ",
+    "postsManage": "പോസ്റ്റ് മാനേജ്",
+    "interests": "താൽപര്യങ്ങൾ"
   },
   "addCategory": {
     "title": "വിഭാഗം ചേർക്കുക",
@@ -942,8 +946,8 @@
     "activeCount": "{{count}} സജീവം",
     "bidsCount": "{{count}} ബിഡുകൾ",
     "viewTender": "ടെൻഡർ കാണുക",
-    "bulkBuy": "ബൾക്ക് വാങ്ങൽ",
-    "bulkSell": "ബൾക്ക് വിൽപ്പന",
+    "bulkBuy": "വാങ്ങൽ പോസ്റ്റ് സൃഷ്ടിക്കുക",
+    "bulkSell": "വിൽപ്പന പോസ്റ്റ് സൃഷ്ടിക്കുക",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1041,6 +1045,29 @@
     "subscribeToUnlockChats": "ചാറ്റുകൾ അൺലോക്ക് ചെയ്യാൻ സബ്സ്ക്രൈബ് ചെയ്യൂ",
     "subscribeToUnlockViewProfile": "പ്രൊഫൈൽ കാണാൻ സബ്സ്ക്രൈബ് ചെയ്യൂ",
     "subscribeToUnlockProfile": "പ്രൊഫൈൽ അൺലോക്ക് ചെയ്യാൻ സബ്സ്ക്രൈബ് ചെയ്യൂ",
-    "videoPlayer": "വീഡിയോ പ്ലെയർ"
+    "videoPlayer": "വീഡിയോ പ്ലെയർ",
+    "myPost": "എന്റെ പോസ്റ്റ്",
+    "postsManage": "പോസ്റ്റ് മാനേജ്",
+    "interests": "താൽപര്യങ്ങൾ",
+    "marketplace": "മാർക്കറ്റ്പ്ലേസ്",
+    "adminApprovalStatus": "അഡ്മിൻ അംഗീകാര നില",
+    "approved": "അംഗീകരിച്ചു",
+    "pending": "ബാക്കി",
+    "rejected": "നിരസിച്ചു",
+    "pendingPosts": "ബാക്കി പോസ്റ്റുകൾ",
+    "noPendingPosts": "ബാക്കി പോസ്റ്റുകളില്ല",
+    "participatedPosts": "പങ്കെടുത്ത പോസ്റ്റുകൾ",
+    "noParticipatedPosts": "പങ്കെടുത്ത പോസ്റ്റുകളില്ല",
+    "interestedPosts": "താൽപര്യമുള്ള പോസ്റ്റുകൾ",
+    "noInterestedPosts": "താൽപര്യമുള്ള പോസ്റ്റുകളില്ല",
+    "editPost": "പോസ്റ്റ് തിരുത്തുക",
+    "participated": "പങ്കെടുത്തു",
+    "rejectionReason": "നിരസിച്ച കാരണം",
+    "reasonNotProvided": "കാരണം നൽകിയിട്ടില്ല",
+    "price": "വില",
+    "total": "ആകെ",
+    "savedOn": "സംരക്ഷിച്ചത്",
+    "participatedOn": "പങ്കെടുത്തു",
+    "kgUnit": "കിലോ"
   }
 }

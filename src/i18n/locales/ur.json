@@ -238,7 +238,9 @@
     "bulkSellRequests": "بلک فروخت کی درخواست",
     "seller": "بیچنے والا",
     "quantity": "مقدار",
-    "qntity": "مقدار"
+    "qntity": "مقدار",
+    "noBulkSellRequests": "بلک فروخت کی درخواستیں نہیں",
+    "nobulksellrequests": "بلک فروخت کی درخواستیں نہیں"
   },
   "deliveryTracking": {
     "title": "آرڈر ٹریکنگ",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "اکاؤنٹ حذف کریں",
     "subcategoryRequests": "ضمنی زمرہ کی درخواستیں",
     "pendingOrders": "زیر التواء آرڈرز",
-    "pendingOrdersSubtitle": "ادائیگی کی منظوری کے منتظر بلک خریدنے کے آرڈرز"
+    "pendingOrdersSubtitle": "ادائیگی کی منظوری کے منتظر بلک خریدنے کے آرڈرز",
+    "postsManage": "پوسٹ مینیج",
+    "interests": "دلچسپیاں"
   },
   "addCategory": {
     "title": "زمرہ شامل کریں",
@@ -943,8 +947,8 @@
     "activeCount": "{{count}} فعال",
     "bidsCount": "{{count}} بولیاں",
     "viewTender": "ٹینڈر دیکھیں",
-    "bulkBuy": "بلک خرید",
-    "bulkSell": "بلک فروخت",
+    "bulkBuy": "خرید پوسٹ بنائیں",
+    "bulkSell": "فروخت پوسٹ بنائیں",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1042,6 +1046,29 @@
     "subscribeToUnlockChats": "چیٹس ان لاک کرنے کے لیے سبسکرائب کریں",
     "subscribeToUnlockViewProfile": "پروفائل دیکھنے کے لیے سبسکرائب کریں",
     "subscribeToUnlockProfile": "پروفائل ان لاک کرنے کے لیے سبسکرائب کریں",
-    "videoPlayer": "ویڈیو پلیئر"
+    "videoPlayer": "ویڈیو پلیئر",
+    "myPost": "میری پوسٹ",
+    "postsManage": "پوسٹ مینیج",
+    "interests": "دلچسپیاں",
+    "marketplace": "مارکیٹ پلیس",
+    "adminApprovalStatus": "ایڈمن منظوری اسٹیٹس",
+    "approved": "منظور شدہ",
+    "pending": "زیر التواء",
+    "rejected": "مسترد",
+    "pendingPosts": "زیر التواء پوسٹس",
+    "noPendingPosts": "کوئی زیر التواء پوسٹس نہیں",
+    "participatedPosts": "شرکت شدہ پوسٹس",
+    "noParticipatedPosts": "کوئی شرکت شدہ پوسٹس نہیں",
+    "interestedPosts": "دلچسپی والی پوسٹس",
+    "noInterestedPosts": "کوئی دلچسپی والی پوسٹس نہیں",
+    "editPost": "پوسٹ ترمیم کریں",
+    "participated": "شرکت کی",
+    "rejectionReason": "مسترد کرنے کی وجہ",
+    "reasonNotProvided": "وجہ فراہم نہیں کی گئی",
+    "price": "قیمت",
+    "total": "کل",
+    "savedOn": "محفوظ",
+    "participatedOn": "شرکت کی",
+    "kgUnit": "کلو"
   }
 }

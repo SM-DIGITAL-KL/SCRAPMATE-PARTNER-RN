@@ -238,7 +238,9 @@
     "bulkSellRequests": "बल्क विक्री विनंती",
     "seller": "विक्रेता",
     "quantity": "प्रमाण",
-    "qntity": "प्रमाण"
+    "qntity": "प्रमाण",
+    "noBulkSellRequests": "कोणत्याही बल्क विक्री विनंत्या उपलब्ध नाहीत",
+    "nobulksellrequests": "कोणत्याही बल्क विक्री विनंत्या उपलब्ध नाहीत"
   },
   "deliveryTracking": {
     "title": "ऑर्डर ट्रॅकिंग",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "खाते हटवा",
     "subcategoryRequests": "उपवर्ग विनंत्या",
     "pendingOrders": "प्रलंबित ऑर्डर",
-    "pendingOrdersSubtitle": "पेमेंट मंजुरीच्या प्रतीक्षेत असलेल्या बल्क खरेदी ऑर्डर"
+    "pendingOrdersSubtitle": "पेमेंट मंजुरीच्या प्रतीक्षेत असलेल्या बल्क खरेदी ऑर्डर",
+    "postsManage": "पोस्ट व्यवस्थापन",
+    "interests": "आवडी"
   },
   "addCategory": {
     "title": "श्रेणी जोडा",
@@ -942,8 +946,8 @@
     "activeCount": "{{count}} सक्रिय",
     "bidsCount": "{{count}} बोली",
     "viewTender": "टेंडर पहा",
-    "bulkBuy": "बल्क खरेदी",
-    "bulkSell": "बल्क विक्री",
+    "bulkBuy": "खरेदी पोस्ट तयार करा",
+    "bulkSell": "विक्री पोस्ट तयार करा",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1041,6 +1045,29 @@
     "subscribeToUnlockChats": "चॅट्स अनलॉक करण्यासाठी सदस्यता घ्या",
     "subscribeToUnlockViewProfile": "प्रोफाइल पाहण्यासाठी सदस्यता घ्या",
     "subscribeToUnlockProfile": "प्रोफाइल अनलॉक करण्यासाठी सदस्यता घ्या",
-    "videoPlayer": "व्हिडिओ प्लेअर"
+    "videoPlayer": "व्हिडिओ प्लेअर",
+    "myPost": "माझी पोस्ट",
+    "postsManage": "पोस्ट व्यवस्थापन",
+    "interests": "आवडी",
+    "marketplace": "मार्केटप्लेस",
+    "adminApprovalStatus": "अॅडमिन मंजुरी स्थिती",
+    "approved": "मंजूर",
+    "pending": "प्रलंबित",
+    "rejected": "नाकारले",
+    "pendingPosts": "प्रलंबित पोस्ट",
+    "noPendingPosts": "प्रलंबित पोस्ट नाहीत",
+    "participatedPosts": "सहभागी पोस्ट",
+    "noParticipatedPosts": "सहभागी पोस्ट नाहीत",
+    "interestedPosts": "आवडीच्या पोस्ट",
+    "noInterestedPosts": "आवडीच्या पोस्ट नाहीत",
+    "editPost": "पोस्ट संपादित करा",
+    "participated": "सहभाग घेतला",
+    "rejectionReason": "नकाराचे कारण",
+    "reasonNotProvided": "कारण दिलेले नाही",
+    "price": "किंमत",
+    "total": "एकूण",
+    "savedOn": "जतन केले",
+    "participatedOn": "सहभाग घेतला",
+    "kgUnit": "किलो"
   }
 }

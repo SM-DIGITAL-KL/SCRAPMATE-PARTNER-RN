@@ -238,7 +238,9 @@
     "bulkSellRequests": "மொத்த விற்பனை கோரிக்கை",
     "seller": "விற்பனையாளர்",
     "quantity": "அளவு",
-    "qntity": "அளவு"
+    "qntity": "அளவு",
+    "noBulkSellRequests": "மொத்த விற்பனை கோரிக்கைகள் எதுவும் இல்லை",
+    "nobulksellrequests": "மொத்த விற்பனை கோரிக்கைகள் எதுவும் இல்லை"
   },
   "deliveryTracking": {
     "title": "ஆர்டர் கண்காணிப்பு",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "கணக்கை நீக்கு",
     "subcategoryRequests": "துணைப்பிரிவு கோரிக்கைகள்",
     "pendingOrders": "நிலுவையில் உள்ள ஆர்டர்கள்",
-    "pendingOrdersSubtitle": "கட்டண ஒப்புதலுக்காகக் காத்திருக்கும் மொத்த வாங்குதல் ஆர்டர்கள்"
+    "pendingOrdersSubtitle": "கட்டண ஒப்புதலுக்காகக் காத்திருக்கும் மொத்த வாங்குதல் ஆர்டர்கள்",
+    "postsManage": "பதிவு மேலாண்மை",
+    "interests": "ஆர்வங்கள்"
   },
   "addCategory": {
     "title": "வகையைச் சேர்க்கவும்",
@@ -942,8 +946,8 @@
     "activeCount": "{{count}} செயல்பாட்டில்",
     "bidsCount": "{{count}} பிட்டுகள்",
     "viewTender": "டெண்டரை பார்க்க",
-    "bulkBuy": "மொத்தமாக வாங்க",
-    "bulkSell": "மொத்தமாக விற்க",
+    "bulkBuy": "வாங்கும் பதிவு உருவாக்கவும்",
+    "bulkSell": "விற்பனை பதிவு உருவாக்கவும்",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1041,6 +1045,29 @@
     "subscribeToUnlockChats": "அரட்டையை திறக்க சந்தா செய்யுங்கள்",
     "subscribeToUnlockViewProfile": "சுயவிவரத்தை பார்க்க சந்தா செய்யுங்கள்",
     "subscribeToUnlockProfile": "சுயவிவரத்தை திறக்க சந்தா செய்யுங்கள்",
-    "videoPlayer": "வீடியோ பிளேயர்"
+    "videoPlayer": "வீடியோ பிளேயர்",
+    "myPost": "என் பதிவு",
+    "postsManage": "பதிவு மேலாண்மை",
+    "interests": "ஆர்வங்கள்",
+    "marketplace": "மார்க்கெட்ப்ளேஸ்",
+    "adminApprovalStatus": "நிர்வாக அனுமதி நிலை",
+    "approved": "அங்கீகரிக்கப்பட்டது",
+    "pending": "நிலுவையில்",
+    "rejected": "நிராகரிக்கப்பட்டது",
+    "pendingPosts": "நிலுவை பதிவுகள்",
+    "noPendingPosts": "நிலுவை பதிவுகள் இல்லை",
+    "participatedPosts": "பங்கேற்ற பதிவுகள்",
+    "noParticipatedPosts": "பங்கேற்ற பதிவுகள் இல்லை",
+    "interestedPosts": "ஆர்வப் பதிவுகள்",
+    "noInterestedPosts": "ஆர்வப் பதிவுகள் இல்லை",
+    "editPost": "பதிவை திருத்து",
+    "participated": "பங்கேற்றது",
+    "rejectionReason": "நிராகரிப்பு காரணம்",
+    "reasonNotProvided": "காரணம் வழங்கப்படவில்லை",
+    "price": "விலை",
+    "total": "மொத்தம்",
+    "savedOn": "சேமிக்கப்பட்டது",
+    "participatedOn": "பங்கேற்றது",
+    "kgUnit": "கிலோ"
   }
 }

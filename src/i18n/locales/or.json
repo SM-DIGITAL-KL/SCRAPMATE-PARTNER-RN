@@ -238,7 +238,9 @@
     "bulkSellRequests": "ବଲ୍କ ବିକ୍ରୟ ଅନୁରୋଧ",
     "seller": "ବିକ୍ରେତା",
     "quantity": "ପରିମାଣ",
-    "qntity": "ପରିମାଣ"
+    "qntity": "ପରିମାଣ",
+    "noBulkSellRequests": "କୌଣସି ବଲ୍କ ବିକ୍ରୟ ଅନୁରୋଧ ଉପଲବ୍ଧ ନାହିଁ",
+    "nobulksellrequests": "କୌଣସି ବଲ୍କ ବିକ୍ରୟ ଅନୁରୋଧ ଉପଲବ୍ଧ ନାହିଁ"
   },
   "deliveryTracking": {
     "title": "ଅର୍ଡର୍ ଟ୍ରାକିଂ",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "ଆକାଉଣ୍ଟ୍ ଡିଲିଟ୍ କରନ୍ତୁ",
     "subcategoryRequests": "ଉପ-ବର୍ଗ ଅନୁରୋଧ",
     "pendingOrders": "ବାକି ଥିବା ଅର୍ଡରଗୁଡିକ",
-    "pendingOrdersSubtitle": "ପେମେଣ୍ଟ ଅନୁମୋଦନ ଅପେକ୍ଷାରେ ଥିବା ବଲ୍କ କ୍ରୟ ଅର୍ଡର"
+    "pendingOrdersSubtitle": "ପେମେଣ୍ଟ ଅନୁମୋଦନ ଅପେକ୍ଷାରେ ଥିବା ବଲ୍କ କ୍ରୟ ଅର୍ଡର",
+    "postsManage": "ପୋଷ୍ଟ ପରିଚାଳନା",
+    "interests": "ରୁଚିଗୁଡ଼ିକ"
   },
   "addCategory": {
     "title": "ବର୍ଗ ଯୋଡ଼ନ୍ତୁ",
@@ -942,8 +946,8 @@
     "activeCount": "{{count}} ସକ୍ରିୟ",
     "bidsCount": "{{count}} ବିଡ୍",
     "viewTender": "ଟେଣ୍ଡର ଦେଖନ୍ତୁ",
-    "bulkBuy": "ବଲ୍କ କିଣନ୍ତୁ",
-    "bulkSell": "ବଲ୍କ ବିକ୍ରୟ",
+    "bulkBuy": "କ୍ରୟ ପୋଷ୍ଟ ସୃଷ୍ଟି କରନ୍ତୁ",
+    "bulkSell": "ବିକ୍ରୟ ପୋଷ୍ଟ ସୃଷ୍ଟି କରନ୍ତୁ",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1041,6 +1045,29 @@
     "subscribeToUnlockChats": "ଚ୍ୟାଟ୍ ଖୋଲିବାକୁ ସବସ୍କ୍ରାଇବ କରନ୍ତୁ",
     "subscribeToUnlockViewProfile": "ପ୍ରୋଫାଇଲ୍ ଦେଖିବାକୁ ସବସ୍କ୍ରାଇବ କରନ୍ତୁ",
     "subscribeToUnlockProfile": "ପ୍ରୋଫାଇଲ୍ ଖୋଲିବାକୁ ସବସ୍କ୍ରାଇବ କରନ୍ତୁ",
-    "videoPlayer": "ଭିଡିଓ ପ୍ଲେୟର"
+    "videoPlayer": "ଭିଡିଓ ପ୍ଲେୟର",
+    "myPost": "ମୋ ପୋଷ୍ଟ",
+    "postsManage": "ପୋଷ୍ଟ ପରିଚାଳନା",
+    "interests": "ରୁଚିଗୁଡ଼ିକ",
+    "marketplace": "ମାର୍କେଟପ୍ଲେସ",
+    "adminApprovalStatus": "ଆଡମିନ ଅନୁମୋଦନ ସ୍ଥିତି",
+    "approved": "ଅନୁମୋଦିତ",
+    "pending": "ଅପେକ୍ଷାରତ",
+    "rejected": "ଅସ୍ୱୀକୃତ",
+    "pendingPosts": "ଅପେକ୍ଷାରତ ପୋଷ୍ଟ",
+    "noPendingPosts": "କୌଣସି ଅପେକ୍ଷାରତ ପୋଷ୍ଟ ନାହିଁ",
+    "participatedPosts": "ଅଂଶଗ୍ରହଣ ପୋଷ୍ଟ",
+    "noParticipatedPosts": "କୌଣସି ଅଂଶଗ୍ରହଣ ପୋଷ୍ଟ ନାହିଁ",
+    "interestedPosts": "ରୁଚି ପୋଷ୍ଟ",
+    "noInterestedPosts": "କୌଣସି ରୁଚି ପୋଷ୍ଟ ନାହିଁ",
+    "editPost": "ପୋଷ୍ଟ ସମ୍ପାଦନ",
+    "participated": "ଅଂଶଗ୍ରହଣ କରିଛନ୍ତି",
+    "rejectionReason": "ଅସ୍ୱୀକାର କାରଣ",
+    "reasonNotProvided": "କାରଣ ଦିଆଯାଇନି",
+    "price": "ଦର",
+    "total": "ମୋଟ",
+    "savedOn": "ସେଭ ହୋଇଛି",
+    "participatedOn": "ଅଂଶଗ୍ରହଣ",
+    "kgUnit": "କିଗ୍ରା"
   }
 }

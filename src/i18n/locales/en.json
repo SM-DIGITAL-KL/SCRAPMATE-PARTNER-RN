@@ -261,7 +261,9 @@
     "bulkSellRequests": "Bulk Sell Requests",
     "seller": "Seller",
     "quantity": "Quantity",
-    "qntity": "Quantity"
+    "qntity": "Quantity",
+    "noBulkSellRequests": "No bulk sell requests available",
+    "nobulksellrequests": "No bulk sell requests available"
   },
   "sort": {
     "sortBy": "Sort By",
@@ -370,7 +372,9 @@
     "deleteAccountTitle": "Delete Account",
     "deleteAccountMessage": "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.",
     "pendingOrders": "Pending Orders",
-    "pendingOrdersSubtitle": "Bulk buy orders awaiting payment approval"
+    "pendingOrdersSubtitle": "Bulk buy orders awaiting payment approval",
+    "postsManage": "Posts Manage",
+    "interests": "Interests"
   },
   "addCategory": {
     "title": "Add Category",
@@ -964,16 +968,16 @@
     "market": "Market",
     "tenders": "Tenders",
     "allPost": "All Posts",
-    "buyPost": "Buy Post",
-    "sellPostTab": "Sell Post",
+    "buyPost": "Buy post",
+    "sellPostTab": "Sell post",
     "searchPost": "Search post...",
     "liveTenders": "Live Tenders",
     "tendersSubtitle": "Explore active tenders near you and place your bid before closing.",
     "activeCount": "{{count}} Active",
     "bidsCount": "{{count}} bids",
     "viewTender": "View Tender",
-    "bulkBuy": "Bulk Buy",
-    "bulkSell": "Bulk Sell",
+    "bulkBuy": "Create Buy Post",
+    "bulkSell": "Create Sell Post",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1071,6 +1075,29 @@
     "subscribeToUnlockChats": "Subscribe to unlock chats",
     "subscribeToUnlockViewProfile": "Subscribe to unlock view profile",
     "subscribeToUnlockProfile": "Subscribe to unlock profile",
-    "videoPlayer": "Video Player"
+    "videoPlayer": "Video Player",
+    "myPost": "My post",
+    "postsManage": "Posts Manage",
+    "interests": "Interests",
+    "marketplace": "Marketplace",
+    "adminApprovalStatus": "Admin Approval Status",
+    "approved": "Approved",
+    "pending": "Pending",
+    "rejected": "Rejected",
+    "pendingPosts": "Pending Posts",
+    "noPendingPosts": "No pending posts",
+    "participatedPosts": "Participated Posts",
+    "noParticipatedPosts": "No participated posts",
+    "interestedPosts": "Interested Posts",
+    "noInterestedPosts": "No interested posts",
+    "editPost": "Edit post",
+    "participated": "Participated",
+    "rejectionReason": "Rejection reason",
+    "reasonNotProvided": "Reason not provided",
+    "price": "Price",
+    "total": "Total",
+    "savedOn": "Saved",
+    "participatedOn": "Participated",
+    "kgUnit": "kg"
   }
 }

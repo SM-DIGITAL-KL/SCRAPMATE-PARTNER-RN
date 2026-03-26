@@ -9,6 +9,12 @@ export interface AppVersionResponse {
   };
 }
 
+const extractNumericVersion = (version: string): string => {
+  if (!version || typeof version !== 'string') return '0.0.0';
+  const match = version.trim().match(/\d+(?:\.\d+)*/);
+  return match ? match[0] : '0.0.0';
+};
+
 /**
  * Get the latest app version from the backend
  */
@@ -48,8 +54,11 @@ export const getLatestAppVersion = async (): Promise<string> => {
  * Returns: 1 if version1 > version2, -1 if version1 < version2, 0 if equal
  */
 export const compareVersions = (version1: string, version2: string): number => {
-  const v1Parts = version1.split('.').map(Number);
-  const v2Parts = version2.split('.').map(Number);
+  const cleanVersion1 = extractNumericVersion(version1);
+  const cleanVersion2 = extractNumericVersion(version2);
+
+  const v1Parts = cleanVersion1.split('.').map((part) => Number.parseInt(part, 10) || 0);
+  const v2Parts = cleanVersion2.split('.').map((part) => Number.parseInt(part, 10) || 0);
   
   const maxLength = Math.max(v1Parts.length, v2Parts.length);
   
@@ -70,7 +79,15 @@ export const compareVersions = (version1: string, version2: string): number => {
 export const checkForUpdate = async (): Promise<{ updateAvailable: boolean; latestVersion: string; currentVersion: string }> => {
   const currentVersion = APP_VERSION;
   const latestVersion = await getLatestAppVersion();
-  const updateAvailable = compareVersions(latestVersion, currentVersion) > 0;
+  const compareResult = compareVersions(latestVersion, currentVersion);
+  const updateAvailable = compareResult > 0;
+
+  console.log('📊 Version comparison:', {
+    currentVersion,
+    latestVersion,
+    updateAvailable,
+    compareResult,
+  });
   
   return {
     updateAvailable,
@@ -78,4 +95,3 @@ export const checkForUpdate = async (): Promise<{ updateAvailable: boolean; late
     currentVersion,
   };
 };
-

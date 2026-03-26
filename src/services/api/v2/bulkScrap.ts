@@ -209,6 +209,7 @@ export interface BulkScrapRequestsResponse {
 export interface BulkScrapFeedQueryOptions {
   page?: number;
   limit?: number;
+  includeAll?: boolean;
   state?: string;
   sortBy?: 'created_at' | 'price' | 'post_star' | 'distance';
   sortOrder?: 'asc' | 'desc';
@@ -244,6 +245,9 @@ export const getBulkScrapRequests = async (
   }
   if (options?.limit !== undefined) {
     url += `&limit=${options.limit}`;
+  }
+  if (options?.includeAll) {
+    url += '&include_all=1';
   }
   if (options?.state) {
     url += `&state=${encodeURIComponent(options.state)}`;
@@ -329,7 +333,7 @@ export interface RejectBulkScrapRequestResponse {
 export const acceptBulkScrapRequest = async (
   requestId: string | number,
   userId: number,
-  userType: 'R' | 'S' | 'SR',
+  userType: 'R' | 'S' | 'SR' | 'M',
   quantity?: number, // Optional: quantity to commit (in kgs)
   biddingPrice?: number, // Optional: bidding price per kg
   images?: Array<{ uri: string; type?: string; name?: string }> // Optional: images of scrap (up to 6)

@@ -236,6 +236,7 @@ export interface BulkFeedQueryOptions {
   state?: string;
   sortBy?: 'created_at' | 'price' | 'post_star' | 'distance';
   sortOrder?: 'asc' | 'desc';
+  includeAll?: boolean;
   minStar?: number;
   maxStar?: number;
   minPrice?: number;
@@ -278,6 +279,9 @@ export const getBulkSellRequests = async (
   }
   if (options?.sortOrder) {
     url += `&sort_order=${encodeURIComponent(options.sortOrder)}`;
+  }
+  if (options?.includeAll) {
+    url += '&include_all=true';
   }
   if (options?.minStar !== undefined) {
     url += `&min_star=${options.minStar}`;
@@ -430,7 +434,7 @@ export interface AcceptBulkSellResponse {
 
 /**
  * Accept/buy from a bulk sell request
- * Both 'S' and 'R' type users can accept
+ * S/R/SR/M users can accept
  */
 export const acceptBulkSellRequest = async (
   requestId: number,
@@ -527,6 +531,48 @@ export const rejectBulkSellRequest = async (
   if (!response.ok) {
     console.error('❌ Reject bulk sell request failed:', data);
     throw new Error(data.msg || 'Failed to reject bulk sell request');
+  }
+
+  return data;
+};
+
+export interface RemoveBuyerFromBulkSellResponse {
+  status: 'success' | 'error';
+  msg: string;
+  data: {
+    request_id: number;
+    buyer_removed: boolean;
+    removed_buyer_id: number;
+    total_committed_quantity: number;
+    request_status: string;
+  } | null;
+}
+
+/**
+ * Remove a buyer from accepted buyers list (seller only)
+ */
+export const removeBuyerFromBulkSellRequest = async (
+  requestId: number,
+  sellerId: number,
+  buyerUserId: number,
+  reason?: string
+): Promise<RemoveBuyerFromBulkSellResponse> => {
+  const url = buildApiUrl(API_ROUTES.v2.bulkSell.removeBuyer(requestId));
+  const headers = getApiHeaders();
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      seller_id: sellerId,
+      buyer_user_id: buyerUserId,
+      reason: reason || null,
+    }),
+  });
+
+  const data: RemoveBuyerFromBulkSellResponse = await response.json();
+  if (!response.ok || data.status === 'error') {
+    throw new Error(data.msg || 'Failed to remove buyer from bulk sell request');
   }
 
   return data;

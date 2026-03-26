@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Platform } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Platform, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { checkForUpdate } from '../services/api/v2/appVersion';
 
@@ -11,6 +11,7 @@ export const useAppUpdate = () => {
   const [latestVersion, setLatestVersion] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const isCheckingRef = useRef(false);
 
   const checkUpdate = useCallback(async (forceCheck: boolean = false) => {
     // Skip update check on iOS
@@ -20,6 +21,11 @@ export const useAppUpdate = () => {
       return;
     }
     try {
+      if (isCheckingRef.current) {
+        return;
+      }
+
+      isCheckingRef.current = true;
       setIsChecking(true);
 
       // Check if we need to check again (throttle checks)
@@ -61,19 +67,39 @@ export const useAppUpdate = () => {
       await AsyncStorage.setItem(LAST_UPDATE_CHECK_KEY, Date.now().toString());
     } catch (error) {
       console.error('❌ Error checking for updates:', error);
-      // Don't show error to user, just log it
-      setUpdateAvailable(false);
-      setShowUpdateModal(false);
+      // Keep existing UI state on transient failures; next retry can recover.
     } finally {
+      isCheckingRef.current = false;
       setIsChecking(false);
     }
   }, []);
 
   useEffect(() => {
     // Check for updates on mount (only on Android)
-    if (Platform.OS === 'android') {
-      checkUpdate(false);
-    }
+    if (Platform.OS !== 'android') return;
+
+    checkUpdate(true);
+
+    // Retry shortly after startup to handle API/session not-ready timing.
+    const retry1 = setTimeout(() => checkUpdate(true), 5000);
+    const retry2 = setTimeout(() => checkUpdate(true), 20000);
+
+    return () => {
+      clearTimeout(retry1);
+      clearTimeout(retry2);
+    };
+  }, [checkUpdate]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        checkUpdate(false);
+      }
+    });
+
+    return () => subscription.remove();
   }, [checkUpdate]);
 
   return {
@@ -85,4 +111,3 @@ export const useAppUpdate = () => {
     checkUpdate,
   };
 };
-

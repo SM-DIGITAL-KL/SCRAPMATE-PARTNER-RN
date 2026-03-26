@@ -238,7 +238,9 @@
     "bulkSellRequests": "బల్క్ అమ్మకం అభ్యర్థన",
     "seller": "విక్రేత",
     "quantity": "పరిమాణం",
-    "qntity": "పరిమాణం"
+    "qntity": "పరిమాణం",
+    "noBulkSellRequests": "బల్క్ అమ్మకపు అభ్యర్థనలు లేవు",
+    "nobulksellrequests": "బల్క్ అమ్మకపు అభ్యర్థనలు లేవు"
   },
   "deliveryTracking": {
     "title": "ఆర్డర్ ట్రాకింగ్",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "ఖాతాను తొలగించు",
     "subcategoryRequests": "ఉప వర్గం అభ్యర్థనలు",
     "pendingOrders": "పెండింగ్ ఆర్డర్లు",
-    "pendingOrdersSubtitle": "చెల్లింపు ఆమోదం కోసం వేచి ఉన్న బల్క్ కొనుగోలు ఆర్డర్లు"
+    "pendingOrdersSubtitle": "చెల్లింపు ఆమోదం కోసం వేచి ఉన్న బల్క్ కొనుగోలు ఆర్డర్లు",
+    "postsManage": "పోస్ట్ నిర్వహణ",
+    "interests": "ఆసక్తులు"
   },
   "addCategory": {
     "title": "వర్గాన్ని జోడించండి",
@@ -943,8 +947,8 @@
     "activeCount": "{{count}} యాక్టివ్",
     "bidsCount": "{{count}} బిడ్లు",
     "viewTender": "టెండర్ చూడండి",
-    "bulkBuy": "బల్క్ కొనుగోలు",
-    "bulkSell": "బల్క్ అమ్మకం",
+    "bulkBuy": "కొనుగోలు పోస్ట్ సృష్టించండి",
+    "bulkSell": "అమ్మకపు పోస్ట్ సృష్టించండి",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1042,6 +1046,29 @@
     "subscribeToUnlockChats": "చాట్స్ అన్‌లాక్ చేయడానికి సభ్యత్వం పొందండి",
     "subscribeToUnlockViewProfile": "ప్రొఫైల్ చూడడానికి సభ్యత్వం పొందండి",
     "subscribeToUnlockProfile": "ప్రొఫైల్ అన్‌లాక్ చేయడానికి సభ్యత్వం పొందండి",
-    "videoPlayer": "వీడియో ప్లేయర్"
+    "videoPlayer": "వీడియో ప్లేయర్",
+    "myPost": "నా పోస్ట్",
+    "postsManage": "పోస్ట్ నిర్వహణ",
+    "interests": "ఆసక్తులు",
+    "marketplace": "మార్కెట్‌ప్లేస్",
+    "adminApprovalStatus": "అడ్మిన్ ఆమోద స్థితి",
+    "approved": "ఆమోదించబడింది",
+    "pending": "పెండింగ్",
+    "rejected": "తిరస్కరించబడింది",
+    "pendingPosts": "పెండింగ్ పోస్టులు",
+    "noPendingPosts": "పెండింగ్ పోస్టులు లేవు",
+    "participatedPosts": "పాల్గొన్న పోస్టులు",
+    "noParticipatedPosts": "పాల్గొన్న పోస్టులు లేవు",
+    "interestedPosts": "ఆసక్తి పోస్టులు",
+    "noInterestedPosts": "ఆసక్తి పోస్టులు లేవు",
+    "editPost": "పోస్ట్ సవరించండి",
+    "participated": "పాల్గొన్నారు",
+    "rejectionReason": "తిరస్కరణ కారణం",
+    "reasonNotProvided": "కారణం ఇవ్వలేదు",
+    "price": "ధర",
+    "total": "మొత్తం",
+    "savedOn": "సేవ్ చేయబడింది",
+    "participatedOn": "పాల్గొన్నారు",
+    "kgUnit": "కిలో"
   }
 }

@@ -238,7 +238,9 @@
     "bulkSellRequests": "ਥੋਕ ਵੇਚ ਮੰਗ",
     "seller": "ਵਿਕਰੇਤਾ",
     "quantity": "ਮਾਤਰਾ",
-    "qntity": "ਮਾਤਰਾ"
+    "qntity": "ਮਾਤਰਾ",
+    "noBulkSellRequests": "ਕੋਈ ਥੋਕ ਵੇਚ ਮੰਗ ਉਪਲਬਧ ਨਹੀਂ",
+    "nobulksellrequests": "ਕੋਈ ਥੋਕ ਵੇਚ ਮੰਗ ਉਪਲਬਧ ਨਹੀਂ"
   },
   "deliveryTracking": {
     "title": "ਆਰਡਰ ਟ੍ਰੈਕਿੰਗ",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "ਖਾਤਾ ਮਿਟਾਓ",
     "subcategoryRequests": "ਉਪ-ਸ਼੍ਰੇਣੀ ਮੰਗਾਂ",
     "pendingOrders": "ਬਕਾਇਆ ਆਰਡਰ",
-    "pendingOrdersSubtitle": "ਭੁਗਤਾਨ ਦੀ ਮਨਜ਼ੂਰੀ ਦੀ ਉਡੀਕ ਕਰ ਰਹੇ ਥੋਕ ਖਰੀਦ ਆਰਡਰ"
+    "pendingOrdersSubtitle": "ਭੁਗਤਾਨ ਦੀ ਮਨਜ਼ੂਰੀ ਦੀ ਉਡੀਕ ਕਰ ਰਹੇ ਥੋਕ ਖਰੀਦ ਆਰਡਰ",
+    "postsManage": "ਪੋਸਟ ਮੈਨੇਜ",
+    "interests": "ਰੁਚੀਆਂ"
   },
   "addCategory": {
     "title": "ਸ਼੍ਰੇਣੀ ਜੋੜੋ",
@@ -935,15 +939,15 @@
     "tenders": "ਟੈਂਡਰ",
     "allPost": "ਸਾਰੀਆਂ ਪੋਸਟਾਂ",
     "buyPost": "ਖਰੀਦ ਪੋਸਟ",
-    "sellPostTab": "ਵੇਚੋ ਪੋਸਟ",
+    "sellPostTab": "ਵੇਚਣ ਪੋਸਟ",
     "searchPost": "ਪੋਸਟ ਖੋਜੋ...",
     "liveTenders": "ਲਾਈਵ ਟੈਂਡਰ",
     "tendersSubtitle": "ਆਪਣੇ ਨੇੜੇ ਸਰਗਰਮ ਟੈਂਡਰ ਵੇਖੋ ਅਤੇ ਬੰਦ ਹੋਣ ਤੋਂ ਪਹਿਲਾਂ ਬੋਲੀ ਲਗਾਓ।",
     "activeCount": "{{count}} ਸਰਗਰਮ",
     "bidsCount": "{{count}} ਬੋਲੀਆਂ",
     "viewTender": "ਟੈਂਡਰ ਵੇਖੋ",
-    "bulkBuy": "ਬਲਕ ਖਰੀਦ",
-    "bulkSell": "ਬਲਕ ਵੇਚੋ",
+    "bulkBuy": "ਖਰੀਦ ਪੋਸਟ ਬਣਾਓ",
+    "bulkSell": "ਵਿਕਰੀ ਪੋਸਟ ਬਣਾਓ",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1041,6 +1045,29 @@
     "subscribeToUnlockChats": "ਚੈਟ ਅਨਲੌਕ ਕਰਨ ਲਈ ਸਬਸਕ੍ਰਾਈਬ ਕਰੋ",
     "subscribeToUnlockViewProfile": "ਪ੍ਰੋਫਾਈਲ ਵੇਖਣ ਲਈ ਸਬਸਕ੍ਰਾਈਬ ਕਰੋ",
     "subscribeToUnlockProfile": "ਪ੍ਰੋਫਾਈਲ ਅਨਲੌਕ ਕਰਨ ਲਈ ਸਬਸਕ੍ਰਾਈਬ ਕਰੋ",
-    "videoPlayer": "ਵੀਡੀਓ ਪਲੇਅਰ"
+    "videoPlayer": "ਵੀਡੀਓ ਪਲੇਅਰ",
+    "myPost": "ਮੇਰੀ ਪੋਸਟ",
+    "postsManage": "ਪੋਸਟ ਮੈਨੇਜ",
+    "interests": "ਰੁਚੀਆਂ",
+    "marketplace": "ਮਾਰਕੀਟਪਲੇਸ",
+    "adminApprovalStatus": "ਐਡਮਿਨ ਮਨਜ਼ੂਰੀ ਸਥਿਤੀ",
+    "approved": "ਮਨਜ਼ੂਰ",
+    "pending": "ਬਕਾਇਆ",
+    "rejected": "ਅਸਵੀਕਾਰ",
+    "pendingPosts": "ਬਕਾਇਆ ਪੋਸਟਾਂ",
+    "noPendingPosts": "ਕੋਈ ਬਕਾਇਆ ਪੋਸਟ ਨਹੀਂ",
+    "participatedPosts": "ਭਾਗ ਲਿਆ ਪੋਸਟਾਂ",
+    "noParticipatedPosts": "ਕੋਈ ਭਾਗ ਲਿਆ ਪੋਸਟ ਨਹੀਂ",
+    "interestedPosts": "ਰੁਚੀ ਵਾਲੀਆਂ ਪੋਸਟਾਂ",
+    "noInterestedPosts": "ਕੋਈ ਰੁਚੀ ਵਾਲੀ ਪੋਸਟ ਨਹੀਂ",
+    "editPost": "ਪੋਸਟ ਸੋਧੋ",
+    "participated": "ਭਾਗ ਲਿਆ",
+    "rejectionReason": "ਅਸਵੀਕਾਰ ਕਰਨ ਦਾ ਕਾਰਨ",
+    "reasonNotProvided": "ਕਾਰਨ ਨਹੀਂ ਦਿੱਤਾ ਗਿਆ",
+    "price": "ਕੀਮਤ",
+    "total": "ਕੁੱਲ",
+    "savedOn": "ਸੰਭਾਲਿਆ",
+    "participatedOn": "ਭਾਗ ਲਿਆ",
+    "kgUnit": "ਕਿਲੋ"
   }
 }

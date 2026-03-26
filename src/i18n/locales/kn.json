@@ -238,7 +238,9 @@
     "bulkSellRequests": "ಬಲ್ಕ್ ಮಾರಾಟ ವಿನಂತಿ",
     "seller": "ಮಾರಾಟಗಾರ",
     "quantity": "ಪ್ರಮಾಣ",
-    "qntity": "ಪ್ರಮಾಣ"
+    "qntity": "ಪ್ರಮಾಣ",
+    "noBulkSellRequests": "ಯಾವುದೇ ಬಲ್ಕ್ ಮಾರಾಟ ವಿನಂತಿಗಳು ಲಭ್ಯವಿಲ್ಲ",
+    "nobulksellrequests": "ಯಾವುದೇ ಬಲ್ಕ್ ಮಾರಾಟ ವಿನಂತಿಗಳು ಲಭ್ಯವಿಲ್ಲ"
   },
   "deliveryTracking": {
     "title": "ಆರ್ಡರ್ ಟ್ರ್ಯಾಕಿಂಗ್",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "ಖಾತೆಯನ್ನು ಅಳಿಸಿ",
     "subcategoryRequests": "ಉಪವರ್ಗ ವಿನಂತಿಗಳು",
     "pendingOrders": "ಬಾಕಿ ಉಳಿದಿರುವ ಆರ್ಡರ್‌ಗಳು",
-    "pendingOrdersSubtitle": "ಪಾವತಿ ಅನುಮೋದನೆಗಾಗಿ ಕಾಯುತ್ತಿರುವ ಬಲ್ಕ್ ಖರೀದಿ ಆರ್ಡರ್‌ಗಳು"
+    "pendingOrdersSubtitle": "ಪಾವತಿ ಅನುಮೋದನೆಗಾಗಿ ಕಾಯುತ್ತಿರುವ ಬಲ್ಕ್ ಖರೀದಿ ಆರ್ಡರ್‌ಗಳು",
+    "postsManage": "ಪೋಸ್ಟ್ ನಿರ್ವಹಣೆ",
+    "interests": "ಆಸಕ್ತಿಗಳು"
   },
   "addCategory": {
     "title": "ವರ್ಗವನ್ನು ಸೇರಿಸಿ",
@@ -942,8 +946,8 @@
     "activeCount": "{{count}} ಸಕ್ರಿಯ",
     "bidsCount": "{{count}} ಬಿಡ್‌ಗಳು",
     "viewTender": "ಟೆಂಡರ್ ನೋಡಿ",
-    "bulkBuy": "ಬಲ್ಕ್ ಖರೀದಿ",
-    "bulkSell": "ಬಲ್ಕ್ ಮಾರಾಟ",
+    "bulkBuy": "ಖರೀದಿ ಪೋಸ್ಟ್ ರಚಿಸಿ",
+    "bulkSell": "ಮಾರಾಟ ಪೋಸ್ಟ್ ರಚಿಸಿ",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1041,6 +1045,29 @@
     "subscribeToUnlockChats": "ಚಾಟ್‌ಗಳನ್ನು ಅನ್ಲಾಕ್ ಮಾಡಲು ಸಬ್ಸ್ಕ್ರೈಬ್ ಮಾಡಿ",
     "subscribeToUnlockViewProfile": "ಪ್ರೊಫೈಲ್ ನೋಡಲು ಸಬ್ಸ್ಕ್ರೈಬ್ ಮಾಡಿ",
     "subscribeToUnlockProfile": "ಪ್ರೊಫೈಲ್ ಅನ್ಲಾಕ್ ಮಾಡಲು ಸಬ್ಸ್ಕ್ರೈಬ್ ಮಾಡಿ",
-    "videoPlayer": "ವೀಡಿಯೊ ಪ್ಲೇಯರ್"
+    "videoPlayer": "ವೀಡಿಯೊ ಪ್ಲೇಯರ್",
+    "myPost": "ನನ್ನ ಪೋಸ್ಟ್",
+    "postsManage": "ಪೋಸ್ಟ್ ನಿರ್ವಹಣೆ",
+    "interests": "ಆಸಕ್ತಿಗಳು",
+    "marketplace": "ಮಾರ್ಕೆಟ್‌ಪ್ಲೇಸ್",
+    "adminApprovalStatus": "ಆಡ್ಮಿನ್ ಅನುಮೋದನೆ ಸ್ಥಿತಿ",
+    "approved": "ಅನುಮೋದಿತ",
+    "pending": "ಬಾಕಿ",
+    "rejected": "ತಿರಸ್ಕರಿಸಲಾಗಿದೆ",
+    "pendingPosts": "ಬಾಕಿ ಪೋಸ್ಟ್‌ಗಳು",
+    "noPendingPosts": "ಬಾಕಿ ಪೋಸ್ಟ್‌ಗಳಿಲ್ಲ",
+    "participatedPosts": "ಭಾಗವಹಿಸಿದ ಪೋಸ್ಟ್‌ಗಳು",
+    "noParticipatedPosts": "ಭಾಗವಹಿಸಿದ ಪೋಸ್ಟ್‌ಗಳಿಲ್ಲ",
+    "interestedPosts": "ಆಸಕ್ತಿ ಪೋಸ್ಟ್‌ಗಳು",
+    "noInterestedPosts": "ಆಸಕ್ತಿ ಪೋಸ್ಟ್‌ಗಳಿಲ್ಲ",
+    "editPost": "ಪೋಸ್ಟ್ ತಿದ್ದು",
+    "participated": "ಭಾಗವಹಿಸಿದ್ದಾರೆ",
+    "rejectionReason": "ತಿರಸ್ಕಾರದ ಕಾರಣ",
+    "reasonNotProvided": "ಕಾರಣ ನೀಡಲಾಗಿಲ್ಲ",
+    "price": "ಬೆಲೆ",
+    "total": "ಒಟ್ಟು",
+    "savedOn": "ಉಳಿಸಲಾಗಿದೆ",
+    "participatedOn": "ಭಾಗವಹಿಸಿದರು",
+    "kgUnit": "ಕೆಜಿ"
   }
 }

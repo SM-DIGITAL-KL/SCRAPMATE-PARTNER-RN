@@ -238,7 +238,9 @@
     "bulkSellRequests": "थोक बिक्री अनुरोध",
     "seller": "विक्रेता",
     "quantity": "मात्रा",
-    "qntity": "मात्रा"
+    "qntity": "मात्रा",
+    "noBulkSellRequests": "कोई थोक बिक्री अनुरोध उपलब्ध नहीं है",
+    "nobulksellrequests": "कोई थोक बिक्री अनुरोध उपलब्ध नहीं है"
   },
   "deliveryTracking": {
     "title": "ऑर्डर ट्रैकिंग",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "खाता हटाएं",
     "subcategoryRequests": "उपश्रेणी अनुरोध",
     "pendingOrders": "लंबित ऑर्डर",
-    "pendingOrdersSubtitle": "भुगतान अनुमोदन की प्रतीक्षा में थोक खरीद ऑर्डर"
+    "pendingOrdersSubtitle": "भुगतान अनुमोदन की प्रतीक्षा में थोक खरीद ऑर्डर",
+    "postsManage": "पोस्ट प्रबंधन",
+    "interests": "रुचियां"
   },
   "addCategory": {
     "title": "श्रेणी जोड़ें",
@@ -935,15 +939,15 @@
     "tenders": "टेंडर",
     "allPost": "सभी पोस्ट",
     "buyPost": "खरीद पोस्ट",
-    "sellPostTab": "बेचें पोस्ट",
+    "sellPostTab": "बिक्री पोस्ट",
     "searchPost": "पोस्ट खोजें...",
     "liveTenders": "लाइव टेंडर",
     "tendersSubtitle": "अपने आसपास सक्रिय टेंडर देखें और समय समाप्त होने से पहले बोली लगाएं।",
     "activeCount": "{{count}} सक्रिय",
     "bidsCount": "{{count}} बोलियां",
     "viewTender": "टेंडर देखें",
-    "bulkBuy": "बल्क खरीद",
-    "bulkSell": "बल्क बेचें",
+    "bulkBuy": "खरीद पोस्ट बनाएं",
+    "bulkSell": "बिक्री पोस्ट बनाएं",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1041,6 +1045,29 @@
     "subscribeToUnlockChats": "चैट अनलॉक करने के लिए सदस्यता लें",
     "subscribeToUnlockViewProfile": "प्रोफ़ाइल देखने के लिए सदस्यता लें",
     "subscribeToUnlockProfile": "प्रोफ़ाइल अनलॉक करने के लिए सदस्यता लें",
-    "videoPlayer": "वीडियो प्लेयर"
+    "videoPlayer": "वीडियो प्लेयर",
+    "myPost": "मेरी पोस्ट",
+    "postsManage": "पोस्ट प्रबंधन",
+    "interests": "रुचियां",
+    "marketplace": "मार्केटप्लेस",
+    "adminApprovalStatus": "एडमिन अनुमोदन स्थिति",
+    "approved": "स्वीकृत",
+    "pending": "लंबित",
+    "rejected": "अस्वीकृत",
+    "pendingPosts": "लंबित पोस्ट",
+    "noPendingPosts": "कोई लंबित पोस्ट नहीं",
+    "participatedPosts": "सहभागी पोस्ट",
+    "noParticipatedPosts": "कोई सहभागी पोस्ट नहीं",
+    "interestedPosts": "रुचि वाले पोस्ट",
+    "noInterestedPosts": "कोई रुचि वाले पोस्ट नहीं",
+    "editPost": "पोस्ट संपादित करें",
+    "participated": "भाग लिया",
+    "rejectionReason": "अस्वीकृति का कारण",
+    "reasonNotProvided": "कारण नहीं दिया गया",
+    "price": "कीमत",
+    "total": "कुल",
+    "savedOn": "सेव किया गया",
+    "participatedOn": "भाग लिया",
+    "kgUnit": "किग्रा"
   }
 }

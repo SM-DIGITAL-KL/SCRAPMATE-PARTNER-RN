@@ -238,7 +238,9 @@
     "bulkSellRequests": "બલ્ક વેચાણ વિનંતી",
     "seller": "વિક્રેતા",
     "quantity": "પ્રમાણ",
-    "qntity": "પ્રમાણ"
+    "qntity": "પ્રમાણ",
+    "noBulkSellRequests": "કોઈ બલ્ક વેચાણ વિનંતીઓ ઉપલબ્ધ નથી",
+    "nobulksellrequests": "કોઈ બલ્ક વેચાણ વિનંતીઓ ઉપલબ્ધ નથી"
   },
   "deliveryTracking": {
     "title": "ઓર્ડર ટ્રેકિંગ",
@@ -304,7 +306,9 @@
     "deleteAccountTitle": "એકાઉન્ટ કાઢી નાખો",
     "subcategoryRequests": "ઉપશ્રેણી વિનંતીઓ",
     "pendingOrders": "બાકી ઓર્ડર્સ",
-    "pendingOrdersSubtitle": "ચુકવણી મંજૂરી માટે બાકી બલ્ક ખરીદી ઓર્ડર્સ"
+    "pendingOrdersSubtitle": "ચુકવણી મંજૂરી માટે બાકી બલ્ક ખરીદી ઓર્ડર્સ",
+    "postsManage": "પોસ્ટ મેનેજ",
+    "interests": "રસ"
   },
   "addCategory": {
     "title": "કેટેગરી ઉમેરો",
@@ -941,8 +945,8 @@
     "activeCount": "{{count}} સક્રિય",
     "bidsCount": "{{count}} બોલી",
     "viewTender": "ટેન્ડર જુઓ",
-    "bulkBuy": "બલ્ક ખરીદી",
-    "bulkSell": "બલ્ક વેચાણ",
+    "bulkBuy": "ખરીદી પોસ્ટ બનાવો",
+    "bulkSell": "વેચાણ પોસ્ટ બનાવો",
     "sellPost": "Sell post",
     "imagesVideos": "Images/Videos",
     "noteMaxImages": "NOTE: Maximum 10 images should be 2MB",
@@ -1040,6 +1044,29 @@
     "subscribeToUnlockChats": "ચેટ્સ અનલૉક કરવા સબ્સ્ક્રાઇબ કરો",
     "subscribeToUnlockViewProfile": "પ્રોફાઇલ જોવા સબ્સ્ક્રાઇબ કરો",
     "subscribeToUnlockProfile": "પ્રોફાઇલ અનલૉક કરવા સબ્સ્ક્રાઇબ કરો",
-    "videoPlayer": "વિડિયો પ્લેયર"
+    "videoPlayer": "વિડિયો પ્લેયર",
+    "myPost": "મારી પોસ્ટ",
+    "postsManage": "પોસ્ટ મેનેજ",
+    "interests": "રસ",
+    "marketplace": "માર્કેટપ્લેસ",
+    "adminApprovalStatus": "એડમિન મંજૂરી સ્થિતિ",
+    "approved": "મંજૂર",
+    "pending": "બાકી",
+    "rejected": "નકારાયેલ",
+    "pendingPosts": "બાકી પોસ્ટ્સ",
+    "noPendingPosts": "કોઈ બાકી પોસ્ટ્સ નથી",
+    "participatedPosts": "ભાગ લીધેલી પોસ્ટ્સ",
+    "noParticipatedPosts": "કોઈ ભાગ લીધેલી પોસ્ટ્સ નથી",
+    "interestedPosts": "રસ ધરાવતી પોસ્ટ્સ",
+    "noInterestedPosts": "કોઈ રસ ધરાવતી પોસ્ટ્સ નથી",
+    "editPost": "પોસ્ટ સંપાદિત કરો",
+    "participated": "ભાગ લીધો",
+    "rejectionReason": "નકારવાનો કારણ",
+    "reasonNotProvided": "કારણ આપવામાં આવ્યું નથી",
+    "price": "કિંમત",
+    "total": "કુલ",
+    "savedOn": "સાચવ્યું",
+    "participatedOn": "ભાગ લીધો",
+    "kgUnit": "કિગ્રા"
   }
 }
