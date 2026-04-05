@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { NativeModules, NativeEventEmitter, Platform, View, ViewStyle, StyleProp } from 'react-native';
+import { NativeModules, DeviceEventEmitter, Platform, View, ViewStyle, StyleProp } from 'react-native';
 
 const { KeyboardControllerModule } = NativeModules;
 
@@ -9,7 +9,6 @@ interface KeyboardProviderProps {
 }
 
 export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children, style }) => {
-  const eventEmitterRef = useRef<NativeEventEmitter | null>(null);
   const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -18,10 +17,8 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children, st
         // Enable keyboard controller on Android
         KeyboardControllerModule.setEnabled(true);
         
-        // Set up event listener for keyboard changes
-        eventEmitterRef.current = new NativeEventEmitter(KeyboardControllerModule);
-        
-        subscriptionRef.current = eventEmitterRef.current.addListener(
+        // Listen through DeviceEventEmitter to avoid NativeEventEmitter warnings
+        subscriptionRef.current = DeviceEventEmitter.addListener(
           'keyboardDidChangeFrame',
           (event: { visible: boolean; height: number }) => {
             // Handle keyboard events if needed
@@ -69,7 +66,6 @@ export const dismissKeyboard = (): Promise<boolean> => {
 };
 
 export default KeyboardProvider;
-
 
 
 

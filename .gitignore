@@ -77,3 +77,6 @@ yarn-error.log
 # Scripts and documentation
 *.sh
 *.md
+
+# Local secret exports
+APIKey.csv

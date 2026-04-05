@@ -38,11 +38,20 @@
 	<true/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
+		<string>amazonpay</string>
 		<string>upi</string>
-		<string>phonepe</string>
+		<string>credpay</string>
 		<string>paytmmp</string>
-		<string>gpay</string>
 		<string>bhim</string>
+		<string>phonepe</string>
+		<string>gpay</string>
+		<string>tez</string>
+		<string>navipay</string>
+		<string>mobikwik</string>
+		<string>myairtel</string>
+		<string>popclubapp</string>
+		<string>super</string>
+		<string>kiwi</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

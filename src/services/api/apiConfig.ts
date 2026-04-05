@@ -99,6 +99,10 @@ export const API_ROUTES = {
       createPaymentRequest: '/v2/instamojo/create-payment-request', // Creates payment request and returns longurl for WebView
       getPaymentDetails: (paymentRequestId: string) => `/v2/instamojo/payment-request/${paymentRequestId}`,
     },
+    cashfree: {
+      createOrder: '/v2/cashfree/create-order',
+      getOrderStatus: (orderId: string) => `/v2/cashfree/orders/${orderId}`,
+    },
     // Category Routes
     categories: {
       list: '/v2/categories',
