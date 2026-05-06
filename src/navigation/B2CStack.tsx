@@ -17,6 +17,7 @@ import PickupStatusScreen from '../screens/B2C/PickupStatusScreen';
 import SelectLanguageScreen from '../screens/B2C/SelectLanguageScreen';
 import PrivacyPolicyScreen from '../screens/Common/PrivacyPolicyScreen';
 import TermsScreen from '../screens/Common/TermsScreen';
+import ContactUsScreen from '../screens/Common/ContactUsScreen';
 import DealerSignupScreen from '../screens/B2B/DealerSignupScreen';
 import DocumentUploadScreen from '../screens/B2B/DocumentUploadScreen';
 import ApprovalWorkflowScreen from '../screens/B2B/ApprovalWorkflowScreen';
@@ -56,6 +57,7 @@ export type B2CStackParamList = {
   SelectLanguage: undefined;
   PrivacyPolicy: undefined;
   Terms: undefined;
+  ContactUs: undefined;
   DealerSignup: undefined;
   DocumentUpload: undefined;
   ApprovalWorkflow: { fromProfile?: boolean } | undefined;
@@ -239,6 +241,7 @@ export const B2CStack = forwardRef<any, {}>((props, ref) => {
       <Stack.Screen name="SelectLanguage" component={SelectLanguageScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="ContactUs" component={ContactUsScreen} />
       <Stack.Screen name="DealerSignup" component={DealerSignupScreen} />
       <Stack.Screen name="DocumentUpload" component={DocumentUploadScreen} />
       <Stack.Screen name="ApprovalWorkflow" component={ApprovalWorkflowScreen} />
